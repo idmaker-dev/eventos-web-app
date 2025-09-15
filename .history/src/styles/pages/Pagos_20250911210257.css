@@ -1,0 +1,123 @@
+.pagos-container {
+  background: #f5f9fc;
+  padding: 20px;
+  border-radius: 10px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.pagos-titulo {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.pagos-subtitulo {
+  font-size: 14px;
+  color: #5f6c7b;
+  margin-bottom: 20px;
+}
+
+.pagos-subtitulo a {
+  color: #2a7de1;
+  text-decoration: none;
+}
+
+
+.pagos-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.buscar {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  width: 200px;
+}
+
+.btn-csv {
+  background: #2a7de1;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pagos-tabla {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.pagos-encabezados, .pagos-fila {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 1fr 1fr;
+  align-items: center;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.pagos-encabezados {
+  background: #f0f4f8;
+  font-weight: 600;
+}
+
+.pagos-fila:nth-child(even) {
+  background: #fafbfc;
+}
+
+.barra-progreso {
+  background: #e5e7eb;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.barra-fill {
+  height: 100%;
+  background: #6fcf97;
+  border-radius: 5px;
+}
+
+.col-pagado {
+  font-weight: 600;
+  color: #333;
+}
+
+/* Estados */
+.estado {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  width: fit-content;
+}
+
+.estado.pendiente {
+  background: #fff7e6;
+  color: #b7791f;
+}
+
+.estado.aprobado {
+  background: #e6fffa;
+  color: #0f766e;
+}
+
+.estado.parcial {
+  background: #ffe6e6;
+  color: #b91c1c;
+}
+
+.btn-accion {
+  background: #edf2f7;
+  color: #2a7de1;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}

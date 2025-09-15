@@ -1,0 +1,665 @@
+/*CÍRCULO Y NÚMEROS*/
+.metric-circle {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.circle-wrapper {
+  position: relative;
+  width: 120px; 
+  height: 120px;
+}
+
+.circle-text {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.circle-value {
+  font-size: 22px;
+  font-weight: bold;
+  color: #000;
+  margin-top: 35px;
+}
+.circle-sub {
+  font-size: 10px;
+  color: gray;
+  margin-top: 2px;
+}
+
+/*BASE DEL DASHBOARD*/
+.dashboard-container {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #e9f0f6;
+  color: #333;
+  max-width: 1400px; 
+  margin: 0 auto;
+}
+.dashboard-titulo {
+  position: relative;
+  z-index: 10;  
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #a3a2a2;
+}
+
+/*PANEL GENERAL*/
+.dashboard-panel {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 2px 6px #00000014;
+  margin-bottom: 30px;
+  align-items: stretch;
+}
+
+.dashboard-panel-left {
+  display: flex;
+  flex-direction: column;
+}
+/*CALENDARIO*/
+.dashboard-panel-right {
+  display: flex;
+  flex: 1;  
+  align-items: stretch; 
+}
+.dashboard-calendario-wrapper {
+  flex: 1;
+  width: 90%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.dashboard-calendario {
+  flex: 1;
+  background: #f9fbfd;
+  border-radius: 12px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 6px #00000014;
+}
+.dashboard-calendario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.dashboard-calendario-header h2 {
+  font-size: 13px;
+  color: #444;
+  font-weight: 500;
+}
+
+.dashboard-calendario-header button {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #888;
+  margin-left: 6px;
+  cursor: pointer;
+}
+
+.dashboard-calendario-header button:hover {
+  color: #444;
+}
+.dashboard-calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  flex: 1;
+  text-align: center;
+}
+.dashboard-dia-semana {
+  font-size: 11px;
+  font-weight: bold;
+  color: #666;
+}
+.dashboard-dia {
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #333;
+}
+.dashboard-dia.hoy {
+  background: #3498db;
+  color: #ffffff;
+  font-weight: bold;
+  border-radius: 50%;
+}
+.dashboard-vacio {
+  visibility: hidden;
+}
+
+/*MÉTRICAS */
+.dashboard-subtitle {
+  font-size: 13px;
+  margin-bottom: 10px;
+  color: #444;
+}
+
+/* Contenedor de todas las métricas */
+.dashboard-metricas {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap; 
+}
+
+/* Caja individual de cada métrica */
+.dashboard-metrica {
+  flex: 1;
+  min-width: 120px; 
+  background: #f0efef;
+  border-radius: 12px;
+  padding: 15px;
+  text-align: center;
+  box-shadow: 0 2px 6px #00000014;
+  position: relative;
+}
+
+.dashboard-metrica h3 {
+  font-size: 12px;
+  margin: 8px 0 4px;
+  color: #555;
+}
+
+/* Texto pequeño debajo del círculo */
+.metric-subtext {
+  font-size: 11px;
+  color: #777;
+  margin-top: 10px;
+}
+
+
+/* ACCIONES */
+.dashboard-acciones {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.dashboard-acciones h2 {
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #444;
+  font-weight: 600;
+}
+
+.dashboard-subtitulo {
+  font-size: 11px;
+  color: #777;
+  margin-bottom: 15px;
+}
+
+.acciones-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.acciones-buscar {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  outline: none;
+  width: 100%; 
+  max-width: 250px;
+  box-sizing: border-box;
+}
+
+.acciones-buscar:focus {
+  border-color: #3498db;
+}
+
+.dashboard-encabezados {
+  display: grid;
+  grid-template-columns: 1.5fr 3fr 1.5fr;
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 4px;
+}
+
+.dashboard-tabla {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-fila {
+  display: grid;
+  grid-template-columns: 1.5fr 3fr 1.5fr;
+  align-items: center;
+  padding: 12px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin-bottom: 8px;
+  background: #f9fcff;
+  border: 1px solid #e1ecf9;
+}
+
+.col-tipo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+/* Iconos redondos */
+.icon-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: bold;
+  color: white;
+}
+
+.icon-circle.alerta {
+  background: #f4b400; 
+}
+
+.icon-circle.chat {
+  background: #e91e63; 
+}
+
+.icon-circle.conflicto {
+  background: #00bcd4; 
+}
+
+.col-desc {
+  color: #555;
+  font-size: 11px;
+}
+
+.col-accion {
+  text-align: right;
+}
+
+.dashboard-btn {
+  background: #eef6ff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #2c3e50;
+  transition: background 0.2s;
+}
+
+.dashboard-btn:hover {
+  background: #dbeaff;
+}
+
+/* RESPONSIVO DE LA PARTE DE ACCIONES */
+/* 📱 Pantallas pequeñas */
+@media (max-width: 480px) {
+  .acciones-buscar {
+    max-width: 100%;   /* ocupa todo el ancho en móvil */
+    font-size: 14px;   /* un poco más grande para accesibilidad */
+    padding: 8px 12px;
+  }
+}
+
+/* 💻 Pantallas medianas (tablets) */
+@media (max-width: 768px) {
+  .acciones-buscar {
+    max-width: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-encabezados {
+    grid-template-columns: 1fr 1fr; 
+    font-size: 10px;
+    gap: 8px;
+  }
+
+  .dashboard-fila {
+    grid-template-columns: 1fr;
+    text-align: left;
+    padding: 12px 0;
+  }
+
+  .col-accion {
+    text-align: left; 
+    margin-top: 6px;
+  }
+
+  .dashboard-btn {
+    width: 100%; 
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .acciones-header {
+    flex-direction: column; 
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .acciones-buscar {
+    width: 100%;
+    font-size: 11px;
+    padding: 8px;
+  }
+
+  .dashboard-acciones {
+    padding: 12px;
+  }
+
+  .dashboard-encabezados {
+    display: none;
+  }
+
+  .dashboard-fila {
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #fafafa;
+  }
+
+  .col-tipo {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+
+  .col-desc {
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .col-accion {
+    margin-top: 6px;
+  }
+}
+
+/* RESPONSPONSIVO DEL APARTADO DE LAS METRICAS */
+
+/* Laptops */
+@media (max-width: 1280px) {
+  .dashboard-metrica {
+    min-width: 140px;
+  }
+}
+
+/* Tablets y móviles */
+@media (max-width: 768px) {
+  .dashboard-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .dashboard-panel-left {
+    order: 1;
+    width: 100%;
+  }
+
+  .dashboard-panel-right {
+    order: 2;
+    width: 100%;
+  }
+
+  /* Ajuste de métricas */
+  .dashboard-metricas {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .dashboard-metrica {
+    min-width: auto;
+    flex: none;
+    text-align: center;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .dashboard-metrica h3 {
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: #333;
+  }
+
+  .metric-subtext {
+    font-size: 11px;
+    color: #777;
+    margin-top: 18px;
+    text-align: center;
+  }
+
+  .dashboard-calendario {
+    min-width: 180px;
+    margin-top: 0;
+    width: 100%;
+  }
+}
+
+/* Móviles */
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding: 10px;
+  }
+
+  .dashboard-titulo {
+    font-size: 18px;
+    text-align: center;
+  }
+
+  .dashboard-metricas {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .dashboard-metrica {
+    width: 100%;
+    padding: 5px;
+    min-width: 180px;
+    text-align: center;
+  }
+
+  .metric-circle {
+    width: 100px;
+    height: 70px;
+  }
+
+  .dashboard-calendario,
+  .dashboard-acciones {
+    padding: 12px;
+    width: 100%;
+  }
+
+  .dashboard-fila {
+    grid-template-columns: 1fr;
+    text-align: left;
+    gap: 6px;
+  }
+
+  .col-accion {
+    text-align: left;
+  }
+}
+
+/*Extra pequeños*/
+@media (max-width: 360px) {
+  .dashboard-metricas {
+    gap: 10px;
+  }
+
+  .dashboard-metrica {
+    padding: 10px;
+  }
+}
+
+/* Responsivo de los círculos */
+@media (max-width: 768px) {
+  .circle-wrapper {
+    width: 100px;
+    height: 90px;
+  }
+
+  .circle-value {
+    font-size: 18px;
+  }
+
+  .circle-sub {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 480px) {
+  .circle-wrapper {
+    width: 70px;
+    height: 70px;
+  }
+
+  .circle-value {
+    font-size: 16px;
+  }
+
+  .circle-sub {
+    font-size: 8px;
+  }
+}
+
+/* MODO OSCURO */
+body.dark-mode .dashboard-container {
+  background: #1e1e1e;
+  color: #ddd;
+}
+
+body.dark-mode .dashboard-titulo {
+  color: #eee;
+}
+
+/* Tarjetas */
+body.dark-mode .dashboard-metrica,
+body.dark-mode .dashboard-calendario,
+body.dark-mode .dashboard-acciones {
+  background: #2a2a2a;
+  color: #ddd;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+}
+
+body.dark-mode .dashboard-metrica h3,
+body.dark-mode .dashboard-calendario-header h2,
+body.dark-mode .dashboard-acciones h2 {
+  color: #fff;
+}
+
+body.dark-mode .dashboard-metrica p,
+body.dark-mode .dashboard-subtitulo,
+body.dark-mode .col-desc {
+  color: #aaa;
+}
+
+/* Subtítulo de métricas */
+body.dark-mode .dashboard-subtitle {
+  color: #ccc;
+}
+
+body.dark-mode .dashboard-panel {
+  background: #2a2a2a;
+  color: #ddd;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+}
+
+/* Métricas circulares */
+body.dark-mode .circle-value {
+  color: #fff;
+}
+
+body.dark-mode .circle-sub {
+  color: #bbb;
+}
+
+/* Inputs y búsqueda */
+body.dark-mode .acciones-buscar {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: #eee;
+}
+
+body.dark-mode .acciones-buscar:focus {
+  border-color: #3498db;
+}
+
+/* Botones */
+body.dark-mode .dashboard-btn {
+  background: #444;
+  color: #ddd;
+}
+
+body.dark-mode .dashboard-btn:hover {
+  background: #555;
+}
+
+/* Calendario */
+body.dark-mode .dashboard-dia {
+  color: #ddd;
+}
+
+body.dark-mode .dashboard-dia.hoy {
+  background: #3498db;
+  color: #fff;
+}
+
+/* Encabezados */
+body.dark-mode .dashboard-encabezados {
+  border-bottom: 1px solid #444;
+  color: #ccc;
+}
+
+/* Filas */
+body.dark-mode .dashboard-fila {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  color: #ddd;
+  border-bottom: none;
+}
+
+body.dark-mode .dashboard-fila:hover {
+  background: #2f2f2f;
+}
+
+/* Columna descripción */
+body.dark-mode .col-desc {
+  color: #bbb;
+}
+
+body.dark-mode .icon-circle.alerta {
+  background: #f4b400;
+}
+
+body.dark-mode .icon-circle.chat {
+  background: #e91e63;
+}
+
+body.dark-mode .icon-circle.conflicto {
+  background: #00bcd4;
+}
