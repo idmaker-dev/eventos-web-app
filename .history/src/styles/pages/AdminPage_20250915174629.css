@@ -2,6 +2,7 @@
 .admin-layout {
   display: flex;
   min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
 }
 
 /* Iconos */
@@ -97,7 +98,7 @@
 
 /* TOPBAR */
 .topbar {
-  background: #eaf0f3;
+  background: #EAF0F3;
   padding: 20px;
   display: flex;
   align-items: center;
