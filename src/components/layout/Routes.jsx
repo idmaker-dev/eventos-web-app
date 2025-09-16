@@ -7,6 +7,8 @@ import Finanzas from "../../pages/Finanzas"
 import Invitados from "../../pages/Invitados"
 import Distribucion from "../../pages/Distribucion"
 import Cuestionario from "../../pages/Cuestionario";
+import NuevoCuestionario from "../../pages/NuevoCuestionario";
+
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
@@ -33,6 +35,7 @@ export default function AppRoutes() {
         <Route path="/admin" element={<AdminPage />}>
           <Route index element={<Dashboard />} />
           <Route path="pagos" element={<Pagos />} />
+          <Route path="NuevoCuestionario" element={<NuevoCuestionario />} />
         </Route>
       </Routes>
     </Router>
