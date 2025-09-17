@@ -1,0 +1,164 @@
+/* Contenedor general */
+.pagos-container {
+  background: #f9fbfd;
+  padding: 24px;
+  border-radius: 16px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.pagos-titulo {
+  font-size: 20px;
+  color: #111827;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.pagos-subtitulo {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+  text-decoration: underline;
+}
+
+/* Header búsqueda + botón */
+.pagos-header {
+    
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.buscar {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  width: 220px;
+  font-size: 14px;
+}
+
+.btn-csv {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Tabla */
+.pagos-tabla {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.pagos-encabezados,
+.pagos-fila {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 1.2fr 1.2fr;
+  align-items: center;
+  padding: 14px 18px;
+  font-size: 14px;
+}
+
+.pagos-encabezados {
+  background: #f1f5f9;
+  font-weight: 600;
+  color: #374151;
+}
+
+.pagos-fila {
+  border-top: 1px solid #f0f0f0;
+}
+
+.nombre {
+  font-weight: 500;
+  color: #111827;
+}
+
+/* Barra de progreso */
+.barra-progreso {
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.barra-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease-in-out;
+}
+
+/* Total pagado */
+.col-pagado {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Estados */
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 13px;
+}
+
+.estado.pendiente {
+  background: #fff8e6;
+  color: #d97706;
+}
+
+.estado.aprobado {
+  background: #e6fffa;
+  color: #059669;
+}
+
+.estado.parcial {
+  background: #ffe6e6;
+  color: #b91c1c;
+}
+
+/* Botones acción */
+.btn-accion {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-verificar {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.btn-historial {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn-verificar:hover {
+  background: #bae6fd;
+}
+
+.btn-historial:hover {
+  background: #e5e7eb;
+}

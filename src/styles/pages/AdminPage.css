@@ -103,7 +103,8 @@
   display: flex;
   align-items: center;
   border-bottom: 1px solid #ddd;
-  flex-wrap: wrap; /* 🔹 permite que baje en pantallas pequeñas */
+  flex-wrap: wrap;
+  border-bottom: 1px solid #d3e0eb; 
 }
 
 .topbar-text {
@@ -123,24 +124,39 @@
   color: #666;
 }
 
-/* Select centrado */
 .topbar-select-center {
   flex: 1;
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 10px;
+  position: relative;
 }
 
 .topbar-select-center select {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background: white;
-  font-size: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  padding: 6px 35px 6px 15px; 
+  border-radius: 20px; 
+  border: 1px solid #c5d0d9;
+  background-color: #f0f4f7; 
+  font-size: 13px;
   font-weight: 500;
+  color: #6a7a89; 
   cursor: pointer;
+  outline: none;
 }
+.topbar-select-center::after {
+  content: "▾";
+  font-size: 30px;
+  color: #6a7a89;
+  position: absolute;
+  right: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
 
 /* Botón junto al select */
 .create-event-btn {
@@ -792,7 +808,7 @@
   }
   .tooltip-pill {
     left: auto;
-    top: 50px; /* 🔹 tooltips bajan en mobile */
+    top: 50px;
     transform: translateY(-10px);
   }
   .topbar {

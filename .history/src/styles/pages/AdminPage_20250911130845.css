@@ -1,0 +1,352 @@
+/* LAYOUT GENERAL */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Iconos */
+.custom-icon {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+}
+
+/* Logo */
+.sidebar-logo-top {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.logo-p {
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 70px;
+  background: #e9f0f6;
+  padding: 15px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 2147483647;
+  transition: all 0.3s ease;
+}
+
+.sidebar-top ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-top li {
+  margin: 12px 0;
+}
+
+.sidebar a {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #f1f4f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b0b0b0;
+  transition: all 0.3s ease;
+}
+
+.sidebar a.active {
+  background: #206a73;
+  color: white;
+}
+
+.sidebar a:hover {
+  background: #d9e6ed;
+  color: #206a73;
+}
+
+/* Íconos inferiores */
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.sidebar-logo img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}
+
+/* CONTENIDO */
+.content {
+  flex: 1;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+}
+
+/* TOPBAR */
+.topbar {
+  background: #eaf0f6;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  flex-wrap: wrap; /* 🔹 permite que baje en pantallas pequeñas */
+  border-bottom: 1px solid #d3e0eb; /* opcional, línea separadora */
+}
+
+.topbar-text {
+  flex: 1;
+}
+
+.topbar-text h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #216b6b;
+}
+
+.topbar-text p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Select centrado */
+.topbar-select-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.topbar-select-center select {
+
+/* Iconos derecha */
+.topbar-icons {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  color: #555;
+  cursor: pointer;
+}
+
+.topbar-icons svg {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.topbar-icons svg:hover {
+  transform: scale(1.2);
+  color: #007bff;
+}
+
+.child-content {
+  flex: 1;
+  padding: 20px;
+}
+
+/* MODO OSCURO */
+.dark-mode {
+  background: #1a1a1a;
+  color: #f1f1f1;
+}
+
+.dark-mode .sidebar {
+  background: #2a2a2a;
+}
+
+.dark-mode .sidebar a {
+  background: #3a3a3a;
+  color: #ccc;
+}
+
+.dark-mode .sidebar a.active {
+  background: #007bff;
+  color: #fff;
+}
+
+.dark-mode .content {
+  background: #1a1a1a;
+}
+
+.dark-mode .topbar {
+  background: #2a2a2a;
+  border-bottom: 1px solid #444;
+}
+
+.dark-mode .topbar-text h2 {
+  color: #216b6b;
+}
+
+.dark-mode .topbar-text p {
+  color: #ccc;
+}
+
+.dark-mode .topbar-select-center select {
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+}
+
+.dark-mode .topbar-icons {
+  color: #ccc;
+}
+
+.dark-mode .child-content {
+  background: #1a1a1a;
+}
+
+/* TOOLTIPS */
+.tooltip {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.tooltip-pill {
+  position: absolute;
+  left: 60px;
+  background: #444;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.25s ease-in-out;
+  pointer-events: none;
+  box-shadow: 0px 2px 6px rgba(0,0,0,0.15);
+}
+
+.tooltip:hover .tooltip-pill {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* RESPONSIVO */
+
+/* Tablets grandes */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 60px;
+    padding: 10px 0;
+  }
+  .sidebar a {
+    width: 38px;
+    height: 38px;
+  }
+  .custom-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .topbar {
+    padding: 15px;
+  }
+  .topbar-text h2 {
+    font-size: 18px;
+  }
+  .topbar-text p {
+    font-size: 13px;
+  }
+  .topbar-select-center select {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+}
+
+/* Tablets / móviles medianos */
+@media (max-width: 768px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    flex-direction: row;
+    width: 100%;
+    height: 60px;
+    padding: 0 10px;
+    justify-content: space-between;
+  }
+  .sidebar-top ul {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+  }
+  .sidebar-top li {
+    margin: 0;
+  }
+  .sidebar-bottom {
+    flex-direction: row;
+    gap: 10px;
+  }
+  .tooltip-pill {
+    left: auto;
+    top: 50px; /* 🔹 tooltips bajan en mobile */
+    transform: translateY(-10px);
+  }
+  .topbar {
+    gap: 10px;
+    padding: 12px;
+  }
+  .topbar-text {
+    flex: 100%;
+    text-align: center;
+  }
+  .topbar-select-center {
+    flex: 100%;
+    justify-content: center;
+  }
+  .topbar-icons {
+    flex: 100%;
+    justify-content: center;
+    gap: 10px;
+  }
+  .child-content {
+    padding: 15px;
+  }
+}
+
+/* Móviles pequeños */
+@media (max-width: 480px) {
+  .sidebar {
+    height: 50px;
+  }
+  .sidebar a {
+    width: 34px;
+    height: 34px;
+  }
+  .custom-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .topbar-text h2 {
+    font-size: 16px;
+  }
+  .topbar-text p {
+    font-size: 12px;
+  }
+  .topbar-select-center select {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+  .child-content {
+    padding: 10px;
+  }
+}

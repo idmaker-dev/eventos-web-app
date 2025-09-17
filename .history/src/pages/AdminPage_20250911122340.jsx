@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, NavLink } from "react-router-dom";
 import {
-    Home,
+  Home,
   ClipboardCheck,
   Coins,
   Users,
@@ -10,8 +10,6 @@ import {
   Bell,
   Moon,
   Sun,
-  Plus,
-  X
 } from "lucide-react";
 import "../styles/pages/AdminPage.css";
 
@@ -294,8 +292,18 @@ export default function AdminPage() {
     responsable: ''
   });
 
+  // 🔹 Cargar preferencia guardada
+  useEffect(() => {
+    const savedMode = localStorage.getItem("darkMode");
+    if (savedMode === "true") {
+      setDarkMode(true);
+    }
+  }, []);
+
+  // 🔹 Aplicar clase global al <body> y guardar en localStorage
   useEffect(() => {
     document.body.classList.toggle("dark-mode", darkMode);
+    localStorage.setItem("darkMode", darkMode);
   }, [darkMode]);
 
   const handleInputChange = (e) => {
@@ -359,7 +367,7 @@ export default function AdminPage() {
     <div className="admin-layout">
       {/* Sidebar */}
       <aside className="sidebar">
-        {/* Logo P*/}
+        {/* Logo P */}
         <div className="sidebar-logo-top">
           <img src="/logop.png" alt="Logo P" className="logo-p" />
         </div>
@@ -423,7 +431,7 @@ export default function AdminPage() {
             <p>Todo tu evento, en orden</p>
           </div>
 
-          {/* Menu desplegable central con botón */}
+          {/* Menú despegable central */}
           <div className="topbar-select-center">
             <select>
               <option>Graduación de Lic. Derecho 2020 - 2024</option>
@@ -443,9 +451,17 @@ export default function AdminPage() {
           <div className="topbar-icons">
             <Bell size={22} />
             {darkMode ? (
-              <Sun size={22} onClick={() => setDarkMode(false)} />
+              <Sun
+                size={22}
+                style={{ cursor: "pointer" }}
+                onClick={() => setDarkMode(false)}
+              />
             ) : (
-              <Moon size={22} onClick={() => setDarkMode(true)} />
+              <Moon
+                size={22}
+                style={{ cursor: "pointer" }}
+                onClick={() => setDarkMode(true)}
+              />
             )}
           </div>
         </div>

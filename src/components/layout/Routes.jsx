@@ -8,14 +8,13 @@ import Invitados from "../../pages/Invitados"
 import Distribucion from "../../pages/Distribucion"
 import Cuestionario from "../../pages/Cuestionario";
 import Evento from "../../pages/Evento";
+import NuevoCuestionario from "../../pages/NuevoCuestionario";
 
 
-
-/*Aqui van las rutas de Admin*/
-import AdminPage from "../../pages/AdminPage"
-import Dashboard from "../../pages/Dashboard" 
-
-
+/* Aqui van las rutas de Admin */
+import AdminPage from "./AdminPage"
+import Dashboard from "../../pages/Dashboard"
+import Pagos from "../../pages/Pagos"
 
 export default function AppRoutes() {
   return (
@@ -33,12 +32,14 @@ export default function AppRoutes() {
           <Route path="Distribucion" element={<Distribucion />} />
 
         </Route>
-        {/* Ruta Admin de la nueva MasterPage */}
+
+        {/* Ruta Admin con AdminPage*/}
         <Route path="/admin" element={<AdminPage />}>
           <Route index element={<Dashboard />} />
         <Route path="Evento" element={<Evento />} />
+          <Route path="pagos" element={<Pagos />} />
+          <Route path="NuevoCuestionario" element={<NuevoCuestionario />} />
         </Route>
-
       </Routes>
     </Router>
   )
