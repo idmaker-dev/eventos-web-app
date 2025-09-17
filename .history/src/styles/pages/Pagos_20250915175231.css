@@ -1,6 +1,7 @@
 /* Parte de arriba */
 .pagos-container {
   padding: 16px;
+  font-family: "Segoe UI", sans-serif;
 }
 
 .pagos-header {
@@ -142,7 +143,7 @@
 }
 
 .pagos-fila:nth-child(odd) {
-  background: #EAF0F3;
+  background: #e9f0f6;
 }
 .pagos-fila:nth-child(even) {
   background: #fff;
