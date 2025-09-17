@@ -7,6 +7,8 @@ import Finanzas from "../../pages/Finanzas"
 import Invitados from "../../pages/Invitados"
 import Distribucion from "../../pages/Distribucion"
 import Cuestionario from "../../pages/Cuestionario";
+import Evento from "../../pages/Evento";
+
 
 
 /*Aqui van las rutas de Admin*/
@@ -29,10 +31,12 @@ export default function AppRoutes() {
           <Route path="Finanzas" element={<Finanzas />} />
           <Route path="Invitados" element={<Invitados />} />
           <Route path="Distribucion" element={<Distribucion />} />
+
         </Route>
         {/* Ruta Admin de la nueva MasterPage */}
         <Route path="/admin" element={<AdminPage />}>
           <Route index element={<Dashboard />} />
+        <Route path="Evento" element={<Evento />} />
         </Route>
 
       </Routes>

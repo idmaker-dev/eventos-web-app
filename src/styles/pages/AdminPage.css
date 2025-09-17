@@ -128,6 +128,8 @@
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 10px;
 }
 
 .topbar-select-center select {
@@ -138,6 +140,24 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+}
+
+/* Botón junto al select */
+.create-event-btn {
+  background: #4CAF50;
+  border: none;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  color: white;
+}
+
+.create-event-btn:hover {
+  background: #45a049;
 }
 
 /* Iconos derecha */
@@ -162,6 +182,374 @@
 .child-content {
   flex: 1;
   padding: 20px;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  padding: 24px 24px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.modal-header p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+/* Formulario */
+.event-form {
+  padding: 24px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-group input::placeholder {
+  color: #9ca3af;
+}
+
+/* Botones del formulario */
+.form-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 32px;
+}
+
+.cancel-btn {
+  padding: 10px 20px;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 6px;
+  color: #374151;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #e5e7eb;
+}
+
+.save-btn {
+  padding: 10px 20px;
+  background: #10b981;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.save-btn:hover {
+  background: #059669;
+}
+
+/* ESTILOS PARA LA PANTALLA DE EVENTO CREADO */
+.evento-creado-modal {
+  max-width: 450px;
+  text-align: center;
+  position: relative;
+  min-height: 550px;
+}
+
+.evento-creado-content {
+  padding: 50px 35px 40px;
+}
+
+.evento-creado-icon {
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: center;
+}
+
+.evento-creado-content h2 {
+  margin: 0 0 24px 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.2;
+}
+
+.evento-creado-content > p {
+  margin: 0 0 40px 0;
+  font-size: 16px;
+  color: #6b7280;
+  line-height: 1.5;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.generar-enlace-btn {
+  background: #4AB290;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: auto;
+  min-width: 200px;
+  margin-bottom: 35px;
+  line-height: 1.3;
+  box-shadow: 0 2px 8px rgba(74, 178, 144, 0.2);
+}
+
+.generar-enlace-btn:hover {
+  background: #3a9b7a;
+  box-shadow: 0 4px 12px rgba(74, 178, 144, 0.3);
+}
+
+.acceso-panel-text {
+  font-size: 10px;
+  color: #9ca3af;
+  line-height: 1.3;
+  margin: 0;
+  max-width: 280px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Modo oscuro para evento creado */
+.dark-mode .evento-creado-content h2 {
+  color: #f9fafb;
+}
+
+.dark-mode .evento-creado-content > p {
+  color: #9ca3af;
+}
+
+.dark-mode .acceso-panel-text {
+  color: #6b7280;
+}
+
+/* ESTILOS ADICIONALES PARA EL CUESTIONARIO MODAL */
+.cuestionario-modal {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.cuestionario-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cuestionario-logo {
+  width: 40px;
+  height: 40px;
+  background: #4AB290;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.cuestionario-planoria-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-left: 12px;
+}
+
+.cuestionario-titulo {
+  padding: 16px 24px 8px;
+  text-align: center;
+}
+
+.cuestionario-titulo h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.cuestionario-info {
+  padding: 8px 24px 16px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cuestionario-form {
+  padding: 0 24px 24px;
+}
+
+.cuestionario-form .form-group {
+  margin-bottom: 24px;
+}
+
+.cuestionario-form select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.cuestionario-form select:focus {
+  outline: none;
+  border-color: #4AB290;
+  box-shadow: 0 0 0 3px rgba(74, 178, 144, 0.1);
+}
+
+.cuestionario-form textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.cuestionario-form textarea:focus {
+  outline: none;
+  border-color: #4AB290;
+  box-shadow: 0 0 0 3px rgba(74, 178, 144, 0.1);
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.cuestionario-boton-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.cuestionario-boton-small {
+  background: #4AB290;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 200px;
+}
+
+.cuestionario-boton-small:hover:not(:disabled) {
+  background: #3a9b7a;
+}
+
+.cuestionario-boton-small:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
 }
 
 /* MODO OSCURO */
@@ -213,6 +601,105 @@
 
 .dark-mode .child-content {
   background: #1a1a1a;
+}
+
+/* Soporte para modo oscuro - Modal */
+.dark-mode .modal-content {
+  background: #1f2937;
+}
+
+.dark-mode .modal-header {
+  border-bottom-color: #374151;
+}
+
+.dark-mode .modal-header h3 {
+  color: #f9fafb;
+}
+
+.dark-mode .modal-header p {
+  color: #9ca3af;
+}
+
+.dark-mode .close-btn {
+  color: #9ca3af;
+}
+
+.dark-mode .close-btn:hover {
+  background: #374151;
+  color: #f9fafb;
+}
+
+.dark-mode .form-group label {
+  color: #e5e7eb;
+}
+
+.dark-mode .form-group input {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.dark-mode .form-group input:focus {
+  border-color: #3b82f6;
+}
+
+.dark-mode .form-group input::placeholder {
+  color: #6b7280;
+}
+
+.dark-mode .cancel-btn {
+  background: #374151;
+  color: #e5e7eb;
+}
+
+.dark-mode .cancel-btn:hover {
+  background: #4b5563;
+}
+
+/* Modo oscuro para el cuestionario */
+.dark-mode .cuestionario-header {
+  border-bottom-color: #374151;
+}
+
+.dark-mode .cuestionario-logo {
+  background: #4AB290;
+}
+
+.dark-mode .cuestionario-planoria-text {
+  color: #f9fafb;
+}
+
+.dark-mode .cuestionario-titulo h2 {
+  color: #f9fafb;
+}
+
+.dark-mode .cuestionario-info {
+  color: #9ca3af;
+}
+
+.dark-mode .cuestionario-form select,
+.dark-mode .cuestionario-form textarea {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.dark-mode .cuestionario-form select:focus,
+.dark-mode .cuestionario-form textarea:focus {
+  border-color: #4AB290;
+  box-shadow: 0 0 0 3px rgba(74, 178, 144, 0.2);
+}
+
+.dark-mode .checkbox-label {
+  color: #e5e7eb;
+}
+
+.dark-mode .cuestionario-boton-small {
+  background: #4AB290;
+}
+
+.dark-mode .cuestionario-boton-small:hover:not(:disabled) {
+  background: #3a9b7a;
 }
 
 /* TOOLTIPS */
@@ -328,6 +815,99 @@
   .child-content {
     padding: 15px;
   }
+  
+  /* Modal responsive */
+  .modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .modal-header {
+    padding: 16px 16px 12px;
+  }
+  
+  .event-form {
+    padding: 16px;
+  }
+  
+  .form-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .cancel-btn, .save-btn {
+    width: 100%;
+  }
+
+  /* Responsive para evento creado */
+  .evento-creado-modal {
+    width: 95%;
+    max-width: 450px;
+    min-height: auto;
+  }
+  
+  .evento-creado-content {
+    padding: 40px 30px 30px;
+  }
+  
+  .evento-creado-content h2 {
+    font-size: 26px;
+  }
+  
+  .evento-creado-content > p {
+    font-size: 17px;
+  }
+  
+  .generar-enlace-btn {
+    font-size: 17px;
+    padding: 18px 28px;
+  }
+  
+  .acceso-panel-text {
+    font-size: 13px;
+  }
+
+  /* Responsive para el cuestionario */
+  .cuestionario-modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+  
+  .cuestionario-header {
+    padding: 16px 20px 12px;
+  }
+  
+  .cuestionario-logo {
+    width: 35px;
+    height: 35px;
+    font-size: 16px;
+  }
+  
+  .cuestionario-planoria-text {
+    font-size: 18px;
+    margin-left: 10px;
+  }
+  
+  .cuestionario-titulo {
+    padding: 12px 20px 8px;
+  }
+  
+  .cuestionario-titulo h2 {
+    font-size: 20px;
+  }
+  
+  .cuestionario-info {
+    padding: 8px 20px 12px;
+  }
+  
+  .cuestionario-form {
+    padding: 0 20px 20px;
+  }
+  
+  .cuestionario-boton-small {
+    width: 100%;
+    min-width: auto;
+  }
 }
 
 /* Móviles pequeños */
@@ -355,5 +935,10 @@
   }
   .child-content {
     padding: 10px;
+  }
+  
+  /* Ajustar botón crear evento en móviles */
+  .create-event-btn {
+    padding: 6px;
   }
 }
