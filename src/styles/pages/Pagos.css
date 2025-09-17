@@ -1,6 +1,7 @@
 /* Parte de arriba */
 .pagos-container {
   padding: 16px;
+  font-family: "Segoe UI", sans-serif;
 }
 
 .pagos-header {
@@ -49,7 +50,7 @@
 
 .btn-csv {
   background: #6b8596;
-  color: #ffffff;
+  color: white;
   border: none;
   padding: 5px 12px;
   border-radius: 50px;
@@ -96,7 +97,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: #00000080;
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -104,18 +105,18 @@
 }
 
 .modal-content {
-  background: #ffffff;
+  background: white;
   padding: 20px;
   border-radius: 10px;
   width: 400px;
   max-width: 90%;
-  box-shadow: 0 4px 10px #0000004d;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
 .btn-cerrar {
   margin-top: 15px;
   background: #ef4444;
-  color: #ffffff;
+  color: white;
   border: none;
   padding: 8px 14px;
   border-radius: 6px;
@@ -142,7 +143,7 @@
 }
 
 .pagos-fila:nth-child(odd) {
-  background: #EAF0F3;
+  background: #e9f0f6;
 }
 .pagos-fila:nth-child(even) {
   background: #fff;

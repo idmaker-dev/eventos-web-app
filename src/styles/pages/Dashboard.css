@@ -27,7 +27,7 @@
 }
 .circle-sub {
   font-size: 10px;
-  color: #808080;
+  color: gray;
   margin-top: 2px;
 }
 
@@ -35,7 +35,7 @@
 .dashboard-container {
   font-family: Arial, sans-serif;
   padding: 20px;
-  background: #EAF0F3;
+  background: #e9f0f6;
   color: #333;
   max-width: 1400px; 
   margin: 0 auto;
