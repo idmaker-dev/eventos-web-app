@@ -1,20 +1,28 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+
 import Home from "../../pages/Home"
 import Catalogo from "../../pages/Catalogo"
 import Calendario from "../../pages/Calendario"
 import Finanzas from "../../pages/Finanzas"
 import Invitados from "../../pages/Invitados"
 import Distribucion from "../../pages/Distribucion"
+import Cuestionario from "../../pages/Cuestionario";
+import Evento from "../../pages/Evento";
 
-/* Aqui van las rutas de Admin */
-import AdminPage from "./AdminPage"
-import Dashboard from "../../pages/Dashboard"
-import Pagos from "../../pages/Pagos"
+
+
+/*Aqui van las rutas de Admin*/
+import AdminPage from "../../pages/AdminPage"
+import Dashboard from "../../pages/Dashboard" 
+
+
 
 export default function AppRoutes() {
   return (
     <Router>
       <Routes>
+        {/* Ruta independiente para el cuestionario */}
+        <Route path="/cuestionario" element={<Cuestionario />} />
         {/* Ruta Home (incluye hero, resumen y MasterPage adentro) */}
         <Route path="/" element={<Home />}>
           {/* Sub-rutas que se cargan en el Outlet de Home */}
@@ -23,13 +31,14 @@ export default function AppRoutes() {
           <Route path="Finanzas" element={<Finanzas />} />
           <Route path="Invitados" element={<Invitados />} />
           <Route path="Distribucion" element={<Distribucion />} />
-        </Route>
 
-        {/* Ruta Admin con AdminPage*/}
+        </Route>
+        {/* Ruta Admin de la nueva MasterPage */}
         <Route path="/admin" element={<AdminPage />}>
           <Route index element={<Dashboard />} />
-          <Route path="pagos" element={<Pagos />} />
+        <Route path="Evento" element={<Evento />} />
         </Route>
+
       </Routes>
     </Router>
   )
