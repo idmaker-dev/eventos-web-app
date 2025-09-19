@@ -1,0 +1,370 @@
+/* Select personalizado para boletos */
+ .cuestionario-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Select personalizado para boletos */
+.cuestionario-select {
+  width: 100%;
+  border: 2px solid #b2d8d8;
+  border-radius: 24px;
+  background: #fff;
+  color: #3a6c6c;
+  font-size: 1.08rem;
+  padding: 12px 44px 12px 18px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23666666" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 24px 24px;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+.cuestionario-select:focus {
+  outline: 2px solid #3a6c6c;
+  background: #f7fbfb;
+}
+
+/* Título verde para todos los labels encima de campos */
+/* Título verde para todos los labels encima de campos */
+.cuestionario-label-titulo,
+.cuestionario-label {
+  color: #4AB290 !important;
+  font-weight: 700;
+  font-size: 1.08rem;
+  margin-bottom: 4px;
+  display: block;
+  text-align: left;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+.cuestionario-form label {
+  color: #2b7a7a;
+  font-weight: 500;
+  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: justify;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+/* Bloque de restricciones alimenticias */
+.restricciones-block {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  padding: 14px 10px 10px 10px;
+  margin-bottom: 18px;
+}
+.cuestionario-ayuda-black {
+  color: #222;
+  font-size: 0.93rem;
+  margin-bottom: 8px;
+  margin-left: 2px;
+}
+.cuestionario-lista-restricciones {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+/* Un solo bloque para .cuestionario-lista-item */
+.cuestionario-lista-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+/* Un solo bloque para .cuestionario-lista-item-sub */
+.cuestionario-lista-item-sub {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 0;
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+/* Inputs redondeados y fondo blanco, fuente y color como en la imagen */
+.cuestionario-input-sub,
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="tel"],
+textarea {
+  border: 2px solid #b2d8d8;
+  border-radius: 24px;
+  padding: 12px 18px;
+  font-size: 1.08rem;
+  color: #3a6c6c;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 18px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+.cuestionario-input-sub,
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="tel"],
+textarea {
+  border: 1.5px solid #b2d8d8;
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 1rem;
+  color: #2b7a7a;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+}
+.cuestionario-input-sub:focus,
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+textarea:focus {
+  outline: 2px solid #3a6c6c;
+  background: #f7fbfb;
+}
+
+/* Botón pequeño y centrado */
+.cuestionario-boton-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+.cuestionario-boton-small {
+  background: #2b7a7a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.cuestionario-boton-small:hover {
+  background: #226060;
+}
+/* Estilos para la página de Cuestionario */
+/* Eliminado bloque duplicado y abierto de .cuestionario-container y reglas anidadas */
+.cuestionario-boton-small {
+  background: #226060;
+  color: #fff;
+  border: none;
+  border-radius: 32px;
+  padding: 16px 0;
+  font-size: 1.18rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 90%;
+  max-width: 340px;
+  transition: background 0.2s;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.cuestionario-boton-small:hover {
+  background: #17494d;
+}
+body, .cuestionario-main-bg {
+  background: #eaf3f6 !important;
+}
+
+/* Contenedor principal centrado, ancho limitado y responsive */
+.cuestionario-container {
+  max-width: 420px;
+  margin: 40px auto 0 auto;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 12px 24px 12px;
+  border-radius: 0;
+}
+
+@media (max-width: 500px) {
+  .cuestionario-container {
+    max-width: 98vw;
+    padding: 0 2vw 24px 2vw;
+  }
+}
+
+.cuestionario-form {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0;
+}
+.restricciones-block, .cuestionario-info {
+  background: #fff !important;
+  border-radius: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+}
+/* Título principal con color igual al botón */
+.cuestionario-titulo h2 {
+  color: #226060 !important;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 2px 0;
+  text-align: center;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+/* Subtítulo centrado y negro */
+.cuestionario-titulo .cuestionario-subtitulo {
+  color: #222 !important;
+  text-align: center;
+  font-weight: 400 !important;
+  font-size: 1.08rem;
+  margin-bottom: 8px;
+}
+
+/* Mensaje de felicitación en verde como los labels */
+.cuestionario-info .cuestionario-felicitacion {
+  color: #3a6c6c !important;
+  font-weight: 700 !important;
+  font-size: 1.08rem;
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* Ejemplo de restricciones en negro */
+.cuestionario-ejemplo-restriccion {
+  color: #222 !important;
+  font-weight: 400 !important;
+  font-size: 0.98rem;
+  margin-bottom: 8px;
+  margin-left: 0;
+}
+
+/* Subtítulo y textos secundarios sin negrita */
+.cuestionario-titulo h3,
+.cuestionario-subtitulo,
+.cuestionario-info,
+.cuestionario-info strong {
+  font-weight: 400 !important;
+  color: #3a6c6c !important;
+}
+.cuestionario-info strong {
+  display: inline;
+}
+
+/* Quitar negrita de textos de ayuda y preguntas y forzar negro en campos indicados */
+.cuestionario-ayuda-black,
+.cuestionario-lista-restricciones label,
+.restricciones-block label,
+.cuestionario-no-bold {
+  font-weight: 400 !important;
+  color: #2b7a7a !important;
+}
+.cuestionario-info strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #2b7a7a;
+}
+.cuestionario-form {
+  background: #fff;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Estilo para el icono de flecha en el select */
+.cuestionario-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23666666" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px 20px;
+}
+.cuestionario-form label {
+  color: #2b7a7a;
+  font-weight: 500;
+  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: justify;
+}
+.cuestionario-label-ico {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: relative;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  text-align: justify;
+}
+.cuestionario-label-ico > .cuestionario-icono-input {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+}
+.cuestionario-label-ico input,
+.cuestionario-label-ico select {
+  padding-left: 36px !important;
+}
+.cuestionario-icono-input {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 8px;
+}
+.cuestionario-form input,
+.cuestionario-form select {
+  border: 1px solid #b2d8d8;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 1rem;
+  background: #fff;
+  margin-top: 2px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #2b7a7a;
+  box-sizing: border-box;
+}
+.cuestionario-form input:focus,
+.cuestionario-form select:focus {
+  outline: 2px solid #2b7a7a;
+  background: #f7fbfb;
+}
+.cuestionario-ayuda {
+  color: #7a8c8c;
+  font-size: 0.92rem;
+  font-weight: 400;
+  margin-left: 4px;
+}
+.cuestionario-boton {
+  background: #2b7a7a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+}
+.cuestionario-boton:hover {
+  background: #226060;
+}
+@media (max-width: 500px) {
+  .cuestionario-container {
+    max-width: 98vw;
+    padding: 10px 2vw;
+  }
+  .cuestionario-label-ico > .cuestionario-icono-input {
+    left: 0;
+    margin-left: 2px;
+  }
+  .cuestionario-label-ico input,
+  .cuestionario-label-ico select {
+    padding-left: 32px !important;
+  }
+}

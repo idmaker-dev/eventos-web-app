@@ -1,0 +1,4 @@
+@import '../pages/Cuestionario.css';
+
+/* Estilos para el bloque de restricciones y selectores personalizados */
+@import './DynamicFormFields.css';
