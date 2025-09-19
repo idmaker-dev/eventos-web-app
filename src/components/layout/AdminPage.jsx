@@ -135,13 +135,13 @@ export default function AdminPage() {
         </nav>
 
         {/* Íconos inferiores */}
-        <div className="sidebar-bottom">
+        <div className="sidebar-bottom bg-white dark:bg-[#1a1a1a] px-1 py-1 rounded-full">
           <NavLink to="/admin/configuracion">
             <Settings size={22} />
           </NavLink>
-          <div className="sidebar-logo">
-            <img src="/casa.png" alt="Logo inferior" />
-          </div>
+          <NavLink className="mt-3" to="/">
+            <img src={Inicio} alt="Logo inferior" className="w-6 h-6 "/>
+          </NavLink>
         </div>
       </aside>
 
@@ -217,7 +217,7 @@ export default function AdminPage() {
           </div>
 
           {/* Derecha */}
-          <div className="topbar-icons">
+          <div className="topbar-icons ">
             <Button className="acciones-distribucion w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center">
               <Bell className="text-gray-600 dark:text-gray-800" />
             </Button>

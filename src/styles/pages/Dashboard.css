@@ -20,15 +20,15 @@
   text-align: center;
 }
 .circle-value {
-  font-size: 22px;
-  font-weight: bold;
+  /* font-size: 22px;
+  font-weight: bold; */
   color: #000;
   margin-top: 35px;
 }
 .circle-sub {
-  font-size: 10px;
+  /* font-size: 10px; */
   color: gray;
-  margin-top: 2px;
+  /* margin-top: 2px; */
 }
 
 /*BASE DEL DASHBOARD*/
@@ -46,7 +46,7 @@
   font-size: 15px;
   font-weight: bold;
   margin-bottom: 10px;
-  color: #a3a2a2;
+  color: #CBCBCB;
 }
 
 /*PANEL GENERAL*/
@@ -54,11 +54,11 @@
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 20px;
-  background: #ffffff;
-  border-radius: 14px;
+  /* background: #ffffff; */
+  /* border-radius: 14px;
   padding: 20px;
-  box-shadow: 0 2px 6px #00000014;
-  margin-bottom: 30px;
+  box-shadow: 0 2px 6px #00000014;*/
+  margin-bottom: 30px; 
   align-items: stretch;
 }
 
@@ -98,8 +98,8 @@
 }
 
 .dashboard-calendario-header h2 {
-  font-size: 13px;
-  color: #444;
+  /* font-size: 13px;
+  color: #444; */
   font-weight: 500;
 }
 
@@ -134,10 +134,10 @@
   color: #333;
 }
 .dashboard-dia.hoy {
-  background: #3498db;
+  background: #808080;
   color: #ffffff;
   font-weight: bold;
-  border-radius: 50%;
+  /* border-radius: 50%; */
 }
 .dashboard-vacio {
   visibility: hidden;
@@ -145,9 +145,9 @@
 
 /*MÉTRICAS */
 .dashboard-subtitle {
-  font-size: 13px;
+  /* font-size: 13px; */
   margin-bottom: 10px;
-  color: #444;
+  color: #808080;
 }
 
 /* Contenedor de todas las métricas */
@@ -161,7 +161,7 @@
 .dashboard-metrica {
   flex: 1;
   min-width: 120px; 
-  background: #f0efef;
+  background: #F7F7F7;
   border-radius: 12px;
   padding: 15px;
   text-align: center;
@@ -177,7 +177,7 @@
 
 /* Texto pequeño debajo del círculo */
 .metric-subtext {
-  font-size: 11px;
+  font-size: 12px;
   color: #777;
   margin-top: 10px;
 }
@@ -185,8 +185,8 @@
 
 /* ACCIONES */
 .dashboard-acciones {
-  background: #ffffff;
-  border-radius: 14px;
+  /* background: #ffffff; */
+  /* border-radius: 14px; */
   padding: 20px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
@@ -213,8 +213,8 @@
 
 .acciones-buscar {
   border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 6px 10px;
+  /* border-radius: 6px; */
+  padding: 2px 10px;
   font-size: 12px;
   outline: none;
   width: 100%; 
@@ -229,11 +229,11 @@
 .dashboard-encabezados {
   display: grid;
   grid-template-columns: 1.5fr 3fr 1.5fr;
-  font-size: 11px;
+  /* font-size: 11px; */
   font-weight: 600;
   color: #555;
   padding-bottom: 6px;
-  border-bottom: 1px solid #eee;
+  /* border-bottom: 1px solid #eee; */
   margin-bottom: 4px;
 }
 
@@ -447,7 +447,7 @@
   }
 
   .metric-subtext {
-    font-size: 11px;
+    font-size: 12px;
     color: #777;
     margin-top: 18px;
     text-align: center;
@@ -523,13 +523,13 @@
     height: 90px;
   }
 
-  .circle-value {
+  /* .circle-value {
     font-size: 18px;
-  }
+  } */
 
-  .circle-sub {
+  /* .circle-sub {
     font-size: 9px;
-  }
+  } */
 }
 
 @media (max-width: 480px) {
@@ -569,7 +569,7 @@ body.dark-mode .dashboard-acciones {
 body.dark-mode .dashboard-metrica h3,
 body.dark-mode .dashboard-calendario-header h2,
 body.dark-mode .dashboard-acciones h2 {
-  color: #fff;
+  /* color: #fff; */
 }
 
 body.dark-mode .dashboard-metrica p,
@@ -584,9 +584,9 @@ body.dark-mode .dashboard-subtitle {
 }
 
 body.dark-mode .dashboard-panel {
-  background: #2a2a2a;
+  /* background: #2a2a2a; */
   color: #ddd;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  /* box-shadow: 0 2px 6px rgba(0,0,0,0.6); */
 }
 
 /* Métricas circulares */
@@ -625,7 +625,7 @@ body.dark-mode .dashboard-dia {
 }
 
 body.dark-mode .dashboard-dia.hoy {
-  background: #3498db;
+  background: #72b7a4;
   color: #fff;
 }
 

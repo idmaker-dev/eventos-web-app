@@ -31,7 +31,7 @@ export default function Eventos({ open, onClose }) {
     >
       <div className="fixed inset-0 z-50">
         <div
-          className="absolute inset-0 bg-[#2a9d8f]/20 transition-opacity"
+          className="absolute inset-0 bg-[#2a9d8f]/20  transition-opacity"
           aria-hidden="true"
         />
         <div className="">
