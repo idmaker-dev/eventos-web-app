@@ -549,7 +549,7 @@
 
 /* MODO OSCURO */
 body.dark-mode .dashboard-container {
-  background: #1e1e1e;
+  /* background: #1e1e1e; */
   color: #ddd;
 }
 

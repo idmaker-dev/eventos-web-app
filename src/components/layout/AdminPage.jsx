@@ -21,6 +21,11 @@ import ModuloPagos from "../../assets/recursos/moduloDePagos.svg";
 import ModuloAsignacion from "../../assets/recursos/moduloDeAsignacion.svg";
 import ModuloInvitados from "../../assets/recursos/moduloInvitados.svg";
 import Inicio from "../../assets/recursos/inicio.svg";
+import Eventos from "../Modales/Eventos";
+
+import temaClaro from "../../assets/recursos/temaClaro.svg";
+import temaOscuro from "../../assets/recursos/temaOscuro.svg";
+import { Button } from "@headlessui/react";
 
 const graduationOptions = [
   "Graduación de Lic. Derecho 2020 - 2024",
@@ -31,7 +36,7 @@ const graduationOptions = [
 
 export default function AdminPage() {
   const [darkMode, setDarkMode] = useState(false);
-
+  const [modalOpen, setModalOpen] = useState(false); 
   // Cargar preferencia guardada
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
@@ -184,10 +189,10 @@ export default function AdminPage() {
                   <button
                     key={index}
                     onClick={() => handleSelect(option)}
-                    className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-50 transition-colors duration-150 ${
+                    className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-150 ${
                       selectedOption === option
                         ? "bg-gray-100 text-gray-900 font-medium"
-                        : "text-gray-700 dark:text-gray-100"
+                        : "text-gray-700 dark:text-gray-100 "
                     }`}
                   >
                     {option}
@@ -205,7 +210,7 @@ export default function AdminPage() {
             )}
           </div>
           <div>
-            <button className="topbar-usuario tooltip bg-[#216b6b] text-white px-2 py-2 rounded-full flex items-center gap-2">
+            <button onClick={() => setModalOpen(true)} className="topbar-usuario tooltip bg-[#216b6b] text-white px-2 py-2 rounded-full flex items-center gap-2">
               <CalendarPlus2 size={22} />
               <span className="tooltip-pill">Agregar eventos</span>
             </button>
@@ -213,19 +218,18 @@ export default function AdminPage() {
 
           {/* Derecha */}
           <div className="topbar-icons">
-            <Bell size={22} />
+            <Button className="acciones-distribucion w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center">
+              <Bell className="text-gray-600 dark:text-gray-800" />
+            </Button>
             {darkMode ? (
-              <Sun
-                size={22}
-                style={{ cursor: "pointer" }}
-                onClick={() => setDarkMode(false)}
-              />
+              <Button  onClick={() => setDarkMode(false)} className="w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center">
+                  <img src={temaClaro} alt="Tema Claro" className="w-4 h-4" />
+                </Button>
             ) : (
-              <Moon
-                size={22}
-                style={{ cursor: "pointer" }}
-                onClick={() => setDarkMode(true)}
-              />
+              
+              <Button  onClick={() => setDarkMode(true)} className="w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center">
+                  <img src={temaOscuro} alt="Tema Oscuro" className="w-4 h-4" />
+                </Button>
             )}
           </div>
         </div>
@@ -234,6 +238,7 @@ export default function AdminPage() {
           <Outlet />
         </div>
       </main>
+      <Eventos open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }
