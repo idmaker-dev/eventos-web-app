@@ -17,6 +17,9 @@ function getInitialState(fields) {
 
 export function useCuestionario(fields) {
   const [form, setForm] = useState(() => getInitialState(fields));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
 
   // Maneja cambios para cualquier tipo de campo
   const handleChange = (e) => {
@@ -48,10 +51,60 @@ export function useCuestionario(fields) {
 
   const resetForm = () => setForm(getInitialState(fields));
 
+  // Obtener estructura de cuestionario por ID
+  const fetchCuestionario = async (id) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`http://localhost:7071/api/cuestionarios/${id}`);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || 'Error al obtener cuestionario');
+      setResult(data.data);
+      return data.data;
+    } catch (err) {
+      setError(err.message);
+      setResult(null);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Crear nuevo cuestionario
+  const crearCuestionario = async (payload) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('http://localhost:7071/api/cuestionarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message || 'Error al crear cuestionario');
+      setResult(data.data);
+      return data.data;
+    } catch (err) {
+      setError(err.message);
+      setResult(null);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Permitir exponer setters para control externo (como workaround)
   return {
     form,
     setForm,
     handleChange,
     resetForm,
+    loading,
+    error,
+    result,
+    fetchCuestionario,
+    crearCuestionario,
+    setResult,
+    setLoading
   };
 }
