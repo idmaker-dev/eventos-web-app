@@ -1,76 +1,62 @@
-// Simula la carga de un formulario desde la base de datos
-export function fetchCuestionarioMock() {
-  // Este JSON es el que se recibirá de la base de datos
+// Simula la carga del formulario de registro de boletos desde la base de datos
+export function fetchRegistroBoletosMock() {
   return Promise.resolve({
-    formId: "registro_evento_001",
-    title: "Formulario de Registro al Evento",
-    description: "Por favor llena tus datos para registrarte al evento.",
+    formId: "evento_boletos_2025", // usando eventoId como formId
+    tipo: "registro",
+    title: "Registro de Boletos UNAM",
+    description: "Por favor completa los datos de los asistentes",
     fields: [
       {
-        name: "nombre_completo",
-        label: "Nombre completo",
+        name: "nombre_asistente",
+        label: "Nombre del asistente",
         type: "string",
         inputType: "text",
         required: true,
-        placeholder: "Ingresa tu nombre completo"
+        placeholder: "Ej. Juan Pérez",
       },
       {
-        name: "correo_electronico",
-        label: "Correo electrónico",
+        name: "telefono",
+        label: "Teléfono de contacto",
         type: "string",
-        inputType: "email",
+        inputType: "tel",
         required: true,
-        placeholder: "correo@ejemplo.com"
+        verificar: true,
+        placeholder: "Ej. 5512345678",
       },
       {
-        name: "edad",
-        label: "Edad",
+        name: "cantidad_boletos",
+        label: "Cantidad de boletos",
         type: "number",
         inputType: "number",
-        required: false,
-        min: 0,
-        max: 120
-      },
-      {
-        name: "genero",
-        label: "Género",
-        type: "string",
-        inputType: "radio",
         required: true,
-        options: [
-          { value: "masculino", label: "Masculino" },
-          { value: "femenino", label: "Femenino" },
-          { value: "otro", label: "Otro" }
-        ]
+        min: 1,
+        placeholder: "Número de boletos",
       },
       {
-        name: "intereses",
-        label: "Áreas de interés",
-        type: "array",
-        inputType: "checkbox",
-        required: false,
-        options: [
-          { value: "tecnologia", label: "Tecnología" },
-          { value: "arte", label: "Arte" },
-          { value: "deporte", label: "Deporte" },
-          { value: "musica", label: "Música" }
-        ]
-      },
-      {
-        name: "comentarios",
-        label: "Comentarios adicionales",
+        name: "restricciones_alimenticias",
+        label: "Restricciones alimenticias",
         type: "string",
-        inputType: "textarea",
+        inputType: "text",
         required: false,
-        placeholder: "Escribe aquí cualquier comentario..."
+        placeholder: "Especifique si aplica",
       },
       {
-        name: "acepto_terminos",
-        label: "Acepto los términos y condiciones",
+        name: "invitados_veganos",
+        label: "¿Hay invitados veganos?",
         type: "boolean",
         inputType: "checkbox",
-        required: true
-      }
-    ]
+        required: false,
+        options: [
+          {
+            value: "si",
+            label: "Sí",
+          },
+        ],
+      },
+    ],
+    activo: true,
+    id: "mfoi7j7vbe0ffnpfm",
+    createdAt: "2025-09-17T21:38:37.963Z",
+    updatedAt: "2025-09-17T21:38:37.963Z",
   });
 }

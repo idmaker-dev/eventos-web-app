@@ -1,3 +1,40 @@
+/* Header centrado para logo y texto */
+.cuestionario-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+/* Logo centrado y circular */
+.cuestionario-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: #eaf3f6;
+  border-radius: 50%;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  margin-bottom: 2px;
+}
+
+.cuestionario-planoria-text {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #226060;
+  text-align: center;
+}
+
+/* Icono de cuestionario centrado */
+.cuestionario-icono-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
 /* Select personalizado para boletos */
  .cuestionario-select-wrapper {
   position: relative;
@@ -178,19 +215,23 @@ body, .cuestionario-main-bg {
 }
 
 /* Contenedor principal centrado, ancho limitado y responsive */
+
 .cuestionario-container {
   max-width: 420px;
   margin: 40px auto 0 auto;
-  background: transparent;
-  box-shadow: none;
-  padding: 0 12px 24px 12px;
-  border-radius: 0;
+  background: #f7fbfb;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 24px 18px 32px 18px;
+  border-radius: 18px;
+  transition: background 0.2s;
 }
 
 @media (max-width: 500px) {
   .cuestionario-container {
     max-width: 98vw;
-    padding: 0 2vw 24px 2vw;
+    padding: 10px 2vw 24px 2vw;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
   }
 }
 

@@ -1,10 +1,9 @@
 import React from "react";
 
-/*Función para calcular el porcentaje de cada segmento (para el circulo)*/
+
 export const calcularSegmento = (valor, total) =>
   total > 0 ? (valor / total) * 100 : 0;
 
-/*Componente del circulo*/
 export const CircleChart = ({ confirmados, pendientes, rechazados }) => {
   const total = confirmados + pendientes + rechazados;
 

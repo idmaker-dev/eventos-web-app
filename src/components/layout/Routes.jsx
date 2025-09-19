@@ -8,6 +8,10 @@ import Invitados from "../../pages/Invitados"
 import Distribucion from "../../pages/Distribucion"
 import Cuestionario from "../../pages/Cuestionario";
 
+import NuevoCuestionario from "../../pages/NuevoCuestionario";
+import CrearCuestionario from "../../pages/CrearCuestionario";
+
+
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
 import Dashboard from "../../pages/Dashboard"
@@ -18,7 +22,7 @@ export default function AppRoutes() {
     <Router>
       <Routes>
         {/* Ruta independiente para el cuestionario */}
-        <Route path="/cuestionario" element={<Cuestionario />} />
+  <Route path="/cuestionario/:id" element={<Cuestionario />} />
         {/* Ruta Home (incluye hero, resumen y MasterPage adentro) */}
         <Route path="/" element={<Home />}>
           {/* Sub-rutas que se cargan en el Outlet de Home */}
@@ -33,6 +37,8 @@ export default function AppRoutes() {
         <Route path="/admin" element={<AdminPage />}>
           <Route index element={<Dashboard />} />
           <Route path="pagos" element={<Pagos />} />
+          <Route path="NuevoCuestionario" element={<NuevoCuestionario />} />
+          <Route path="CrearCuestionario" element={<CrearCuestionario />} />
         </Route>
       </Routes>
     </Router>
