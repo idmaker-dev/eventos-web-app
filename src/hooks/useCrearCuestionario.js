@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 export function useCrearCuestionario() {
   const [loading, setLoading] = useState(false);
@@ -10,13 +10,14 @@ export function useCrearCuestionario() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:7071/api/estructuras/crear', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("http://localhost:7071/api/estructuras/crear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!data.success) throw new Error(data.message || 'Error al crear estructura');
+      if (!data.success)
+        throw new Error(data.message || "Error al crear estructura");
       setResult(data.data);
       return data.data;
     } catch (err) {

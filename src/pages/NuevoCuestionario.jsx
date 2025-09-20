@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEventoPorId } from '../hooks/useEventoPorId';
+import { useCrearCuestionario } from '../hooks/useCrearCuestionario';
 import '../styles/pages/NuevoCuestionario.css';
 
-// Componente para manejar las opciones de restricciones/preferencias
 function RestriccionesAlimenticiasOpciones({ opciones, setOpciones }) {
   const handleOptionChange = (index, value) => {
     const newOptions = [...opciones];
@@ -52,12 +52,14 @@ function RestriccionesAlimenticiasOpciones({ opciones, setOpciones }) {
 
 export default function NuevoCuestionario() {
   const EVENTO_ID = 'mffj4jsdirg268cs1';
-  const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Im1mb3NvdnQ2NTg4czRlNTIxIiwiZW1haWwiOiJyaDUwMDBAZ21haWwuY29tIiwicm9sIjoiYWRtaW4iLCJpYXQiOjE3NTgzNDA2OTUsImV4cCI6MTc1ODM0NDI5NX0.Wl3RPPg0X0v2n-rx6i-LO7TeJCmx_xtfa9VN5Acgir0';
-  
+  const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Im1mb3NvdnQ2NTg4czRlNTIxIiwiZW1haWwiOiJyaDUwMDBAZ21haWwuY29tIiwicm9sIjoiYWRtaW4iLCJpYXQiOjE3NTgzNDg4NDgsImV4cCI6MTc1ODM1MjQ0OH0.ILmuVXlHjZgsTDcLbhcYtyIx67xSeKICq-xOGzoNjjg';
+
   let { evento } = useEventoPorId(EVENTO_ID, TOKEN);
   if (evento && evento.data) evento = evento.data;
 
   const navigate = useNavigate();
+  const { crearEstructura, loading, error, result } = useCrearCuestionario();
+
   const [formData, setFormData] = useState({
     nombreEvento: '',
     title: '',
@@ -77,6 +79,9 @@ export default function NuevoCuestionario() {
     carrera: '',
     escuela: ''
   });
+
+  const [showModal, setShowModal] = useState(false);
+  const [nuevoCuestionarioId, setNuevoCuestionarioId] = useState(null);
 
   useEffect(() => {
     if (evento) {
@@ -138,6 +143,14 @@ export default function NuevoCuestionario() {
           placeholder: 'Número de boletos'
         },
         {
+          name: 'contactoEmergencia',
+          label: 'Contacto de emergencia',
+          type: 'string',
+          inputType: 'text',
+          required: false,
+          placeholder: 'Ej. 5512345678'
+        },
+        {
           name: 'preferencias',
           label: 'Preferencias de comida',
           type: 'string',
@@ -153,30 +166,37 @@ export default function NuevoCuestionario() {
       ]
     };
 
-    console.log('Payload que se enviará al backend:', JSON.stringify(payload, null, 2));
-
-    try {
-      const res = await fetch('http://localhost:7071/api/estructuras/crear', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      console.log('Respuesta del backend:', data);
-
-      if (data && data.id) {
-        navigate(`/cuestionario/${data.id}`);
-      } else {
-        alert('Error al guardar la estructura');
-      }
-    } catch (err) {
-      console.error('Error en fetch:', err);
+    const data = await crearEstructura(payload);
+    if (data && data.id) {
+      setNuevoCuestionarioId(data.id);
+      setShowModal(true);
+    } else {
       alert('Error al guardar la estructura');
+    }
+  };
+
+  const handleCompartir = () => {
+    if (nuevoCuestionarioId) {
+      navigate(`/cuestionario/${nuevoCuestionarioId}`);
     }
   };
 
   return (
     <div className="nuevo-cuestionario">
+      {/* Modal */}
+      {showModal && (
+        <div className="nc-modal-overlay">
+          <div className="nc-modal">
+            <h2>¡Cuestionario creado correctamente!</h2>
+            <h3>Planoria</h3>
+            <p>¡Listo! Has completado tu cuestionario. Ahora puedes compartirlo con tus asistentes para que se registren y realicen su pago.</p>
+            <button className="nc-btn-primario" onClick={handleCompartir}>
+              Compartir registro de cuestionario
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="nc-header">
         <div>
           <h1 className="nc-header-title">Módulo de comunicación</h1>
@@ -200,22 +220,16 @@ export default function NuevoCuestionario() {
             <h2>Datos del evento</h2>
             <label>Nombre del evento</label>
             <input name="nombreEvento" value={formData.nombreEvento || ''} onChange={handleChange} readOnly />
-
             <label>Nombre del cuestionario</label>
             <input name="title" value={formData.title || ''} onChange={handleChange} />
-
             <label>Descripción</label>
             <textarea name="description" value={formData.description || ''} onChange={handleChange} />
-
             <label>Lugar del evento</label>
             <input name="lugar" value={formData.lugar || ''} onChange={handleChange} />
-
             <label>Fecha y hora del evento</label>
             <input name="fecha" value={formData.fecha || ''} onChange={handleChange} />
-
             <label>Carrera o estudios realizados</label>
             <input name="carrera" value={formData.carrera || ''} onChange={handleChange} />
-
             <label>Escuela o institución</label>
             <input name="escuela" value={formData.escuela || ''} onChange={handleChange} />
           </div>
@@ -224,10 +238,8 @@ export default function NuevoCuestionario() {
             <h2>Datos del asistente</h2>
             <label>Nombre</label>
             <input name="nombre_asistente" value={formData.nombre_asistente} onChange={handleChange} />
-
             <label>Teléfono</label>
             <input name="telefono" value={formData.telefono} onChange={handleChange} />
-
             <label>Cantidad de boletos</label>
             <input type="number" name="cantidad_boletos" value={formData.cantidad_boletos} min={1} onChange={handleChange} />
 
@@ -243,13 +255,22 @@ export default function NuevoCuestionario() {
           <div className="nc-buttons">
             <button className="nc-btn-sec">Editar</button>
             <button className="nc-btn-sec">Cancelar</button>
-            <button className="nc-btn-primario" onClick={handleGuardar}>Guardar</button>
+            <button className="nc-btn-primario" onClick={handleGuardar} disabled={loading}>
+              {loading ? 'Guardando...' : 'Guardar'}
+            </button>
           </div>
+          {error && <p className="nc-error">Error: {error}</p>}
         </aside>
 
         <section className="nc-preview">
           <div className="nc-phone">
             <div className="nc-phone-screen">
+              {/* 🔹 Logos superiores */}
+              <div className="nc-phone-header">
+                <img src="/logo tentativo 2.svg" alt="Logo Planoria" className="nc-logo-completo" />
+                <img src="/Icono de cuestionario.svg" alt="Icono de cuestionario" className="nc-logo-chec" />
+              </div>
+
               <h2>{formData.title || 'Título del cuestionario'}</h2>
               <p>{formData.description || 'Descripción del cuestionario'}</p>
 
@@ -261,10 +282,8 @@ export default function NuevoCuestionario() {
 
               <label>Nombre completo</label>
               <input type="text" disabled placeholder="Tu respuesta" />
-
               <label>Teléfono</label>
               <input type="text" disabled placeholder="Tu respuesta" />
-
               <label>Cantidad de boletos</label>
               <input type="number" disabled placeholder={formData.cantidad_boletos} />
 

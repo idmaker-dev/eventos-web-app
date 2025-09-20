@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-// Genera el estado inicial dinámicamente según los campos
 function getInitialState(fields) {
   const state = {};
   fields.forEach((f) => {
@@ -21,11 +20,9 @@ export function useCuestionario(fields) {
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
 
-  // Maneja cambios para cualquier tipo de campo
   const handleChange = (e) => {
     const { name, value, checked } = e.target;
     setForm((prev) => {
-      // Checkbox múltiple (array)
       const fieldDef = fields.find((f) => f.name === name);
       if (fieldDef?.inputType === "checkbox" && fieldDef?.type === "array") {
         let arr = Array.isArray(prev[name]) ? [...prev[name]] : [];
@@ -36,22 +33,21 @@ export function useCuestionario(fields) {
         }
         return { ...prev, [name]: arr };
       }
-      // Checkbox simple (booleano)
+
       if (fieldDef?.inputType === "checkbox" && fieldDef?.type === "boolean") {
         return { ...prev, [name]: checked };
       }
-      // Radio
+
       if (fieldDef?.inputType === "radio") {
         return { ...prev, [name]: value };
       }
-      // Otros
+
       return { ...prev, [name]: value };
     });
   };
 
   const resetForm = () => setForm(getInitialState(fields));
 
-  // Obtener estructura de cuestionario por ID
   const fetchCuestionario = async (id) => {
     setLoading(true);
     setError(null);
@@ -71,7 +67,6 @@ export function useCuestionario(fields) {
     }
   };
 
-  // Crear nuevo cuestionario
   const crearCuestionario = async (payload) => {
     setLoading(true);
     setError(null);
@@ -95,7 +90,6 @@ export function useCuestionario(fields) {
     }
   };
 
-  // Enviar registro de respuestas
   const submitRegistro = async (eventoId, cuestionarioId, respuestas) => {
     setLoading(true);
     setError(null);
@@ -123,7 +117,6 @@ export function useCuestionario(fields) {
     }
   };
 
-  // Permitir exponer setters para control externo (como workaround)
   return {
     form,
     setForm,

@@ -3,7 +3,9 @@ import '../styles/pages/Cuestionario.css';
 import '../styles/components/DynamicFormFields.css';
 import DynamicFormResponder from '../components/DynamicFormResponder';
 import { useEventoPorId } from '../hooks/useEventoPorId';
+import { useCuestionario } from '../hooks/useCuestionario';
 
+// Componente para preferencias de comida con contador
 function PreferenciasComida({ opciones, setOpciones }) {
   const handleCantidad = (index, delta) => {
     const nuevas = [...opciones];
@@ -29,41 +31,44 @@ function PreferenciasComida({ opciones, setOpciones }) {
 }
 
 function Cuestionario() {
-  const cuestionarioId = 'mfrotlboe5o3tnvnh';
+  const cuestionarioId = 'mfrt3938ifudjpad5';
   const EVENTO_ID = 'mffj4jsdirg268cs1';
-  const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Im1mb3NvdnQ2NTg4czRlNTIxIiwiZW1haWwiOiJyaDUwMDBAZ21haWwuY29tIiwicm9sIjoiYWRtaW4iLCJpYXQiOjE3NTgzNDA2OTUsImV4cCI6MTc1ODM0NDI5NX0.Wl3RPPg0X0v2n-rx6i-LO7TeJCmx_xtfa9VN5Acgir0';
+  const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Im1mb3NvdnQ2NTg4czRlNTIxIiwiZW1haWwiOiJyaDUwMDBAZ21haWwuY29tIiwicm9sIjoiYWRtaW4iLCJpYXQiOjE3NTgzNDg4NDgsImV4cCI6MTc1ODM1MjQ0OH0.ILmuVXlHjZgsTDcLbhcYtyIx67xSeKICq-xOGzoNjjg';
 
   const { evento, loading: loadingEvento, error: errorEvento } = useEventoPorId(EVENTO_ID, TOKEN);
 
+
+  const { form, setForm, handleChange, submitRegistro, setResult } = useCuestionario([]);
+
   const [cuestionario, setCuestionario] = useState(null);
-  const [form, setForm] = useState({});
   const [preferencias, setPreferencias] = useState([]);
   const [loadingCuestionario, setLoadingCuestionario] = useState(true);
   const [enviado, setEnviado] = useState(false);
 
   const loading = loadingEvento || loadingCuestionario;
 
-  // Traer estructura del cuestionario
+
   useEffect(() => {
     let ignore = false;
-    const fetchCuestionario = async () => {
+
+    const cargarCuestionario = async () => {
       try {
-        const res = await fetch('http://localhost:7071/api/estructuras/obtenerPorIdYEvento', {
+        const data = await fetch('http://localhost:7071/api/estructuras/obtenerPorIdYEvento', {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${TOKEN}` 
+            'Authorization': `Bearer ${TOKEN}`
           },
           body: JSON.stringify({ eventoId: EVENTO_ID, id: cuestionarioId })
-        });
-        const data = await res.json();
-        console.log('Datos del cuestionario recibidos:', data);
+        }).then(res => res.json());
+
         if (!ignore && data.success && data.data) {
           setCuestionario(data.data);
-          setForm({});
-          // Inicializar preferencias con cantidad 0
-          const pref = data.data.fields.find(f => f.name === 'preferencias')?.options || [];
-          setPreferencias(pref.map(p => ({ ...p, cantidad: 0 })));
+          setForm({}); 
+
+    
+          const prefField = data.data.fields.find(f => f.name === 'preferencias');
+          setPreferencias(prefField?.options.map(p => ({ ...p, cantidad: 0 })) || []);
         }
       } catch (err) {
         console.error('Error cargando cuestionario:', err);
@@ -71,35 +76,30 @@ function Cuestionario() {
         if (!ignore) setLoadingCuestionario(false);
       }
     };
-    fetchCuestionario();
+
+    cargarCuestionario();
     return () => { ignore = true; };
-  }, []);
+  }, [cuestionarioId, setForm, TOKEN]);
 
-  const handleChange = e => {
-    const { name, value, type, checked } = e.target;
-    setForm(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
-  const handleSubmit = e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setEnviado(true);
-    console.log('Formulario enviado:', form, 'Preferencias:', preferencias, 'Datos evento:', evento);
+
+    const respuestasCompletas = { ...form, preferencias };
+    await submitRegistro(EVENTO_ID, cuestionarioId, respuestasCompletas);
     setTimeout(() => setEnviado(false), 2000);
-    // Aquí enviar al backend
   };
 
   if (loading) return <div className="cuestionario-container">Cargando formulario...</div>;
   if (!cuestionario) return <div className="cuestionario-container">No se encontró el cuestionario.</div>;
   if (errorEvento) return <div className="cuestionario-container">Error cargando evento: {errorEvento}</div>;
 
+  const eventoInfo = evento?.data ? (Array.isArray(evento.data) ? evento.data[0] : evento.data) : null;
+
   return (
     <div className="cuestionario-container">
       <div className="cuestionario-header">
         <img src={process.env.PUBLIC_URL + '/logo tentativo 2.svg'} alt="Logo" style={{height: '40px'}} />
-        <span className="cuestionario-planoria-text">Planoria</span>
       </div>
 
       <div style={{textAlign: 'center', margin: '16px 0'}}>
@@ -110,25 +110,22 @@ function Cuestionario() {
       <div className="cuestionario-info">{cuestionario.description}</div>
 
       <form className="cuestionario-form" onSubmit={handleSubmit}>
-        {/* Datos del evento visibles */}
-        {evento && (
+        {eventoInfo && (
           <div className="nc-section">
-            <p><strong>Evento:</strong> {evento.nombreEvento}</p>
-            <p><strong>Lugar:</strong> {evento.lugar}</p>
-            <p><strong>Fecha:</strong> {evento.fecha}</p>
-            <p><strong>Carrera:</strong> {evento.carrera || evento.licenciatura}</p>
-            <p><strong>Escuela:</strong> {evento.escuela}</p>
+            <p><strong>Evento:</strong> {eventoInfo.nombreEvento}</p>
+            <p><strong>Lugar:</strong> {eventoInfo.lugar}</p>
+            <p><strong>Fecha:</strong> {eventoInfo.fecha}</p>
+            <p><strong>Carrera:</strong> {eventoInfo.carrera || eventoInfo.licenciatura}</p>
+            <p><strong>Escuela:</strong> {eventoInfo.escuela}</p>
           </div>
         )}
 
-        {/* DynamicFormResponder para todos los fields excepto preferencias */}
         <DynamicFormResponder
           fields={cuestionario.fields.filter(f => f.name !== 'preferencias')}
           values={form}
           onChange={handleChange}
         />
 
-        {/* Preferencias de comida con contador */}
         <PreferenciasComida opciones={preferencias} setOpciones={setPreferencias} />
 
         <div style={{textAlign: 'center', marginTop: '20px'}}>
