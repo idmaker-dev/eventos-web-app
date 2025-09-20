@@ -1,0 +1,234 @@
+/* Contenedor principal de notificaciones */
+.notification-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  max-width: 400px;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* Item individual de notificación */
+.notification-item {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin-bottom: 12px;
+  overflow: hidden;
+  position: relative;
+  transform: translateX(400px);
+  animation: slideIn 0.3s ease-out forwards;
+  pointer-events: auto;
+  border-left: 4px solid;
+}
+
+/* Animación de entrada */
+@keyframes slideIn {
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Animación de salida */
+.notification-item.removing {
+  animation: slideOut 0.3s ease-in forwards;
+}
+
+@keyframes slideOut {
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
+
+/* Contenido de la notificación */
+.notification-content {
+  display: flex;
+  align-items: flex-start;
+  padding: 16px;
+  gap: 12px;
+}
+
+/* Contenedor del icono */
+.notification-icon-container {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Iconos por tipo */
+.notification-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.notification-icon.success {
+  color: #22c55e;
+}
+
+.notification-icon.error {
+  color: #ef4444;
+}
+
+.notification-icon.warning {
+  color: #f59e0b;
+}
+
+.notification-icon.info {
+  color: #3b82f6;
+}
+
+/* Mensaje de la notificación */
+.notification-message {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-message p {
+  margin: 0;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+/* Botón de acción */
+.notification-action {
+  background: none;
+  border: none;
+  color: #4b92ac;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 13px;
+  margin-top: 6px;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.notification-action:hover {
+  color: #3a7a94;
+}
+
+/* Botón de cerrar */
+.notification-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.notification-close:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* Barra de progreso */
+.notification-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: currentColor;
+  opacity: 0.3;
+  width: 100%;
+  animation: progressBar linear;
+  transform-origin: left;
+}
+
+@keyframes progressBar {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Estilos por tipo de notificación */
+.notification-success {
+  border-left-color: #22c55e;
+}
+
+.notification-error {
+  border-left-color: #ef4444;
+}
+
+.notification-warning {
+  border-left-color: #f59e0b;
+}
+
+.notification-info {
+  border-left-color: #3b82f6;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .notification-container {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+
+  .notification-item {
+    transform: translateY(-100px);
+  }
+
+  @keyframes slideIn {
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .notification-item.removing {
+    animation: slideOutMobile 0.3s ease-in forwards;
+  }
+
+  @keyframes slideOutMobile {
+    to {
+      transform: translateY(-100px);
+      opacity: 0;
+    }
+  }
+}
+
+/* Estados hover y focus para accesibilidad */
+.notification-item:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.notification-close:focus {
+  outline: 2px solid #4b92ac;
+  outline-offset: 2px;
+}
+
+.notification-action:focus {
+  outline: 2px solid #4b92ac;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Animación de entrada suave cuando se apilan múltiples notificaciones */
+.notification-item:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.notification-item:nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.notification-item:nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.notification-item:nth-child(4) {
+  animation-delay: 150ms;
+}
+
+.notification-item:nth-child(n+5) {
+  animation-delay: 200ms;
+}
