@@ -1,121 +1,137 @@
-
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
 import '../styles/pages/Cuestionario.css';
 import '../styles/components/DynamicFormFields.css';
 import DynamicFormResponder from '../components/DynamicFormResponder';
-import { useCuestionario } from '../hooks/useCuestionario';
+import { useEventoPorId } from '../hooks/useEventoPorId';
 
-
-function Cuestionario() {
-  // IDs requeridos por el endpoint
-  const eventoId = 'mffj4jsdirg268cs1';
-  const params = useParams();
-  const cuestionarioId = params.id || 'mfpv6o4fuq8erh8vp';
-  const [enviado, setEnviado] = React.useState(false);
-  // Estado local para los fields y la definición del cuestionario
-  const [formDef, setFormDef] = useState(null);
-  const [loading, setLoading] = useState(true);
-  // Inicializa el hook con los fields reales cuando estén listos
-  const fields = formDef && Array.isArray(formDef.fields) ? formDef.fields : [];
-  const {
-    form,
-    setForm,
-    handleChange,
-    resetForm
-  } = useCuestionario(fields);
-
-  useEffect(() => {
-    setLoading(true);
-    setFormDef(null);
-    setForm({});
-    let ignore = false;
-    const fetchEstructura = async () => {
-      try {
-        const res = await fetch('http://localhost:7071/api/estructuras/obtenerPorIdYEvento', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ eventoId, id: cuestionarioId }),
-        });
-        const data = await res.json();
-        console.log('Respuesta cuestionario:', data);
-        if (!ignore) {
-          if (data.success && data.data) {
-            let estructura = data.data;
-            if (!Array.isArray(estructura.fields) && estructura.formDef && Array.isArray(estructura.formDef.fields)) {
-              estructura.fields = estructura.formDef.fields;
-            }
-            if (!Array.isArray(estructura.fields)) {
-              estructura.fields = [];
-            }
-            setFormDef(estructura);
-          } else {
-            setFormDef(null);
-            console.error('No se pudo cargar la estructura del cuestionario', data);
-          }
-        }
-      } catch (err) {
-        if (!ignore) console.error('Error al cargar cuestionario', err);
-        setFormDef(null);
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
-    fetchEstructura();
-    return () => { ignore = true; };
-    // eslint-disable-next-line
-  }, [cuestionarioId]);
-
-  // Cuando los fields cambian, reinicializar el form
-  useEffect(() => {
-    if (fields && fields.length > 0) {
-      resetForm && resetForm(fields);
-    }
-    // eslint-disable-next-line
-  }, [fields]);
-
-  if (loading) {
-    return <div className="cuestionario-container">Cargando formulario...</div>;
-  }
-  if (!fields || fields.length === 0) {
-    return <div className="cuestionario-container">No se encontró el cuestionario o no tiene campos.</div>;
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setEnviado(true);
-    // Aquí podrías enviar las respuestas a la API si lo deseas
-    setTimeout(() => setEnviado(false), 2500);
-    setForm({});
+function PreferenciasComida({ opciones, setOpciones }) {
+  const handleCantidad = (index, delta) => {
+    const nuevas = [...opciones];
+    nuevas[index].cantidad = Math.max(0, (nuevas[index].cantidad || 0) + delta);
+    setOpciones(nuevas);
   };
 
   return (
-    <div className="cuestionario-container">
-      <div style={{textAlign: 'center', color: '#888', fontSize: '0.95em', marginBottom: 8}}>
-        <b>ID del cuestionario:</b> {cuestionarioId}
-      </div>
-      <div className="cuestionario-header">
-        <div className="cuestionario-logo">
-          <img src={process.env.PUBLIC_URL + '/logo tentativo 2.svg'} alt="Logo Planoria" style={{height: '40px', width: 'auto'}} />
+    <div className="nc-section">
+      <h4>Preferencias de comida</h4>
+      {opciones.map((op, index) => (
+        <div key={index} className="nc-preview-opcion">
+          <span>{op.label}</span>
+          <div className="nc-btns-cantidad">
+            <button type="button" onClick={() => handleCantidad(index, -1)} className="nc-btn-cantidad">–</button>
+            <span className="nc-cantidad">{op.cantidad || 0}</span>
+            <button type="button" onClick={() => handleCantidad(index, +1)} className="nc-btn-cantidad">+</button>
+          </div>
         </div>
-        <div className="cuestionario-planoria-text">Planoria</div>
+      ))}
+    </div>
+  );
+}
+
+function Cuestionario() {
+  const cuestionarioId = 'mfrotlboe5o3tnvnh';
+  const EVENTO_ID = 'mffj4jsdirg268cs1';
+  const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Im1mb3NvdnQ2NTg4czRlNTIxIiwiZW1haWwiOiJyaDUwMDBAZ21haWwuY29tIiwicm9sIjoiYWRtaW4iLCJpYXQiOjE3NTgzNDA2OTUsImV4cCI6MTc1ODM0NDI5NX0.Wl3RPPg0X0v2n-rx6i-LO7TeJCmx_xtfa9VN5Acgir0';
+
+  const { evento, loading: loadingEvento, error: errorEvento } = useEventoPorId(EVENTO_ID, TOKEN);
+
+  const [cuestionario, setCuestionario] = useState(null);
+  const [form, setForm] = useState({});
+  const [preferencias, setPreferencias] = useState([]);
+  const [loadingCuestionario, setLoadingCuestionario] = useState(true);
+  const [enviado, setEnviado] = useState(false);
+
+  const loading = loadingEvento || loadingCuestionario;
+
+  // Traer estructura del cuestionario
+  useEffect(() => {
+    let ignore = false;
+    const fetchCuestionario = async () => {
+      try {
+        const res = await fetch('http://localhost:7071/api/estructuras/obtenerPorIdYEvento', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${TOKEN}` 
+          },
+          body: JSON.stringify({ eventoId: EVENTO_ID, id: cuestionarioId })
+        });
+        const data = await res.json();
+        console.log('Datos del cuestionario recibidos:', data);
+        if (!ignore && data.success && data.data) {
+          setCuestionario(data.data);
+          setForm({});
+          // Inicializar preferencias con cantidad 0
+          const pref = data.data.fields.find(f => f.name === 'preferencias')?.options || [];
+          setPreferencias(pref.map(p => ({ ...p, cantidad: 0 })));
+        }
+      } catch (err) {
+        console.error('Error cargando cuestionario:', err);
+      } finally {
+        if (!ignore) setLoadingCuestionario(false);
+      }
+    };
+    fetchCuestionario();
+    return () => { ignore = true; };
+  }, []);
+
+  const handleChange = e => {
+    const { name, value, type, checked } = e.target;
+    setForm(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    setEnviado(true);
+    console.log('Formulario enviado:', form, 'Preferencias:', preferencias, 'Datos evento:', evento);
+    setTimeout(() => setEnviado(false), 2000);
+    // Aquí enviar al backend
+  };
+
+  if (loading) return <div className="cuestionario-container">Cargando formulario...</div>;
+  if (!cuestionario) return <div className="cuestionario-container">No se encontró el cuestionario.</div>;
+  if (errorEvento) return <div className="cuestionario-container">Error cargando evento: {errorEvento}</div>;
+
+  return (
+    <div className="cuestionario-container">
+      <div className="cuestionario-header">
+        <img src={process.env.PUBLIC_URL + '/logo tentativo 2.svg'} alt="Logo" style={{height: '40px'}} />
+        <span className="cuestionario-planoria-text">Planoria</span>
       </div>
-      <div className="cuestionario-icono-encabezado" style={{textAlign: 'center', marginBottom: '12px'}}>
-        <img src={process.env.PUBLIC_URL + '/Icono de cuestionario.svg'} alt="Icono Cuestionario" style={{height: '48px', width: '48px'}} />
+
+      <div style={{textAlign: 'center', margin: '16px 0'}}>
+        <img src={process.env.PUBLIC_URL + '/Icono de cuestionario.svg'} alt="Icono" style={{height: '48px'}} />
       </div>
-      <div className="cuestionario-titulo">
-  <h2>{formDef && formDef.title}</h2>
-      </div>
-      <div className="cuestionario-info" style={{padding: '14px 18px', fontSize: '0.97rem'}}>
-  {formDef && formDef.description}
-      </div>
-      <form className="cuestionario-form" onSubmit={handleSubmit} autoComplete="off">
+
+      <h2 className="cuestionario-titulo">{cuestionario.title}</h2>
+      <div className="cuestionario-info">{cuestionario.description}</div>
+
+      <form className="cuestionario-form" onSubmit={handleSubmit}>
+        {/* Datos del evento visibles */}
+        {evento && (
+          <div className="nc-section">
+            <p><strong>Evento:</strong> {evento.nombreEvento}</p>
+            <p><strong>Lugar:</strong> {evento.lugar}</p>
+            <p><strong>Fecha:</strong> {evento.fecha}</p>
+            <p><strong>Carrera:</strong> {evento.carrera || evento.licenciatura}</p>
+            <p><strong>Escuela:</strong> {evento.escuela}</p>
+          </div>
+        )}
+
+        {/* DynamicFormResponder para todos los fields excepto preferencias */}
         <DynamicFormResponder
-          fields={formDef.fields}
+          fields={cuestionario.fields.filter(f => f.name !== 'preferencias')}
           values={form}
           onChange={handleChange}
         />
-        <div className="cuestionario-boton-wrapper">
+
+        {/* Preferencias de comida con contador */}
+        <PreferenciasComida opciones={preferencias} setOpciones={setPreferencias} />
+
+        <div style={{textAlign: 'center', marginTop: '20px'}}>
           <button type="submit" className="cuestionario-boton-small" disabled={enviado}>
             {enviado ? '¡Enviado!' : 'Enviar'}
           </button>

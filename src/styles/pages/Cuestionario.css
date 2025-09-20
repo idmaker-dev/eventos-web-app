@@ -1,4 +1,25 @@
-/* Header centrado para logo y texto */
+/* === ESTILOS GLOBALES BASE === */
+body, .cuestionario-main-bg {
+  background: #eaf3f6 !important;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #2c3e50;
+  min-height: 100vh;
+  padding: 20px 40px;
+  box-sizing: border-box;
+}
+
+/* Contenedor principal centrado */
+.cuestionario-container {
+  max-width: 420px;
+  margin: 40px auto 0 auto;
+  background: #f7fbfb;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  padding: 24px 18px 32px 18px;
+  border-radius: 18px;
+  transition: background 0.2s;
+}
+
+/* === HEADER === */
 .cuestionario-header {
   display: flex;
   flex-direction: column;
@@ -8,7 +29,6 @@
   margin-bottom: 8px;
 }
 
-/* Logo centrado y circular */
 .cuestionario-logo {
   display: flex;
   align-items: center;
@@ -28,45 +48,40 @@
   text-align: center;
 }
 
-/* Icono de cuestionario centrado */
 .cuestionario-icono-encabezado {
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 12px;
 }
-/* Select personalizado para boletos */
- .cuestionario-select-wrapper {
-  position: relative;
-  width: 100%;
+
+/* Título principal y subtítulo */
+.cuestionario-titulo h2 {
+  color: #226060 !important;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 2px 0;
+  text-align: center;
 }
 
-/* Select personalizado para boletos */
-.cuestionario-select {
-  width: 100%;
-  border: 2px solid #b2d8d8;
-  border-radius: 24px;
-  background: #fff;
-  color: #3a6c6c;
+.cuestionario-titulo .cuestionario-subtitulo {
+  color: #222 !important;
+  text-align: center;
+  font-weight: 400 !important;
   font-size: 1.08rem;
-  padding: 12px 44px 12px 18px;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg fill="%23666666" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 16px center;
-  background-size: 24px 24px;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', Arial, sans-serif;
-}
-.cuestionario-select:focus {
-  outline: 2px solid #3a6c6c;
-  background: #f7fbfb;
+  margin-bottom: 8px;
 }
 
-/* Título verde para todos los labels encima de campos */
-/* Título verde para todos los labels encima de campos */
+/* === FORMULARIO === */
+.cuestionario-form {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .cuestionario-label-titulo,
 .cuestionario-label {
   color: #4AB290 !important;
@@ -75,8 +90,8 @@
   margin-bottom: 4px;
   display: block;
   text-align: left;
-  font-family: 'Segoe UI', Arial, sans-serif;
 }
+
 .cuestionario-form label {
   color: #2b7a7a;
   font-weight: 500;
@@ -85,70 +100,38 @@
   flex-direction: column;
   gap: 3px;
   text-align: justify;
-  font-family: 'Segoe UI', Arial, sans-serif;
 }
 
-/* Bloque de restricciones alimenticias */
-.restricciones-block {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
-  padding: 14px 10px 10px 10px;
-  margin-bottom: 18px;
-}
-.cuestionario-ayuda-black {
-  color: #222;
-  font-size: 0.93rem;
-  margin-bottom: 8px;
-  margin-left: 2px;
-}
-.cuestionario-lista-restricciones {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-/* Un solo bloque para .cuestionario-lista-item */
-.cuestionario-lista-item {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-/* Un solo bloque para .cuestionario-lista-item-sub */
-.cuestionario-lista-item-sub {
-  width: 100%;
+.cuestionario-label-ico {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-left: 0;
-  margin-top: 4px;
-  margin-bottom: 6px;
+  gap: 3px;
+  position: relative;
+  text-align: justify;
 }
-/* Inputs redondeados y fondo blanco, fuente y color como en la imagen */
+
+.cuestionario-label-ico > .cuestionario-icono-input {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+}
+
+.cuestionario-label-ico input,
+.cuestionario-label-ico select {
+  padding-left: 36px !important;
+}
+
+/* Inputs y textareas */
 .cuestionario-input-sub,
 input[type="text"],
 input[type="number"],
 input[type="email"],
 input[type="tel"],
-textarea {
-  border: 2px solid #b2d8d8;
-  border-radius: 24px;
-  padding: 12px 18px;
-  font-size: 1.08rem;
-  color: #3a6c6c;
-  background: #fff;
-  width: 100%;
-  box-sizing: border-box;
-  margin-bottom: 18px;
-  font-family: 'Segoe UI', Arial, sans-serif;
-}
-.cuestionario-input-sub,
-input[type="text"],
-input[type="number"],
-input[type="email"],
-input[type="tel"],
-textarea {
+textarea,
+.cuestionario-form input,
+.cuestionario-form select {
   border: 1.5px solid #b2d8d8;
   border-radius: 12px;
   padding: 8px 12px;
@@ -159,40 +142,51 @@ textarea {
   box-sizing: border-box;
   margin-bottom: 4px;
 }
+
 .cuestionario-input-sub:focus,
-input[type="text"]:focus,
-input[type="number"]:focus,
-input[type="email"]:focus,
-input[type="tel"]:focus,
+input:focus,
+select:focus,
 textarea:focus {
+  outline: 2px solid #2b7a7a;
+  background: #f7fbfb;
+}
+
+/* Select personalizado con icono */
+.cuestionario-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.cuestionario-select {
+  width: 100%;
+  border: 2px solid #b2d8d8;
+  border-radius: 24px;
+  background: #fff;
+  color: #3a6c6c;
+  font-size: 1.08rem;
+  padding: 12px 44px 12px 18px;
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23666666" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 24px 24px;
+  box-sizing: border-box;
+}
+
+.cuestionario-select:focus {
   outline: 2px solid #3a6c6c;
   background: #f7fbfb;
 }
 
-/* Botón pequeño y centrado */
+/* Botones */
 .cuestionario-boton-wrapper {
   display: flex;
   justify-content: center;
   margin-top: 18px;
 }
-.cuestionario-boton-small {
-  background: #2b7a7a;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 32px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-}
-.cuestionario-boton-small:hover {
-  background: #226060;
-}
-/* Estilos para la página de Cuestionario */
-/* Eliminado bloque duplicado y abierto de .cuestionario-container y reglas anidadas */
-.cuestionario-boton-small {
+
+.cuestionario-boton-small,
+.cuestionario-boton {
   background: #226060;
   color: #fff;
   border: none;
@@ -204,208 +198,134 @@ textarea:focus {
   width: 90%;
   max-width: 340px;
   transition: background 0.2s;
-  font-family: 'Segoe UI', Arial, sans-serif;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
-.cuestionario-boton-small:hover {
+
+.cuestionario-boton-small:hover,
+.cuestionario-boton:hover {
   background: #17494d;
 }
-body, .cuestionario-main-bg {
-  background: #eaf3f6 !important;
-}
 
-/* Contenedor principal centrado, ancho limitado y responsive */
-
-.cuestionario-container {
-  max-width: 420px;
-  margin: 40px auto 0 auto;
-  background: #f7fbfb;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  padding: 24px 18px 32px 18px;
-  border-radius: 18px;
-  transition: background 0.2s;
-}
-
-@media (max-width: 500px) {
-  .cuestionario-container {
-    max-width: 98vw;
-    padding: 10px 2vw 24px 2vw;
-    border-radius: 10px;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-  }
-}
-
-.cuestionario-form {
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0;
-}
-.restricciones-block, .cuestionario-info {
+/* === BLOQUES DE RESTRICCIONES === */
+.restricciones-block,
+.cuestionario-info {
   background: #fff !important;
   border-radius: 18px;
   margin-bottom: 18px;
   box-shadow: 0 1px 8px rgba(0,0,0,0.04);
 }
-/* Título principal con color igual al botón */
-.cuestionario-titulo h2 {
-  color: #226060 !important;
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0 0 2px 0;
-  text-align: center;
-  font-family: 'Segoe UI', Arial, sans-serif;
+
+.cuestionario-lista-restricciones,
+.nc-preview-restricciones {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-/* Subtítulo centrado y negro */
-.cuestionario-titulo .cuestionario-subtitulo {
-  color: #222 !important;
-  text-align: center;
-  font-weight: 400 !important;
-  font-size: 1.08rem;
-  margin-bottom: 8px;
-}
-
-/* Mensaje de felicitación en verde como los labels */
-.cuestionario-info .cuestionario-felicitacion {
-  color: #3a6c6c !important;
-  font-weight: 700 !important;
-  font-size: 1.08rem;
-  margin-bottom: 4px;
-  display: block;
-}
-
-/* Ejemplo de restricciones en negro */
-.cuestionario-ejemplo-restriccion {
-  color: #222 !important;
-  font-weight: 400 !important;
-  font-size: 0.98rem;
-  margin-bottom: 8px;
-  margin-left: 0;
-}
-
-/* Subtítulo y textos secundarios sin negrita */
-.cuestionario-titulo h3,
-.cuestionario-subtitulo,
-.cuestionario-info,
-.cuestionario-info strong {
-  font-weight: 400 !important;
-  color: #3a6c6c !important;
-}
-.cuestionario-info strong {
-  display: inline;
-}
-
-/* Quitar negrita de textos de ayuda y preguntas y forzar negro en campos indicados */
-.cuestionario-ayuda-black,
-.cuestionario-lista-restricciones label,
-.restricciones-block label,
-.cuestionario-no-bold {
-  font-weight: 400 !important;
-  color: #2b7a7a !important;
-}
-.cuestionario-info strong {
-  display: block;
-  margin-bottom: 6px;
-  color: #2b7a7a;
-}
-.cuestionario-form {
-  background: #fff;
-  flex-direction: column;
-  gap: 12px;
-}
-/* Estilo para el icono de flecha en el select */
-.cuestionario-form select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg fill="%23666666" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 20px 20px;
-}
-.cuestionario-form label {
-  color: #2b7a7a;
-  font-weight: 500;
-  font-size: 1rem;
+.cuestionario-lista-item,
+.nc-preview-opcion {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  text-align: justify;
-}
-.cuestionario-label-ico {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  position: relative;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  text-align: justify;
-}
-.cuestionario-label-ico > .cuestionario-icono-input {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 8px;
-}
-.cuestionario-label-ico input,
-.cuestionario-label-ico select {
-  padding-left: 36px !important;
-}
-.cuestionario-icono-input {
-  display: inline-flex;
   align-items: center;
-  margin-right: 8px;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
 }
-.cuestionario-form input,
-.cuestionario-form select {
-  border: 1px solid #b2d8d8;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 1rem;
-  background: #fff;
-  margin-top: 2px;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  color: #2b7a7a;
-  box-sizing: border-box;
+
+.nc-btns-cantidad {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
-.cuestionario-form input:focus,
-.cuestionario-form select:focus {
-  outline: 2px solid #2b7a7a;
-  background: #f7fbfb;
-}
-.cuestionario-ayuda {
-  color: #7a8c8c;
-  font-size: 0.92rem;
-  font-weight: 400;
-  margin-left: 4px;
-}
-.cuestionario-boton {
-  background: #2b7a7a;
+
+.nc-btn-cantidad {
+  background: #005599;
   color: #fff;
   border: none;
-  border-radius: 8px;
-  padding: 12px 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-top: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.2s;
-  width: 100%;
 }
-.cuestionario-boton:hover {
-  background: #226060;
+
+.nc-cantidad {
+  min-width: 20px;
+  text-align: center;
 }
+
+.nc-btn-agregar {
+  display: inline-block;
+  background-color: #005599;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.nc-btn-eliminar {
+  background-color: #ff4d4d;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+/* === RESPONSIVE === */
 @media (max-width: 500px) {
   .cuestionario-container {
     max-width: 98vw;
     padding: 10px 2vw;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
   }
+
   .cuestionario-label-ico > .cuestionario-icono-input {
     left: 0;
     margin-left: 2px;
   }
+
   .cuestionario-label-ico input,
   .cuestionario-label-ico select {
     padding-left: 32px !important;
   }
+}
+.cuestionario-wrapper {
+  display: flex;
+  gap: 24px;
+}
+.cuestionario-sidebar {
+  flex: 1;
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.cuestionario-preview {
+  flex: 1;
+  background: #f5f5f5;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.05);
+}
+.cuestionario-opcion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0;
+}
+.cuestionario-btns-cantidad button {
+  width: 28px;
+  height: 28px;
+  margin: 0 4px;
+  border-radius: 4px;
+}
+.cuestionario-boton-small {
+  background-color: #005599;
+  color: #fff;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }

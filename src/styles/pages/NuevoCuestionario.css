@@ -1,254 +1,500 @@
-/* NuevoCuestionario.css */
-:root {
-  --color-bg: #EAF0F3;
-  --color-accent: #A1BAC4;
-  --color-title: #246370;
-  --color-highlight: #72B7A4;
-  --color-white: #FFF;
-  --color-black: #000;
-  --color-gray-dark: #4D4D4D;
-  --color-gray: #808080;
-  --color-gray-light: #CBCBCB;
-  font-family: 'Inter', 'Minion Variable', Arial, sans-serif;
-}
-
-.modulo-comunicacion-bg {
-  background: var(--color-bg);
+/* === AJUSTES GLOBALES === */
+.nuevo-cuestionario {
+  font-family: "Inter", Arial, sans-serif;
+  background: #f5f9fc;
+  color: #2c3e50;
   min-height: 100vh;
-  padding: 32px 0;
+  padding: 20px 40px;
 }
 
-.modulo-comunicacion-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  background: var(--color-white);
-  border-radius: 18px;
-  box-shadow: 0 2px 16px rgba(36,99,112,0.08);
-  padding: 36px 32px 32px 32px;
+/* HEADER */
+.nc-header {
   display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.modulo-comunicacion-header h1 {
-  color: var(--color-title);
-  font-family: 'Inter', Arial, sans-serif;
-  font-weight: 700;
-  font-size: 2.1rem;
-  margin-bottom: 2px;
-}
-
-.modulo-comunicacion-header p {
-  color: var(--color-gray-dark);
-  font-family: 'Inter', Arial, sans-serif;
-  font-weight: 400;
-  font-size: 1.1rem;
-  margin-bottom: 0;
-}
-
-.modulo-comunicacion-tabs {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.tab {
-  background: var(--color-bg);
-  color: var(--color-title);
-  border: none;
-  border-radius: 18px 18px 0 0;
-  padding: 10px 32px;
-  font-family: 'Inter', Arial, sans-serif;
-  font-weight: 500;
-  font-size: 1.05rem;
-  cursor: pointer;
-  outline: none;
-  transition: background 0.2s;
-}
-.tab.active {
-  background: var(--color-white);
-  color: var(--color-title);
-  font-weight: 600;
-  border-bottom: 2px solid var(--color-highlight);
-}
-
-.modulo-comunicacion-main {
-  display: flex;
-  gap: 40px;
+  justify-content: space-between;
   align-items: flex-start;
-  justify-content: center;
+  margin-bottom: 20px;
 }
 
-.modulo-comunicacion-form-section {
-  flex: 1 1 480px;
-  max-width: 520px;
-  background: var(--color-bg);
-  border-radius: 14px;
-  padding: 28px 24px 18px 24px;
-  box-shadow: 0 1px 8px rgba(36,99,112,0.04);
-}
-
-.modulo-comunicacion-form h2 {
-  color: var(--color-title);
-  font-family: 'Inter', Arial, sans-serif;
+.nc-header-title {
+  font-size: 22px;
   font-weight: 600;
-  font-size: 1.3rem;
-  margin-bottom: 2px;
-}
-.modulo-comunicacion-form-desc {
-  color: var(--color-gray);
-  font-size: 1rem;
-  margin-bottom: 18px;
-}
-.modulo-comunicacion-form-group {
-  margin-bottom: 16px;
-}
-.modulo-comunicacion-form-group label {
-  color: var(--color-title);
-  font-family: 'Inter', Arial, sans-serif;
-  font-weight: 500;
-  font-size: 1rem;
   margin-bottom: 4px;
-  display: block;
 }
-.modulo-comunicacion-form-group input,
-.modulo-comunicacion-form-group textarea {
-  width: 100%;
-  border: 1.5px solid var(--color-gray-light);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 1rem;
-  font-family: 'Inter', Arial, sans-serif;
-  background: var(--color-white);
-  color: var(--color-black);
-  margin-top: 2px;
-  transition: border 0.2s;
+
+.nc-header-subtitle {
+  font-size: 14px;
+  color: #7f8c8d;
 }
-.modulo-comunicacion-form-group input:focus,
-.modulo-comunicacion-form-group textarea:focus {
-  border: 1.5px solid var(--color-highlight);
+
+.nc-buscar {
+  padding: 6px 10px;       /* un poco más pequeño */
+  border-radius: 2px;
+  border: 1px solid #ccc;
   outline: none;
+  font-size: 14px;
+  width: auto;             /* deja que sea solo lo necesario */
+  max-width: 300px;        /* máximo ancho permitido */
+  box-sizing: border-box;  /* incluye padding en el ancho total */
+  display: inline-block;   /* evita que ocupe todo el contenedor */
 }
-.modulo-comunicacion-form h3 {
-  color: var(--color-title);
-  font-size: 1.08rem;
-  font-weight: 600;
-  margin: 18px 0 8px 0;
-}
-.modulo-comunicacion-form-actions {
+
+
+/* NAVBAR */
+.nc-navbar {
   display: flex;
   gap: 12px;
-  justify-content: flex-end;
-  margin-top: 18px;
-}
-.modulo-comunicacion-form-actions .cancelar {
-  background: var(--color-gray-light);
-  color: var(--color-gray-dark);
-  border: none;
-  border-radius: 8px;
-  padding: 8px 22px;
-  font-size: 1rem;
-  font-family: 'Inter', Arial, sans-serif;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.modulo-comunicacion-form-actions .guardar {
-  background: var(--color-highlight);
-  color: var(--color-white);
-  border: none;
-  border-radius: 8px;
-  padding: 8px 22px;
-  font-size: 1rem;
-  font-family: 'Inter', Arial, sans-serif;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.modulo-comunicacion-form-actions .guardar:disabled {
-  background: var(--color-accent);
-  color: var(--color-white);
-  opacity: 0.7;
-  cursor: not-allowed;
+  margin-bottom: 25px;
 }
 
-.modulo-comunicacion-preview-section {
-  flex: 1 1 420px;
-  max-width: 520px;
-  min-width: 340px;
-  background: var(--color-title);
-  border-radius: 14px;
-  padding: 24px 18px 18px 18px;
-  color: var(--color-white);
+.nc-btn {
+  background: #ecf0f1;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nc-btn.activo {
+  background: #3498db;
+  color: #fff;
+}
+
+.nc-btn:hover {
+  background: #dcdde1;
+}
+
+.nc-badge {
+  background: #3498db;
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+/* MAIN LAYOUT */
+.nc-main {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* SIDEBAR IZQUIERDA */
+.nc-sidebar {
+  flex: 1.2;
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+
+  /* 🔹 Clave para el deslizador */
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.nc-sidebar h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 18px 0 8px;
+  color: #2c3e50;
+}
+
+.nc-sidebar p {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin-bottom: 15px;
+}
+
+.nc-sidebar label {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 10px;
+  display: block;
+  color: #34495e;
+}
+
+.nc-sidebar input,
+.nc-sidebar textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #dcdde1;
+  border-radius: 10px;
+  margin-top: 4px;
+  font-size: 14px;
+  background: #f9fbfc;
+}
+
+.nc-sidebar textarea {
+  min-height: 60px;
+  resize: none;
+}
+
+/* SEPARACIÓN ENTRE BLOQUES */
+.nc-sidebar .nc-section {
+  border-top: 1px solid #ecf0f1;
+  padding-top: 15px;
+  margin-top: 20px;
+}
+
+/* BOTONES FORM */
+.nc-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.nc-btn-primario {
+  background: #3498db;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.nc-btn-sec {
+  background: #ecf0f1;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* PREVISUALIZACIÓN DERECHA */
+.nc-preview {
+  flex: 2;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: center; /* 🔹 Centra los teléfonos */
+}
+
+/* TELÉFONOS */
+.nc-phone {
+  flex: 1;
+  background: transparent;       
+  border-radius: 48px;
+  padding: 6px;                  /* pequeño padding para que la pantalla no toque el borde */
+  max-width: 280px;             
+  height: 620px;                
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 8px 20px #00000026; 
+  position: relative;
+  border: 6px solid #000000;   
+}
+
+/* Pantalla interna */
+.nc-phone-screen {
+  background: #fff;
+  border-radius: 42px;           /* ligeramente menor que el contorno */
+  padding: 22px;                 
+  width: 100%;                   /* ocupa todo el ancho disponible dentro del padding */
+  height: 100%;                  /* ocupa todo el alto disponible dentro del padding */
+  box-sizing: border-box;         /* incluye padding en el ancho y alto */
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 12px;
+  position: relative;
 }
-.modulo-comunicacion-preview-header {
+
+
+/* 🔹 Notch superior */
+.nc-phone::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 28px;
+  background: #000;
+  border-radius: 14px;
+}
+
+/* Encabezados dentro de la pantalla */
+.nc-phone-screen h2 {
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  color: #3498db;
+  margin: 8px 0;
+}
+
+.nc-phone-screen h3 {
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+}
+
+.nc-phone-screen p {
+  font-size: 14px;
+  color: #555;
+  margin: 0 0 6px;
+  text-align: center;
+}
+
+/* Inputs */
+.nc-phone-screen label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 2px;
+  display: block;
+  text-align: left;
+}
+
+.nc-phone-screen input {
   width: 100%;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-size: 13px;
+  background: #f9fbfc;
+}
+
+/* Caja de restricciones */
+.nc-restricciones {
+  border: 1px solid #dcdde1;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 13px;
+  color: #555;
+  background: #fdfdfd;
+}
+
+.nc-restricciones p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #333;
+  text-align: left;
+}
+
+/* Botón enviar */
+.nc-enviar {
+  background: #3498db;
+  color: #fff;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.nc-enviar:hover {
+  background: #2980b9;
+}
+
+/*AJUSTES RESPONSIVOS */
+
+/* Móviles */
+@media (max-width: 480px) {
+  .nuevo-cuestionario {
+    padding: 15px 20px;
+  }
+
+  .nc-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .nc-header-title {
+    font-size: 18px;
+  }
+
+  .nc-header-subtitle {
+    font-size: 12px;
+  }
+
+  .nc-buscar {
+    max-width: 180px;
+    width: 100%;
+  }
+
+  .nc-navbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .nc-main {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .nc-sidebar {
+    max-height: none;
+    padding: 15px;
+  }
+
+  .nc-phone {
+    max-width: 250px;
+    height: 450px;
+    padding: 14px;
+    border-width: 4px;
+  }
+
+  .nc-phone-screen {
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .nc-phone-screen h2 {
+    font-size: 16px;
+  }
+
+  .nc-phone-screen h3 {
+    font-size: 14px;
+  }
+
+  .nc-phone-screen p {
+    font-size: 12px;
+  }
+
+  .nc-phone-screen input {
+    font-size: 12px;
+    padding: 7px 10px;
+  }
+
+  .nc-enviar {
+    padding: 10px;
+    font-size: 13px;
+  }
+}
+
+/* Tablets */
+@media (max-width: 768px) {
+  .nc-main {
+    flex-direction: column;
+  }
+
+  .nc-sidebar {
+    max-height: none;
+    padding: 20px;
+  }
+
+  .nc-phone {
+    max-width: 300px;
+    height: 500px;
+  }
+
+  .nc-phone-screen h2 {
+    font-size: 17px;
+  }
+
+  .nc-phone-screen h3 {
+    font-size: 15px;
+  }
+
+  .nc-phone-screen p {
+    font-size: 13px;
+  }
+}
+.nc-buscar {
+  width: auto;
+  max-width: 300px;
+  display: inline-block;
+  box-sizing: border-box;
+}
+.nc-navbar .nc-btn {
+  flex-shrink: 0;
+}
+/* Botones de suma y resta en preview */
+.nc-preview-restricciones {
+  margin-top: 1rem;
+}
+
+.nc-preview-opcion {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 18px;
-}
-.modulo-comunicacion-preview-header span {
-  font-size: 1.08rem;
-  font-family: 'Inter', Arial, sans-serif;
-  font-weight: 500;
-}
-.modulo-comunicacion-preview-toggle {
-  display: flex;
-  gap: 6px;
-  font-size: 1.2rem;
-}
-.modulo-comunicacion-preview-toggle .active {
-  color: var(--color-highlight);
-}
-.enlace-cuestionario-btn {
-  background: var(--color-highlight);
-  color: var(--color-white);
-  border: none;
-  border-radius: 8px;
-  padding: 7px 18px;
-  font-size: 1rem;
-  font-family: 'Inter', Arial, sans-serif;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.modulo-comunicacion-preview-mobile {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-}
-.modulo-comunicacion-preview-mobile > * {
-  width: 270px;
-  min-height: 520px;
-  background: var(--color-bg);
-  border-radius: 28px;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.10);
-  overflow: hidden;
-  margin-top: 8px;
-  padding: 0;
+  margin-bottom: 0.5rem;
 }
 
-@media (max-width: 1200px) {
-  .modulo-comunicacion-main {
-    flex-direction: column;
-    gap: 24px;
-    align-items: stretch;
-  }
-  .modulo-comunicacion-form-section,
-  .modulo-comunicacion-preview-section {
-    max-width: 100%;
-    min-width: 0;
-    width: 100%;
-  }
-  .modulo-comunicacion-preview-mobile > * {
-    width: 100%;
-    min-width: 220px;
-    max-width: 350px;
-    margin: 0 auto;
-  }
+.nc-btns-cantidad {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nc-btn-cantidad {
+  background: #005599;
+  color: #fff;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.nc-cantidad {
+  min-width: 20px;
+  text-align: center;
+}
+/* Estilo para el botón agregar restricción */
+.nc-btn-agregar {
+  display: inline-block;
+  background-color: #005599;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+/* Estilo para botón eliminar restricción */
+.nc-btn-eliminar {
+  background-color: #ff4d4d;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+/* Botones + y – en preview */
+.nc-preview-restricciones {
+  margin-top: 1rem;
+}
+
+.nc-preview-opcion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.nc-btns-cantidad {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nc-btn-cantidad {
+  background: #005599;
+  color: #fff;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.nc-cantidad {
+  min-width: 20px;
+  text-align: center;
 }
