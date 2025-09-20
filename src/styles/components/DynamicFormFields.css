@@ -1,0 +1,153 @@
+/* Radios y checkboxes modernos */
+.form-row-opciones {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin: 8px 0 12px 0;
+}
+.form-radio-label, .form-checkbox-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: 400;
+  color: #2b7a7a;
+  font-size: 1.05rem;
+  cursor: pointer;
+  min-width: 80px;
+}
+.form-radio-label input[type="radio"],
+.form-checkbox-label input[type="checkbox"] {
+  accent-color: #2b7a7a;
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
+  border-radius: 50%;
+  border: 1.5px solid #b7c6d0;
+  background: #fff;
+  transition: border 0.2s;
+}
+.form-radio-label input[type="radio"]:focus,
+.form-checkbox-label input[type="checkbox"]:focus {
+  outline: 2px solid #2b7a7a;
+}
+.form-radio-label input[type="radio"]:checked,
+.form-checkbox-label input[type="checkbox"]:checked {
+  background: #2b7a7a;
+  border-color: #2b7a7a;
+}
+.restricciones-block {
+  border: 1.5px solid #b7c6d0;
+  border-radius: 16px;
+  background: #f8fbfd;
+  padding: 18px 20px 16px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  max-width: 340px;
+}
+
+.restriccion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 1.08rem;
+  color: #666;
+}
+
+.restriccion-label {
+  flex: 1;
+  font-weight: 400;
+}
+
+.restriccion-contador {
+  min-width: 60px;
+  text-align: right;
+  color: #666;
+}
+
+.restriccion-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid #b7c6d0;
+  background: #fff;
+  color: #2b7a7a;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 4px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+}
+.restriccion-btn.selected, .restriccion-btn:active {
+  background: #2b7a7a;
+  color: #fff;
+  border-color: #2b7a7a;
+}
+.restriccion-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.restriccion-input {
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 8px;
+  border: 1.5px solid #b7c6d0;
+  padding: 8px 12px;
+  font-size: 1.05rem;
+  color: #111;
+  background: #fff;
+  outline: none;
+  box-sizing: border-box;
+}
+.restriccion-input:focus {
+  border-color: #2b7a7a;
+}
+.form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.df-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.df-label-checkbox {
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.df-input {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.df-select {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.df-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.df-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+}

@@ -1,0 +1,303 @@
+/* === ESTILOS PARA EL CUESTIONARIO === */
+.contenedor-cuestionario,
+.cuestionario-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #2c3e50;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+.encabezado-cuestionario,
+.cuestionario-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.titulo-principal,
+.cuestionario-titulo {
+  font-size: 2.5rem;
+  color: #226060;
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.subtitulo-principal {
+  font-size: 1.8rem;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.subtitulo-secundario {
+  font-size: 1.5rem;
+  color: #4AB290;
+  margin-bottom: 20px;
+}
+
+.mensaje-bienvenida,
+.cuestionario-info {
+  background-color: #eaf3f6;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.mensaje-bienvenida p {
+  margin: 5px 0;
+}
+
+.info-evento {
+  background-color: #f5f5f5;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.info-evento p {
+  margin: 5px 0;
+}
+
+.separador {
+  height: 1px;
+  background-color: #ddd;
+  margin: 20px 0;
+}
+
+.formulario-cuestionario,
+.cuestionario-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.seccion-formulario,
+.nc-section {
+  margin-bottom: 15px;
+}
+
+.titulo-seccion,
+.nc-section h4 {
+  font-size: 1.2rem;
+  color: #226060;
+  margin-bottom: 10px;
+}
+
+.descripcion-seccion {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
+.campo-formulario {
+  margin-bottom: 15px;
+}
+
+.input-formulario {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.fila-preferencia,
+.nc-preview-opcion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.texto-preferencia {
+  flex: 1;
+}
+
+.contador-preferencia,
+.nc-btns-cantidad {
+  display: flex;
+  align-items: center;
+}
+
+.boton-contador,
+.nc-btn-cantidad {
+  width: 36px;
+  height: 36px;
+  background-color: #226060;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.numero-contador,
+.nc-cantidad {
+  margin: 0 10px;
+  min-width: 24px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.input-restriccion-especifica {
+  width: 100%;
+  max-width: 250px;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.titulo-planoria {
+  font-size: 1.8rem;
+  color: #226060;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.contenedor-boton {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.boton-enviar,
+.cuestionario-boton-small {
+  background-color: #226060;
+  color: white;
+  border: none;
+  padding: 14px 30px;
+  border-radius: 6px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 100%;
+  max-width: 300px;
+}
+
+.boton-enviar:hover,
+.cuestionario-boton-small:hover {
+  background-color: #17494d;
+}
+
+.boton-enviar:disabled,
+.cuestionario-boton-small:disabled {
+  background-color: #88b3b3;
+  cursor: not-allowed;
+}
+
+/* === MODAL DE CONFIRMACIÓN === */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 30px 20px;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  box-sizing: border-box;
+}
+
+.modal-content h2 {
+  font-size: 1.8rem;
+  color: #226060;
+  margin-bottom: 15px;
+}
+
+.modal-content p {
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.modal-button {
+  background-color: #226060;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 100%;
+  max-width: 250px;
+}
+
+.modal-button:hover {
+  background-color: #17494d;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  .contenedor-cuestionario,
+  .cuestionario-container {
+    padding: 15px;
+  }
+
+  .titulo-principal,
+  .cuestionario-titulo {
+    font-size: 2rem;
+  }
+
+  .subtitulo-principal {
+    font-size: 1.4rem;
+  }
+
+  .subtitulo-secundario {
+    font-size: 1.1rem;
+  }
+
+  .fila-preferencia,
+  .nc-preview-opcion {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .contador-preferencia,
+  .nc-btns-cantidad {
+    margin-top: 6px;
+  }
+
+  .input-formulario {
+    font-size: 1rem;
+  }
+
+  .boton-enviar,
+  .cuestionario-boton-small {
+    font-size: 1rem;
+    padding: 12px;
+  }
+
+  .modal-content {
+    padding: 20px 15px;
+  }
+
+  .modal-content h2 {
+    font-size: 1.5rem;
+  }
+}

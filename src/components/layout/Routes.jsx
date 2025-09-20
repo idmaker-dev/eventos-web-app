@@ -1,10 +1,17 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+
 import Home from "../../pages/Home"
 import Catalogo from "../../pages/Catalogo"
 import Calendario from "../../pages/Calendario"
 import Finanzas from "../../pages/Finanzas"
 import Invitados from "../../pages/Invitados"
 import Distribucion from "../../pages/Distribucion"
+import Cuestionario from "../../pages/Cuestionario";
+
+import NuevoCuestionario from "../../pages/NuevoCuestionario";
+import CrearCuestionario from "../../pages/CrearCuestionario";
+import ConfirmacionRegistro from "../../pages/ConfirmacionRegistro";
+
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
@@ -15,6 +22,9 @@ export default function AppRoutes() {
   return (
     <Router>
       <Routes>
+        {/* Ruta independiente para el cuestionario */}
+  <Route path="/cuestionario/:id" element={<Cuestionario />} />
+  <Route path="/confirmacion-registro" element={<ConfirmacionRegistro />} />
         {/* Ruta Home (incluye hero, resumen y MasterPage adentro) */}
         <Route path="/" element={<Home />}>
           {/* Sub-rutas que se cargan en el Outlet de Home */}
@@ -29,6 +39,8 @@ export default function AppRoutes() {
         <Route path="/admin" element={<AdminPage />}>
           <Route index element={<Dashboard />} />
           <Route path="pagos" element={<Pagos />} />
+          <Route path="NuevoCuestionario" element={<NuevoCuestionario />} />
+          <Route path="CrearCuestionario" element={<CrearCuestionario />} />
         </Route>
       </Routes>
     </Router>

@@ -71,7 +71,7 @@ export default function AdminPage() {
             </li>
 
             <li className="tooltip">
-              <NavLink to="/admin/chat">
+              <NavLink to="/admin/NuevoCuestionario">
                 <MessageCircle size={22} />
               </NavLink>
               <span className="tooltip-pill">Módulo de comunicación</span>
