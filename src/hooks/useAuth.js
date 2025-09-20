@@ -21,41 +21,37 @@ export const AuthProvider = ({ children }) => {
       const userEmail = localStorage.getItem("userEmail");
 
       if (token) {
-        try {
-          // Verificar si el token es válido obteniendo el perfil del usuario
-          const result = await authService.getProfile();
+        // Construir objeto user desde localStorage
+        const userData = {
+          token,
+          rol: userRole,
+          email: userEmail || "usuario@ejemplo.com",
+        };
 
-          if (result.success) {
-            // Token válido, usar datos del servidor
-            setUser({
-              ...result.user,
-              token,
-              role: result.user.role || userRole,
-              email: result.user.email || userEmail,
-            });
-            setIsAuthenticated(true);
-          } else {
-            // Token inválido, limpiar localStorage
-            localStorage.removeItem("userToken");
-            localStorage.removeItem("userRole");
-            localStorage.removeItem("userEmail");
-          }
-        } catch (error) {
-          // Error al verificar token, usar datos locales como fallback
-          if (EnvConfig.DEBUG_MODE) {
-            console.warn(
-              "⚠️ No se pudo verificar token, usando datos locales:",
-              error
-            );
-          }
-
-          setUser({
-            token,
-            role: userRole,
-            email: userEmail || "usuario@ejemplo.com",
-          });
-          setIsAuthenticated(true);
+        if (EnvConfig.DEBUG_MODE) {
+          console.log("🔍 Loading user from localStorage:", userData);
         }
+
+        setUser(userData);
+        setIsAuthenticated(true);
+
+        // TODO: Opcional - verificar si el token es válido con el servidor
+        // try {
+        //   const result = await authService.getProfile();
+        //   if (result.success) {
+        //     // Token válido, actualizar con datos del servidor
+        //     setUser({
+        //       ...result.user,
+        //       token,
+        //       rol: result.user.rol || userRole,
+        //       email: result.user.email || userEmail,
+        //     });
+        //   }
+        // } catch (error) {
+        //   if (EnvConfig.DEBUG_MODE) {
+        //     console.warn("⚠️ No se pudo verificar token con servidor:", error);
+        //   }
+        // }
       }
 
       setIsLoading(false);
@@ -80,9 +76,12 @@ export const AuthProvider = ({ children }) => {
       const result = await authService.login(email, password);
 
       if (result.success) {
+        console.log("🔍 Auth service result:", result);
+        console.log("🔍 User from auth service:", result.user);
+
         // Guardar datos del usuario en localStorage
         localStorage.setItem("userToken", result.token);
-        localStorage.setItem("userRole", result.user.role);
+        localStorage.setItem("userRole", result.user.rol);
         localStorage.setItem("userEmail", result.user.email);
 
         // Actualizar estado
@@ -95,9 +94,9 @@ export const AuthProvider = ({ children }) => {
 
         if (EnvConfig.DEBUG_MODE) {
           console.log("✅ Login successful:", {
-            role: result.user.role,
+            rol: result.user.rol,
             redirectUrl:
-              result.user.role === "admin"
+              result.user.rol === "admin"
                 ? EnvConfig.ADMIN_URL
                 : EnvConfig.BASE_URL,
           });
@@ -140,12 +139,12 @@ export const AuthProvider = ({ children }) => {
 
   // Verificar si el usuario tiene un rol específico
   const hasRole = (role) => {
-    return user?.role === role;
+    return user?.rol === role;
   };
 
   // Verificar si el usuario está autenticado y tiene uno de los roles especificados
   const hasAnyRole = (roles) => {
-    return isAuthenticated && roles.includes(user?.role);
+    return isAuthenticated && roles.includes(user?.rol);
   };
 
   // Función para registrar un nuevo usuario
@@ -319,14 +318,14 @@ export const useRequireRole = (requiredRole, redirectTo = "/") => {
     if (!isLoading) {
       if (!isAuthenticated) {
         navigate("/login");
-      } else if (user?.role !== requiredRole) {
+      } else if (user?.rol !== requiredRole) {
         navigate(redirectTo);
       }
     }
   }, [user, isAuthenticated, isLoading, navigate, requiredRole, redirectTo]);
 
   return {
-    hasAccess: isAuthenticated && user?.role === requiredRole,
+    hasAccess: isAuthenticated && user?.rol === requiredRole,
     isLoading,
   };
 };

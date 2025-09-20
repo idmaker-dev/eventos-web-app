@@ -10,21 +10,21 @@ class AuthService {
    */
   async login(email, password) {
     try {
-      const response = await httpService.post("/auth/login", {
+      const response = await httpService.post("/usuarios/login", {
         email,
         password,
       });
 
       // Guardar token automáticamente
-      if (response.token) {
-        httpService.setToken(response.token);
+      if (response.data && response.data.token) {
+        httpService.setToken(response.data.token);
       }
 
       return {
         success: true,
-        data: response,
-        user: response.user,
-        token: response.token,
+        data: response.data,
+        user: response.data.usuario,
+        token: response.data.token,
       };
     } catch (error) {
       return {

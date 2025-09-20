@@ -61,6 +61,10 @@ export default function Login() {
       const result = await login(formData.email, formData.password);
       
       if (result.success) {
+        console.log("🔍 Login result:", result);
+        console.log("🔍 User object:", result.user);
+        console.log("🔍 User rol:", result.user.rol);
+        
         showSuccess("¡Bienvenido! Has iniciado sesión exitosamente");
         
         // Obtener la ruta de origen si existe (desde ProtectedRoute)
@@ -68,10 +72,15 @@ export default function Login() {
         
         // Redirigir a la ruta de origen o según el rol
         if (from !== '/' && from !== '/login') {
+            console.log("Navigating to original route:", from);
+            
           navigate(from, { replace: true });
-        } else if (result.user.role === "admin") {
+        } else if (result.user.rol === "admin") {
+            console.log("✅ Redirecting to admin - user role:", result.user.rol);
           navigate("/admin");
         } else {
+            console.log("➡️ Redirecting to user home - user role:", result.user.rol);
+            
           navigate("/");
         }
       } else {

@@ -39,7 +39,8 @@ export const ProtectedRoute = ({
 
   // Verificar roles si se especificaron
   if (allowedRoles && allowedRoles.length > 0) {
-    const userRole = user?.role;
+    
+    const userRole = user?.rol; //|| localStorage.getItem("userRole");
     
     if (!userRole || !allowedRoles.includes(userRole)) {
       // No tiene el rol requerido, redirigir a una página de acceso denegado
@@ -104,7 +105,7 @@ export const PublicRoute = ({
   // Si está autenticado y esta ruta es solo para no autenticados
   if (isAuthenticated && redirectIfAuthenticated) {
     // Redirigir según el rol
-    const defaultRedirect = user?.role === 'admin' ? '/admin' : redirectTo;
+    const defaultRedirect = user?.rol === 'admin' ? '/admin' : redirectTo;
     return <Navigate to={defaultRedirect} replace />;
   }
 
