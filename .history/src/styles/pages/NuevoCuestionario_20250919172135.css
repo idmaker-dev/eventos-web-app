@@ -1,0 +1,153 @@
+.cuestionario-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  background: #f4f7f9;
+  min-height: 100vh;
+}
+
+/* PANEL IZQUIERDO */
+.form-panel {
+  flex: 1;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.form-panel h2 {
+  margin-bottom: 10px;
+  font-size: 20px;
+  color: #333;
+}
+
+.form-panel p {
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.form-panel form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-panel label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #444;
+}
+
+.form-panel input,
+.form-panel textarea {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  width: 100%;
+}
+
+.form-panel textarea {
+  resize: none;
+  height: 80px;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-primary {
+  background: #00a8a8;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: #008c8c;
+}
+
+.btn-secondary {
+  background: #eee;
+  color: #333;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+/* PANEL DERECHO (CELULAR) */
+.preview-panel {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.phone {
+  width: 280px;
+  height: 550px;
+  border: 12px solid #222;
+  border-radius: 30px;
+  padding: 15px;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  background: #fefefe;
+  border-radius: 20px;
+  padding: 15px;
+  overflow-y: auto;
+}
+
+.phone-screen h4 {
+  text-align: center;
+  color: #00a8a8;
+}
+
+.restricciones-preview p {
+  margin: 3px 0;
+  font-size: 13px;
+  color: #444;
+}
+
+.btn-submit {
+  background: #00a8a8;
+  color: white;
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.btn-submit:hover {
+  background: #008c8c;
+}
+
+/* 📱 RESPONSIVE */
+@media (max-width: 992px) {
+  .cuestionario-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .form-panel,
+  .preview-panel {
+    width: 100%;
+  }
+
+  .preview-panel {
+    margin-top: 20px;
+  }
+}

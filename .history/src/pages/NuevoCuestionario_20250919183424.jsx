@@ -135,7 +135,8 @@ export default function NuevoCuestionario() {
   </div>
 </aside>
 
-
+<section className="nc-preview">
+  <h2 className="preview-title">Previsualización</h2>
         {/* Previsualización */}
         <section className="nc-preview">
           {/* Celular 1 */}
@@ -188,6 +189,10 @@ export default function NuevoCuestionario() {
   </div>
 </div>
 
+  <div className="nc-link-section">
+    <p>Enlace de cuestionario</p>
+  </div>
+</section>
        
         </section>
       </main>

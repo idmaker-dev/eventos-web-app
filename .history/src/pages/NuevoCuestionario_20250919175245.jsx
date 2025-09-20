@@ -139,56 +139,65 @@ export default function NuevoCuestionario() {
         {/* Previsualización */}
         <section className="nc-preview">
           {/* Celular 1 */}
-<div className="nc-phone">
-  <div className="nc-phone-screen">
-    <h2>Planoria</h2>
-    <h3>Cuestionario de Registro</h3>
-    <p>Instituto Villa Rica</p>
-    <p><strong>Ceremonia de Graduación - Generación 2025</strong></p>
-    <p>
-      ¡Felicidades por tu próxima graduación! Completa este formulario con tus datos.
-    </p>
-    <p>
-      <strong>Fecha:</strong> 25 de junio de 2025 – 17:00 hrs<br />
-      <strong>Lugar:</strong> Auditorio Central, Universidad Nacional
-    </p>
+          <div className="nc-phone">
+            <div className="nc-phone-screen">
+              <h2>Planoría</h2>
+              <h3>Cuestionario de Registro</h3>
+              <p>Instituto Villa Rica</p>
+              <p className="nc-desc">Ceremonia de Graduación - Generación 2025</p>
+              <p className="nc-detalle">
+                ¡Felicidades por tu próxima graduación! Completa este formulario con tus datos.
+              </p>
+              <p className="nc-detalle">
+                <strong>Fecha:</strong> 25 de junio de 2025 <br />
+                <strong>Lugar:</strong> Auditorio Central, Universidad Nacional
+              </p>
 
-    <label>Nombre completo</label>
-    <input type="text" placeholder="Tu respuesta" />
+              <label>Nombre completo</label>
+              <input type="text" placeholder="Tu respuesta" />
 
-    <label>Carrera o estudios realizados</label>
-    <input type="text" placeholder="Tu respuesta" />
+              <label>Carrera o estudios realizados</label>
+              <input type="text" placeholder="Tu respuesta" />
 
-    <label>Escuela o institución</label>
-    <input type="text" placeholder="Tu respuesta" />
-  </div>
-</div>
+              <label>Escuela o institución</label>
+              <input type="text" placeholder="Tu respuesta" />
+            </div>
+          </div>
 
-{/* Celular 2 */}
-<div className="nc-phone">
-  <div className="nc-phone-screen">
-    <h2>Planoria</h2>
+          {/* Celular 2 */}
+          <div className="nc-phone">
+            <div className="nc-phone-screen">
+              <h2>Planoría</h2>
 
-    <label>Cantidad de boletos requeridos</label>
-    <input type="number" placeholder="0" />
+              <label>Cantidad de boletos requeridos</label>
+              <input type="number" placeholder="0" />
 
-    <label>Restricciones alimenticias</label>
-    <div className="nc-restricciones">
-      <p>Vegetariano ○ 0 personas</p>
-      <p>Vegano ○ 0 personas</p>
-      <p>Sin gluten ○ 0 personas</p>
-      <p>Alergia a mariscos ○ 0 personas</p>
-      <p>Añadir una restricción específica</p>
-    </div>
+              <label>
+                Restricciones alimenticias
+              </label>
+              <div className="nc-restricciones">
+                <p>Vegetariano ○ 0 personas</p>
+                <p>Vegano ○ 0 personas</p>
+                <p>Sin gluten ○ 0 personas</p>
+                <p>Alergia a mariscos ○ 0 personas</p>
+                <p>Añadir una restricción específica</p>
+              </div>
 
-    <label>Contacto de emergencia</label>
-    <input type="text" placeholder="Tu respuesta" />
+              <label>Contacto de emergencia</label>
+              <input type="text" placeholder="Tu respuesta" />
 
-    <button className="nc-enviar">Enviar</button>
-  </div>
-</div>
+              <button className="nc-enviar">Enviar</button>
+            </div>
+          </div>
 
-       
+          {/* Switch derecha */}
+          <div className="nc-switch">
+            <p>Previsualización</p>
+            <div className="nc-link">
+              <span>Enlace de cuestionario</span>
+              <button className="nc-btn-sec">Enlace</button>
+            </div>
+          </div>
         </section>
       </main>
     </div>

@@ -173,6 +173,40 @@
   align-items: flex-start;
   justify-content: center; /* 🔹 Centra los teléfonos */
 }
+/* Título Previsualización */
+.preview-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+/* Contenedor horizontal de teléfonos */
+.nc-phones-wrapper {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;       /* Deslizable horizontal */
+  padding-bottom: 10px;   /* espacio para scroll */
+}
+
+/* Ajustar márgenes de los teléfonos respecto al apartado blanco */
+.nc-preview {
+  flex: 2;
+  display: flex;
+  flex-direction: column;  /* permite poner título y enlace abajo */
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* Sección del enlace */
+.nc-link-section {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #3498db;
+  font-weight: 500;
+  cursor: pointer;
+}
+
 
 /* TELÉFONOS */
 .nc-phone {

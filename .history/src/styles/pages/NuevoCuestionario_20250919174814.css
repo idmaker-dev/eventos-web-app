@@ -1,0 +1,254 @@
+/* === AJUSTES GLOBALES === */
+.nuevo-cuestionario {
+  font-family: "Inter", Arial, sans-serif;
+  background: #f5f9fc;
+  color: #2c3e50;
+  min-height: 100vh;
+  padding: 20px 40px;
+}
+
+/* HEADER */
+.nc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.nc-header-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.nc-header-subtitle {
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+.nc-buscar {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  outline: none;
+  font-size: 14px;
+}
+
+/* NAVBAR */
+.nc-navbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.nc-btn {
+  background: #ecf0f1;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nc-btn.activo {
+  background: #3498db;
+  color: #fff;
+}
+
+.nc-btn:hover {
+  background: #dcdde1;
+}
+
+.nc-badge {
+  background: #3498db;
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+/* MAIN LAYOUT */
+.nc-main {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* SIDEBAR IZQUIERDA */
+.nc-sidebar {
+  flex: 1.2;
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.nc-sidebar h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 15px 0 8px;
+}
+
+.nc-sidebar p {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.nc-sidebar label {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 12px;
+  display: block;
+}
+
+.nc-sidebar input,
+.nc-sidebar textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.nc-sidebar textarea {
+  min-height: 70px;
+  resize: none;
+}
+
+/* BOTONES FORM */
+.nc-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.nc-btn-primario {
+  background: #3498db;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.nc-btn-sec {
+  background: #ecf0f1;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* PREVISUALIZACIÓN DERECHA */
+.nc-preview {
+  flex: 2;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* CELULARES */
+.nc-phone {
+  flex: 1;
+  background: #000;
+  border-radius: 35px;
+  padding: 12px;
+  max-width: 280px;
+  height: 580px;
+  display: flex;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.nc-phone-screen {
+  background: #fff;
+  border-radius: 20px;
+  padding: 16px;
+  width: 100%;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.nc-phone-screen h2 {
+  text-align: center;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #3498db;
+}
+
+.nc-phone-screen h3 {
+  text-align: center;
+  margin: 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.nc-phone-screen p {
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: #555;
+}
+
+.nc-phone-screen label {
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 8px;
+  display: block;
+}
+
+.nc-phone-screen input {
+  width: 100%;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+/* RESTRICCIONES */
+.nc-restricciones {
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 12px;
+}
+
+/* BOTÓN ENVIAR EN CELULAR */
+.nc-enviar {
+  background: #3498db;
+  color: #fff;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* SWITCH DERECHA */
+.nc-switch {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  height: fit-content;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  font-size: 14px;
+}
+
+.nc-switch .nc-link {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  align-items: center;
+}

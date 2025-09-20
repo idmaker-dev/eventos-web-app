@@ -1,0 +1,114 @@
+.cuestionario-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f6f9f9;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.form-wrapper {
+  background: white;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.titulo-app {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2c7a7b;
+  margin-bottom: 10px;
+}
+
+.titulo-form {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+
+.subtitulo {
+  font-size: 14px;
+  color: #666;
+}
+
+.descripcion {
+  font-size: 14px;
+  margin: 10px 0;
+  color: #444;
+}
+
+.detalle-evento,
+.fecha-evento {
+  font-size: 13px;
+  color: #555;
+  margin: 10px 0;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  margin-top: 15px;
+}
+
+.formulario label {
+  font-size: 13px;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: #444;
+}
+
+.formulario input {
+  padding: 10px;
+  margin-bottom: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.restricciones {
+  margin: 15px 0;
+  background: #f1f9f9;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.restricciones h4 {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #2c7a7b;
+  font-weight: bold;
+}
+
+.restriccion-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.restriccion-item input {
+  width: 80px;
+  padding: 6px;
+}
+
+.btn-enviar {
+  background-color: #2c7a7b;
+  color: white;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-enviar:hover {
+  background-color: #256d6f;
+}

@@ -27,17 +27,12 @@
 }
 
 .nc-buscar {
-  padding: 6px 10px;       /* un poco más pequeño */
-  border-radius: 2px;
+  padding: 8px 10px;
+  border-radius: 20px;
   border: 1px solid #ccc;
   outline: none;
   font-size: 14px;
-  width: auto;             /* deja que sea solo lo necesario */
-  max-width: 300px;        /* máximo ancho permitido */
-  box-sizing: border-box;  /* incluye padding en el ancho total */
-  display: inline-block;   /* evita que ocupe todo el contenedor */
 }
-
 
 /* NAVBAR */
 .nc-navbar {
@@ -177,34 +172,32 @@
 /* TELÉFONOS */
 .nc-phone {
   flex: 1;
-  background: transparent;       
+  background: #000;
   border-radius: 48px;
-  padding: 6px;                  /* pequeño padding para que la pantalla no toque el borde */
-  max-width: 280px;             
-  height: 620px;                
+  padding: 18px;
+  max-width: 350px;  /* ancho ajustado */
+  height: 600px;     /* alto ajustado */
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 8px 20px #00000026; 
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
   position: relative;
-  border: 6px solid #000000;   
+  border: 6px solid #111; /* marco extra como en la imagen */
 }
 
 /* Pantalla interna */
 .nc-phone-screen {
   background: #fff;
-  border-radius: 42px;           /* ligeramente menor que el contorno */
-  padding: 22px;                 
-  width: 100%;                   /* ocupa todo el ancho disponible dentro del padding */
-  height: 100%;                  /* ocupa todo el alto disponible dentro del padding */
-  box-sizing: border-box;         /* incluye padding en el ancho y alto */
+  border-radius: 35px;
+  padding: 22px;
+  width: 100%;
+  height: 100%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
   position: relative;
 }
-
 
 /* 🔹 Notch superior */
 .nc-phone::before {
@@ -217,6 +210,19 @@
   height: 28px;
   background: #000;
   border-radius: 14px;
+}
+
+/* 🔹 Cámara dentro del notch */
+.nc-phone::after {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: #333;
+  border-radius: 50%;
 }
 
 /* Encabezados dentro de la pantalla */
@@ -297,118 +303,20 @@
   background: #2980b9;
 }
 
-/*AJUSTES RESPONSIVOS */
 
-/* Móviles */
-@media (max-width: 480px) {
-  .nuevo-cuestionario {
-    padding: 15px 20px;
-  }
-
-  .nc-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .nc-header-title {
-    font-size: 18px;
-  }
-
-  .nc-header-subtitle {
-    font-size: 12px;
-  }
-
-  .nc-buscar {
-    max-width: 180px;
-    width: 100%;
-  }
-
-  .nc-navbar {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .nc-main {
-    flex-direction: column;
-    gap: 15px;
-  }
-
-  .nc-sidebar {
-    max-height: none;
-    padding: 15px;
-  }
-
-  .nc-phone {
-    max-width: 250px;
-    height: 450px;
-    padding: 14px;
-    border-width: 4px;
-  }
-
-  .nc-phone-screen {
-    padding: 16px;
-    gap: 10px;
-  }
-
-  .nc-phone-screen h2 {
-    font-size: 16px;
-  }
-
-  .nc-phone-screen h3 {
-    font-size: 14px;
-  }
-
-  .nc-phone-screen p {
-    font-size: 12px;
-  }
-
-  .nc-phone-screen input {
-    font-size: 12px;
-    padding: 7px 10px;
-  }
-
-  .nc-enviar {
-    padding: 10px;
-    font-size: 13px;
-  }
+/* SWITCH DERECHA */
+.nc-switch {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  height: fit-content;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  font-size: 14px;
 }
 
-/* Tablets */
-@media (max-width: 768px) {
-  .nc-main {
-    flex-direction: column;
-  }
-
-  .nc-sidebar {
-    max-height: none;
-    padding: 20px;
-  }
-
-  .nc-phone {
-    max-width: 300px;
-    height: 500px;
-  }
-
-  .nc-phone-screen h2 {
-    font-size: 17px;
-  }
-
-  .nc-phone-screen h3 {
-    font-size: 15px;
-  }
-
-  .nc-phone-screen p {
-    font-size: 13px;
-  }
+.nc-switch .nc-link {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  align-items: center;
 }
-.nc-buscar {
-  width: auto;
-  max-width: 300px;
-  display: inline-block;
-  box-sizing: border-box;
-}
-.nc-navbar .nc-btn {
-  flex-shrink: 0;
-}
-

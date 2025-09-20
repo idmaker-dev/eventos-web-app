@@ -1,0 +1,414 @@
+/* NuevoCuestionario.css */
+
+/* Fondo general */
+.modulo-comunicacion-bg {
+  background: #f9fbfc;
+  padding: 24px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Contenedor principal */
+.modulo-comunicacion-container {
+  max-width: 1850px;
+  min-width: 1200px;
+  width: 98vw;
+  margin: 0 auto;
+}
+
+/* Header */
+.modulo-comunicacion-header {
+  margin-bottom: 20px;
+}
+.modulo-comunicacion-header h1 {
+  font-size: 1.8rem;
+  color: #0f4c75;
+  margin-bottom: 4px;
+}
+.modulo-comunicacion-header p {
+  font-size: 0.95rem;
+  color: #555;
+}
+
+/* Tabs */
+.modulo-comunicacion-tabs {
+  display: flex;
+  margin-bottom: 18px;
+}
+.modulo-comunicacion-tabs .tab {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid #dbe5ea;
+  background: #fff;
+  cursor: pointer;
+  margin-right: 10px;
+  font-weight: 500;
+}
+.modulo-comunicacion-tabs .tab.active {
+  background: #0f4c75;
+  color: #fff;
+  border-color: #0f4c75;
+}
+
+/* Main: formulario + preview */
+.modulo-comunicacion-main {
+  display: flex;
+  gap: 56px;
+  align-items: flex-start;
+}
+
+/* Sección izquierda (formulario) */
+.modulo-comunicacion-form-section {
+  flex: 0 0 420px;
+  background: #f2f6f8;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: 760px;
+  overflow-y: auto;
+}
+.modulo-comunicacion-form-section h2 {
+  margin-bottom: 6px;
+  color: #0f4c75;
+}
+.crear-cuestionario-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.crear-cuestionario-form input,
+.crear-cuestionario-form textarea,
+.crear-cuestionario-form select {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 8px;
+  font-size: 0.95rem;
+}
+.crear-cuestionario-form button.guardar {
+  background: #0f4c75;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.crear-cuestionario-form button.guardar:hover {
+  background: #0c3b5c;
+}
+
+/* Sección derecha (preview) */
+.modulo-comunicacion-preview-section {
+  flex: 1 1 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 760px;
+  position: relative;
+}
+
+/* Mockup de celular */
+.preview-phone {
+  background: #fff;
+  border-radius: 36px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+  width: 380px;
+  height: 680px;
+  padding: 24px 20px;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Header superior de preview */
+.preview-header {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.preview-header span {
+  color: #333;
+  font-weight: 500;
+}
+.enlace-cuestionario-btn {
+  background: #0f4c75;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.enlace-cuestionario-btn:hover {
+  background: #0c3b5c;
+}
+/* ===== Layout General ===== */
+.modulo-comunicacion-bg {
+  background: #f4f8f9;
+  min-height: 100vh;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  color: #333;
+}
+
+.modulo-comunicacion-container {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 32px;
+}
+
+/* ===== Header ===== */
+.modulo-comunicacion-header h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.modulo-comunicacion-header p {
+  color: #666;
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+}
+
+/* ===== Tabs ===== */
+.modulo-comunicacion-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.modulo-comunicacion-tabs .tab {
+  padding: 8px 20px;
+  border-radius: 20px;
+  background: #e9f2f2;
+  border: none;
+  color: #444;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modulo-comunicacion-tabs .tab:hover {
+  background: #d9ebeb;
+}
+
+.modulo-comunicacion-tabs .tab.active {
+  background: #3a6d73;
+  color: #fff;
+}
+
+/* ===== Main Layout ===== */
+.modulo-comunicacion-main {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+/* ===== Panel izquierdo (formulario) ===== */
+.modulo-comunicacion-form-section {
+  flex: 0 0 380px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  max-height: 740px;
+  overflow-y: auto;
+}
+
+.modulo-comunicacion-form-section h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.modulo-comunicacion-form-section p {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.crear-cuestionario-form label {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: #333;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.crear-cuestionario-form input,
+.crear-cuestionario-form textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #d0d7de;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  background: #fff;
+  margin-bottom: 14px;
+}
+
+.crear-cuestionario-form textarea {
+  resize: vertical;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+button.guardar {
+  background: #3a6d73;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+button.cancelar {
+  background: #ccc;
+  color: #333;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+/* ===== Panel derecho (preview) ===== */
+.modulo-comunicacion-preview-section {
+  flex: 1;
+  background: #3a6d73;
+  border-radius: 14px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.modulo-comunicacion-preview-section h2 {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+/* Botón enlace */
+.enlace-cuestionario-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #fff;
+  color: #3a6d73;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+/* ===== Mockups móviles ===== */
+.preview-mockups {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.phone-mockup {
+  width: 280px;
+  height: 560px;
+  background: #111;
+  border-radius: 40px;
+  padding: 12px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Notch */
+.phone-notch {
+  width: 120px;
+  height: 25px;
+  background: #111;
+  border-radius: 0 0 12px 12px;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Pantalla interna */
+.phone-screen {
+  flex: 1;
+  background: #fff;
+  border-radius: 28px;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.phone-header {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.phone-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.phone-header p {
+  font-size: 0.8rem;
+  color: #555;
+  line-height: 1.3;
+}
+
+.phone-text {
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  color: #444;
+}
+
+.phone-event {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+/* Inputs dentro del mockup */
+.phone-screen input,
+.phone-screen select {
+  width: 100%;
+  border: 1px solid #d0d7de;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 0.9rem;
+}
+
+.restricciones-box {
+  border: 1px solid #d0d7de;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+/* Botón enviar dentro del mockup */
+.phone-screen button {
+  background: #3a6d73;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 10px;
+  cursor: pointer;
+  width: 100%;
+}

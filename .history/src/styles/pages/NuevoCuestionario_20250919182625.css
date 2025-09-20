@@ -180,8 +180,8 @@
   background: transparent;       
   border-radius: 48px;
   padding: 6px;                  /* pequeño padding para que la pantalla no toque el borde */
-  max-width: 280px;             
-  height: 620px;                
+  max-width: 300px;             
+  height: 500px;                
   display: flex;
   justify-content: center;
   align-items: center;

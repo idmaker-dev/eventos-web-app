@@ -1,0 +1,200 @@
+/* ======= Fondo general ======= */
+.modulo-comunicacion-bg {
+  background: #fff;
+  padding: 20px;
+  min-height: 100vh;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ======= Contenedor principal ======= */
+.modulo-comunicacion-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ======= Encabezado ======= */
+.modulo-comunicacion-header h1 {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin: 0;
+  color: #333;
+}
+
+.modulo-comunicacion-header p {
+  font-size: 1rem;
+  color: #666;
+  margin: 4px 0 0 0;
+}
+
+/* ======= Tabs ======= */
+.modulo-comunicacion-tabs {
+  display: flex;
+  gap: 10px;
+}
+
+.modulo-comunicacion-tabs .tab {
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: #e9f1f4;
+  border: 1px solid #d3dee2;
+  color: #444;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.modulo-comunicacion-tabs .tab.active {
+  background: #72B7A4;
+  color: #fff;
+  border-color: #72B7A4;
+}
+
+/* ======= Sección formulario ======= */
+.modulo-comunicacion-form-section {
+  background: transparent;
+}
+
+.modulo-comunicacion-form-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 8px;
+  color: #222;
+}
+
+.crear-cuestionario-form {
+  background: #f2f6f8;
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 650px;
+  overflow-y: auto;
+}
+
+.crear-cuestionario-form label {
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.crear-cuestionario-form input,
+.crear-cuestionario-form textarea,
+.crear-cuestionario-form select {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 7px 9px;
+  font-size: 0.95rem;
+  margin-top: 4px;
+  outline: none;
+}
+
+.crear-cuestionario-form input:focus,
+.crear-cuestionario-form textarea:focus,
+.crear-cuestionario-form select:focus {
+  border-color: #72B7A4;
+  box-shadow: 0 0 0 2px rgba(114, 183, 164, 0.2);
+}
+
+/* Botones del form */
+.crear-cuestionario-form button {
+  font-size: 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+
+.crear-cuestionario-form .guardar {
+  background: #1e4f59;
+  color: #fff;
+  padding: 10px 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 7px;
+  transition: background 0.2s;
+}
+
+.crear-cuestionario-form .guardar:hover {
+  background: #163d46;
+}
+
+/* ======= Caja de restricciones alimenticias ======= */
+.restricciones-alimenticias-box {
+  background: #f4fafd;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.restricciones-alimenticias-box div:first-child {
+  color: #1a8;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.restricciones-alimenticias-box span {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* ======= Sección de previsualización ======= */
+.modulo-comunicacion-preview-section {
+  position: relative;
+  background: #f8fafb;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  height: 760px;
+  overflow: hidden;
+}
+
+.modulo-comunicacion-preview-section h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.modulo-comunicacion-preview-section input,
+.modulo-comunicacion-preview-section select {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 0.9rem;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+/* Header superior previsualización */
+.modulo-comunicacion-preview-section > div:first-child {
+  background: #1e4f59;
+  padding: 8px 16px;
+  border-radius: 12px 12px 0 0;
+  color: #fff;
+}
+
+/* Toggle mobile/desktop */
+.modulo-comunicacion-preview-toggle button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.modulo-comunicacion-preview-toggle button.active rect {
+  fill: #72B7A4;
+}
+
+/* Botón enlace */
+.enlace-cuestionario-btn {
+  background: #72B7A4;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.enlace-cuestionario-btn:hover {
+  background: #5aa48f;
+}

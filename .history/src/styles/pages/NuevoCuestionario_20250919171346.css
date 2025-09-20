@@ -1,0 +1,214 @@
+/* ===============================
+   ESTILOS SOLO PARA NUEVO CUESTIONARIO
+   =============================== */
+
+.nuevo-cuestionario {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f9fafc;
+  color: #333;
+}
+
+/* HEADER */
+.nuevo-cuestionario .nuevo-cuestionario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-header-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-header-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin: 5px 0 0 0;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-header input {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* NAVBAR */
+.nuevo-cuestionario .nuevo-cuestionario-navbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-navbar button {
+  padding: 8px 12px;
+  background: #f1f3f5;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-navbar button span {
+  background: #007bff;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 50%;
+  margin-left: 5px;
+  font-size: 12px;
+}
+
+/* MAIN */
+.nuevo-cuestionario .nuevo-cuestionario-main {
+  display: flex;
+  gap: 20px;
+}
+
+/* SIDEBAR IZQUIERDA */
+.nuevo-cuestionario .nuevo-cuestionario-sidebar {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-sidebar h2 {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-sidebar p {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 15px;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-sidebar label {
+  font-weight: bold;
+  font-size: 13px;
+  margin-top: 10px;
+  display: block;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-sidebar input,
+.nuevo-cuestionario .nuevo-cuestionario-sidebar textarea {
+  width: 100%;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-buttons button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-buttons button:nth-child(1) {
+  background: #ffc107;
+  color: #000;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-buttons button:nth-child(2) {
+  background: #dc3545;
+  color: #fff;
+}
+
+.nuevo-cuestionario .nuevo-cuestionario-buttons button:nth-child(3) {
+  background: #28a745;
+  color: #fff;
+}
+
+/* PREVISUALIZACIÓN */
+.nuevo-cuestionario .nuevo-cuestionario-preview {
+  flex: 1.5;
+  display: flex;
+  gap: 20px;
+}
+
+/* CELULAR */
+.nuevo-cuestionario .phone {
+  flex: 1;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  padding: 15px;
+}
+
+.nuevo-cuestionario .phone-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nuevo-cuestionario .phone-screen h2 {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.nuevo-cuestionario .phone-screen h3 {
+  font-size: 14px;
+  font-weight: normal;
+  margin: 0;
+}
+
+.nuevo-cuestionario .phone-screen .desc {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.nuevo-cuestionario .phone-screen .detalle {
+  font-size: 12px;
+  color: #555;
+}
+
+.nuevo-cuestionario .restricciones-box {
+  border: 1px dashed #aaa;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #444;
+}
+
+/* SWITCH DERECHA */
+.nuevo-cuestionario .switch-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 15px;
+  min-width: 200px;
+}
+
+.nuevo-cuestionario .switch-box p {
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.nuevo-cuestionario .switch-box .link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nuevo-cuestionario .switch-box button {
+  padding: 6px 10px;
+  background: #007bff;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+}

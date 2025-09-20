@@ -187,7 +187,6 @@ export default function NuevoCuestionario() {
     <button className="nc-enviar">Enviar</button>
   </div>
 </div>
-
        
         </section>
       </main>

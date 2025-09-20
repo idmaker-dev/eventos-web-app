@@ -1,0 +1,182 @@
+/* ====== Fondo General ====== */
+.modulo-comunicacion-bg {
+  background: #f8fafb;
+  min-height: 100vh;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  font-family: "Inter", "Segoe UI", sans-serif;
+  color: #333;
+}
+
+/* ====== Contenedor Principal ====== */
+.modulo-comunicacion-container {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 28px 32px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ====== Encabezado ====== */
+.modulo-comunicacion-header h1 {
+  font-size: 1.65rem;
+  font-weight: 700;
+  margin: 0;
+  color: #2d2d2d;
+}
+
+.modulo-comunicacion-header p {
+  margin: 6px 0 20px;
+  color: #6d6d6d;
+  font-size: 0.95rem;
+}
+
+/* ====== Tabs ====== */
+.modulo-comunicacion-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.modulo-comunicacion-tabs .tab {
+  background: #e7eef2;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.modulo-comunicacion-tabs .tab.active {
+  background: #72b7a4;
+  color: #fff;
+}
+
+/* ====== Sección lateral (formulario) ====== */
+.modulo-comunicacion-form-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.crear-cuestionario-form {
+  background: #f2f6f8;
+  border-radius: 12px;
+  padding: 20px;
+  font-size: 0.93rem;
+  color: #444;
+}
+
+.crear-cuestionario-form label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #2b2b2b;
+}
+
+.crear-cuestionario-form input,
+.crear-cuestionario-form textarea,
+.crear-cuestionario-form select {
+  border: 1px solid #d1d9de;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.crear-cuestionario-form input:focus,
+.crear-cuestionario-form textarea:focus,
+.crear-cuestionario-form select:focus {
+  border-color: #72b7a4;
+  box-shadow: 0 0 0 2px rgba(114, 183, 164, 0.15);
+}
+
+/* Botón Guardar */
+.crear-cuestionario-form .guardar {
+  background: #72b7a4;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.crear-cuestionario-form .guardar:hover {
+  background: #5aa891;
+}
+
+/* ====== Restricciones alimenticias ====== */
+.restricciones-alimenticias-box {
+  background: #f4fafd !important;
+  border: 1px solid #dce6eb;
+  border-radius: 10px !important;
+  padding: 14px !important;
+}
+
+.restricciones-alimenticias-box div {
+  font-size: 0.9rem;
+}
+
+.restricciones-alimenticias-box button {
+  background: #ff7675;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+/* ====== Sección de previsualización ====== */
+.modulo-comunicacion-preview-section {
+  background: #2b4c58;
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.modulo-comunicacion-preview-section h2 {
+  font-size: 1.2rem;
+  margin-bottom: 6px;
+}
+
+.modulo-comunicacion-preview-section input,
+.modulo-comunicacion-preview-section select {
+  border: 1px solid #cbd5da;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.88rem;
+  background: #fff;
+}
+
+/* Encabezado dentro de previsualización */
+.modulo-comunicacion-preview-section > div:first-child {
+  background: #2b4c58;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Botón Enlace */
+.enlace-cuestionario-btn {
+  background: #72b7a4;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+
+.enlace-cuestionario-btn:hover {
+  background: #5aa891;
+}

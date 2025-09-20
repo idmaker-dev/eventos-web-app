@@ -177,34 +177,32 @@
 /* TELÉFONOS */
 .nc-phone {
   flex: 1;
-  background: transparent;       
+  background: #000;
   border-radius: 48px;
-  padding: 6px;                  /* pequeño padding para que la pantalla no toque el borde */
-  max-width: 280px;             
-  height: 620px;                
+  padding: 18px;
+  max-width: 350px;  /* ancho ajustado */
+  height: 600px;     /* alto ajustado */
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 8px 20px #00000026; 
+  box-shadow: 0 8px 20px rgba(252, 5, 5, 0.15);
   position: relative;
-  border: 6px solid #000000;   
+  border: 6px solid #f70b0b; /* marco extra como en la imagen */
 }
 
 /* Pantalla interna */
 .nc-phone-screen {
   background: #fff;
-  border-radius: 42px;           /* ligeramente menor que el contorno */
-  padding: 22px;                 
-  width: 100%;                   /* ocupa todo el ancho disponible dentro del padding */
-  height: 100%;                  /* ocupa todo el alto disponible dentro del padding */
-  box-sizing: border-box;         /* incluye padding en el ancho y alto */
+  border-radius: 35px;
+  padding: 22px;
+  width: 100%;
+  height: 100%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
   position: relative;
 }
-
 
 /* 🔹 Notch superior */
 .nc-phone::before {
@@ -246,7 +244,7 @@
 .nc-phone-screen label {
   font-size: 13px;
   font-weight: 500;
-  color: #2c3e50;
+  color: #057af0;
   margin-bottom: 2px;
   display: block;
   text-align: left;
@@ -296,6 +294,26 @@
 .nc-enviar:hover {
   background: #2980b9;
 }
+
+
+/* SWITCH DERECHA */
+.nc-switch {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  height: fit-content;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  font-size: 14px;
+}
+
+.nc-switch .nc-link {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  align-items: center;
+}
+
+
 
 /*AJUSTES RESPONSIVOS */
 

@@ -1,0 +1,285 @@
+/* =====================
+   LAYOUT GENERAL
+===================== */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", Arial, sans-serif;
+  background-color: #f5f6f7;
+  color: #333;
+}
+
+h1, h2, h3 {
+  margin: 0;
+  padding: 0;
+}
+
+/* =====================
+   HEADER
+===================== */
+.header {
+  background: #fff;
+  padding: 15px 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e4e4e4;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #222;
+}
+
+.header-subtitle {
+  font-size: 13px;
+  color: #777;
+}
+
+.header input {
+  border: 1px solid #ccc;
+  border-radius: 25px;
+  padding: 6px 12px;
+  width: 240px;
+  font-size: 13px;
+}
+
+/* =====================
+   NAVIGATION BUTTONS
+===================== */
+.navbar {
+  background: #fff;
+  padding: 8px 20px;
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid #e4e4e4;
+}
+
+.navbar button {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.navbar button:nth-child(1),
+.navbar button:nth-child(2) {
+  background: #e6e7e9;
+  color: #333;
+}
+
+.navbar button:nth-child(2) span {
+  background: #666;
+  color: #fff;
+  padding: 0px 6px;
+  border-radius: 50%;
+  margin-left: 6px;
+  font-size: 12px;
+}
+
+.navbar button:nth-child(3) {
+  background: #0f5757;
+  color: #fff;
+}
+
+/* =====================
+   CONTENEDOR PRINCIPAL
+===================== */
+.main {
+  display: flex;
+  height: calc(100vh - 120px);
+}
+
+/* =====================
+   SIDEBAR (IZQUIERDA)
+===================== */
+.sidebar {
+  width: 32%;
+  background: #fff;
+  border-right: 1px solid #ddd;
+  padding: 25px;
+  overflow-y: auto;
+}
+
+.sidebar h2 {
+  font-size: 16px;
+  font-weight: bold;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.sidebar p {
+  font-size: 13px;
+  color: #777;
+  margin-bottom: 20px;
+}
+
+.sidebar label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.sidebar input,
+.sidebar textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 15px;
+}
+
+.sidebar textarea {
+  resize: none;
+  height: 80px;
+}
+
+.sidebar .buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.sidebar .buttons button {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sidebar .buttons button:nth-child(1),
+.sidebar .buttons button:nth-child(2) {
+  background: #e6e7e9;
+  color: #333;
+}
+
+.sidebar .buttons button:nth-child(3) {
+  background: #0f5757;
+  color: #fff;
+}
+
+/* =====================
+   PREVISUALIZACIÓN
+===================== */
+.preview {
+  flex: 1;
+  background: #0f5757;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  position: relative;
+}
+
+/* =====================
+   CELULAR
+===================== */
+.phone {
+  background: #000;
+  border-radius: 35px;
+  width: 280px;
+  height: 580px;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.phone-screen {
+  background: #fff;
+  border-radius: 30px;
+  width: 100%;
+  height: 100%;
+  padding: 25px 20px;
+  overflow-y: auto;
+}
+
+.phone-screen h2 {
+  font-size: 15px;
+  font-weight: bold;
+  color: #444;
+  text-align: center;
+}
+
+.phone-screen h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f5757;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.phone-screen p {
+  font-size: 11px;
+  color: #666;
+  margin-top: 6px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.phone-screen input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.phone-screen button {
+  margin-top: 20px;
+  width: 100%;
+  padding: 8px 12px;
+  background: #0f5757;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* =====================
+   SWITCH DERECHA
+===================== */
+.switch-box {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #fff;
+  padding: 14px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.switch-box p {
+  font-size: 12px;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.switch-box .link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.switch-box .link span {
+  font-size: 12px;
+  color: #555;
+}
+
+.switch-box .link button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #0f5757;
+  color: #fff;
+  cursor: pointer;
+}

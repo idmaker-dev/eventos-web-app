@@ -188,7 +188,14 @@ export default function NuevoCuestionario() {
   </div>
 </div>
 
-       
+          {/* Switch derecha */}
+          <div className="nc-switch">
+            <p>Previsualización</p>
+            <div className="nc-link">
+              <span>Enlace de cuestionario</span>
+              <button className="nc-btn-sec">Enlace</button>
+            </div>
+          </div>
         </section>
       </main>
     </div>

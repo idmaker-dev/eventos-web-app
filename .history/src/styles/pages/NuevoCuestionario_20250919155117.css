@@ -1,0 +1,185 @@
+/* ===== Layout General ===== */
+.modulo-comunicacion-bg {
+  background: #f4f8f9;
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+  color: #333;
+}
+
+.modulo-comunicacion-container {
+  max-width: 1850px;
+  min-width: 1200px;
+  width: 98vw;
+  margin: 0 auto;
+  padding: 20px 30px;
+  box-sizing: border-box;
+}
+
+/* ===== Header ===== */
+.modulo-comunicacion-header h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.modulo-comunicacion-header p {
+  color: #666;
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+}
+
+/* ===== Tabs ===== */
+.modulo-comunicacion-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.modulo-comunicacion-tabs .tab {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 20px;
+  background: #e6f0f1;
+  color: #444;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.modulo-comunicacion-tabs .tab.active {
+  background: #3a6d73;
+  color: #fff;
+}
+
+/* ===== Main Sections ===== */
+.modulo-comunicacion-main {
+  display: flex;
+  gap: 56px;
+  align-items: flex-start;
+}
+
+/* ===== Formulario ===== */
+.modulo-comunicacion-form-section {
+  flex: 0 0 420px;
+  min-width: 340px;
+  max-width: 480px;
+}
+
+.crear-cuestionario-form {
+  background: #f2f6f8;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 2px 5px #0001;
+}
+
+.crear-cuestionario-form label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.crear-cuestionario-form input,
+.crear-cuestionario-form textarea,
+.crear-cuestionario-form select {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.crear-cuestionario-form textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* ===== Restricciones alimenticias ===== */
+.restricciones-alimenticias-box {
+  background: #f4fafd;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.restricciones-alimenticias-box > div:first-child {
+  color: #3a6d73;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.restricciones-alimenticias-box button {
+  background: #e57373;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.restricciones-alimenticias-box button:hover {
+  opacity: 0.9;
+}
+
+/* ===== Botones ===== */
+button.guardar {
+  background: #72b7a4;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+button.guardar:hover {
+  background: #5fa691;
+}
+
+button.cancelar {
+  background: #ccc;
+  color: #333;
+  border-radius: 8px;
+  padding: 10px 16px;
+}
+
+/* ===== Previsualización ===== */
+.modulo-comunicacion-preview-section {
+  flex: 1;
+  min-width: 420px;
+  max-width: 700px;
+  height: 760px;
+  background: #3a6d73;
+  border-radius: 16px;
+  padding: 60px 30px 20px;
+  position: relative;
+  color: #fff;
+}
+
+.modulo-comunicacion-preview-section h2 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.modulo-comunicacion-preview-toggle button {
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.enlace-cuestionario-btn {
+  background: #fff;
+  color: #3a6d73;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.enlace-cuestionario-btn:hover {
+  background: #f0f0f0;
+}

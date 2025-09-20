@@ -1,0 +1,159 @@
+/* ====== General ====== */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f5f7f9;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+/* ====== Contenedor principal ====== */
+.cuestionario-container {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  padding: 20px;
+}
+
+/* ====== Simulación de teléfono ====== */
+.phone-frame {
+  width: 280px;
+  height: 560px;
+  background: #fff;
+  border: 12px solid #1e4f59; /* Verde azulado */
+  border-radius: 40px;
+  position: relative;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  overflow-y: auto;
+  padding: 20px 16px;
+}
+
+.phone-frame::-webkit-scrollbar {
+  width: 0;
+}
+
+/* Barra superior */
+.phone-frame::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90px;
+  height: 18px;
+  background: #1e4f59;
+  border-radius: 10px;
+}
+
+/* ====== Encabezado ====== */
+.header {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.header h2 {
+  font-size: 16px;
+  font-weight: bold;
+  color: #1e4f59;
+  margin: 5px 0;
+}
+
+.header p {
+  font-size: 13px;
+  color: #666;
+  margin: 5px 0;
+}
+
+/* ====== Formulario ====== */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #1e4f59;
+  box-shadow: 0 0 5px rgba(30, 79, 89, 0.3);
+}
+
+/* ====== Botón ====== */
+.btn-submit {
+  display: block;
+  width: 100%;
+  background: #1e4f59;
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 12px;
+  text-align: center;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 10px;
+}
+
+.btn-submit:hover {
+  background: #163d46;
+}
+
+/* ====== Restricciones alimenticias ====== */
+.restricciones {
+  margin: 10px 0;
+}
+
+.restricciones label {
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.restricciones small {
+  display: block;
+  font-size: 11px;
+  color: #888;
+}
+
+/* ====== Previsualización (lado derecho verde) ====== */
+.preview-container {
+  width: 200px;
+  height: 400px;
+  background: #1e4f59;
+  border-radius: 20px;
+  padding: 20px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-container button {
+  background: #fff;
+  color: #1e4f59;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}

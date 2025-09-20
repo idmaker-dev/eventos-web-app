@@ -188,7 +188,8 @@ export default function NuevoCuestionario() {
   </div>
 </div>
 
-       
+          
+          </div>
         </section>
       </main>
     </div>

@@ -177,27 +177,26 @@
 /* TELÉFONOS */
 .nc-phone {
   flex: 1;
-  background: transparent;       
+  background: transparent;       /* fondo transparente */
   border-radius: 48px;
-  padding: 6px;                  /* pequeño padding para que la pantalla no toque el borde */
-  max-width: 280px;             
-  height: 620px;                
+  padding: 0;                    /* quitar padding para que la pantalla llene todo */
+  max-width: 350px;             
+  height: 600px;                
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 8px 20px #00000026; 
+  box-shadow: 0 8px 20px rgba(247, 11, 11, 0.15); 
   position: relative;
-  border: 6px solid #000000;   
+  border: 6px solid #f70b0b;   /* contorno rojo */
 }
 
 /* Pantalla interna */
 .nc-phone-screen {
   background: #fff;
-  border-radius: 42px;           /* ligeramente menor que el contorno */
+  border-radius: 42px;           /* ligeramente menor que el borde de .nc-phone */
   padding: 22px;                 
-  width: 100%;                   /* ocupa todo el ancho disponible dentro del padding */
-  height: 100%;                  /* ocupa todo el alto disponible dentro del padding */
-  box-sizing: border-box;         /* incluye padding en el ancho y alto */
+  width: calc(100% - 0px);       /* ocupa todo el ancho */
+  height: calc(100% - 0px);      /* ocupa todo el alto */
   overflow-y: auto;
   display: flex;
   flex-direction: column;
