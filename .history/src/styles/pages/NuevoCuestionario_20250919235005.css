@@ -1,7 +1,7 @@
 /* === AJUSTES GLOBALES === */
 .nuevo-cuestionario {
   font-family: "Inter", Arial, sans-serif;
-  background: #ffffff;
+  background: #f5f9fc;
   color: #2c3e50;
   min-height: 100vh;
   padding: 20px 40px;
@@ -57,16 +57,16 @@
 }
 
 .nc-btn.activo {
-  background: #246370;
+  background: #3498db;
   color: #fff;
 }
 
 .nc-btn:hover {
-  background: #020924;
+  background: #dcdde1;
 }
 
 .nc-badge {
-  background: #246370;
+  background: #3498db;
   color: #fff;
   font-size: 12px;
   padding: 2px 6px;
@@ -147,7 +147,7 @@
 }
 
 .nc-btn-primario {
-  background: #72B7A4;
+  background: #3498db;
   color: #fff;
   border: none;
   padding: 10px 20px;

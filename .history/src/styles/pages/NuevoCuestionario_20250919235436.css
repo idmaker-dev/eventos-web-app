@@ -1,7 +1,7 @@
 /* === AJUSTES GLOBALES === */
 .nuevo-cuestionario {
   font-family: "Inter", Arial, sans-serif;
-  background: #ffffff;
+  background: #f5f9fc;
   color: #2c3e50;
   min-height: 100vh;
   padding: 20px 40px;
@@ -147,7 +147,7 @@
 }
 
 .nc-btn-primario {
-  background: #72B7A4;
+  background: #db7734;
   color: #fff;
   border: none;
   padding: 10px 20px;

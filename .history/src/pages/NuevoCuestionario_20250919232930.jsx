@@ -201,6 +201,7 @@ export default function NuevoCuestionario() {
 
       <main className="nc-main">
         <aside className="nc-sidebar">
+          <img src="/logoPlanoria.png" alt="LogoP" className="nc-logo-rimero" />
           <h2>Crear invitación de cuestionario</h2>
           <p>Completa los datos y envía el enlace de tu evento.</p>
 
@@ -262,7 +263,6 @@ export default function NuevoCuestionario() {
       <div className="nc-phone-header">
         <div className="nc-phone-header">
   <img src="/logoPlanoria.png" alt="Logo Planoria" className="nc-logo-completo" />
-  <img src="/logochec.png" alt="Logo Chec" className="nc-logo-chec" />
 </div>
       </div>
 

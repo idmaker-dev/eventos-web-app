@@ -34,7 +34,7 @@ function RestriccionesAlimenticiasOpciones({ opciones, setOpciones }) {
             className="nc-input-restriccion"
           />
           <button
-            type="button"
+            type="button"C
             className="nc-btn-eliminar"
             onClick={() => handleRemoveOption(index)}
             title="Eliminar preferencia"

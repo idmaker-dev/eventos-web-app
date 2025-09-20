@@ -1,7 +1,7 @@
 /* === AJUSTES GLOBALES === */
 .nuevo-cuestionario {
   font-family: "Inter", Arial, sans-serif;
-  background: #ffffff;
+  background: #f5f9fc;
   color: #2c3e50;
   min-height: 100vh;
   padding: 20px 40px;
@@ -27,15 +27,15 @@
 }
 
 .nc-buscar {
-  padding: 6px 10px;       
+  padding: 6px 10px;       /* un poco más pequeño */
   border-radius: 2px;
   border: 1px solid #ccc;
   outline: none;
   font-size: 14px;
-  width: auto;             
-  max-width: 300px;       
-  box-sizing: border-box;  
-  display: inline-block;   
+  width: auto;             /* deja que sea solo lo necesario */
+  max-width: 300px;        /* máximo ancho permitido */
+  box-sizing: border-box;  /* incluye padding en el ancho total */
+  display: inline-block;   /* evita que ocupe todo el contenedor */
 }
 
 
@@ -57,16 +57,16 @@
 }
 
 .nc-btn.activo {
-  background: #246370;
+  background: #3498db;
   color: #fff;
 }
 
 .nc-btn:hover {
-  background: #020924;
+  background: #dcdde1;
 }
 
 .nc-badge {
-  background: #246370;
+  background: #3498db;
   color: #fff;
   font-size: 12px;
   padding: 2px 6px;
@@ -147,7 +147,7 @@
 }
 
 .nc-btn-primario {
-  background: #72B7A4;
+  background: #3498db;
   color: #fff;
   border: none;
   padding: 10px 20px;
@@ -203,7 +203,7 @@
   position: relative;
 }
 
-/* Notch superior */
+/* 🔹 Notch superior */
 .nc-phone::before {
   content: "";
   position: absolute;
@@ -220,17 +220,17 @@
 .nc-phone-header {
 
   display: flex;
-  flex-direction: column;
-  align-items: center;   
+  flex-direction: column; /* 🔹 organiza los logos en columna */
+  align-items: center;    /* 🔹 los centra horizontalmente */
   gap: 10px;              
   margin-bottom: 15px;
 }
 .nc-logo-completo {
-  max-width: 120px; 
+  max-width: 120px;  /* 🔹 se adapta al ancho del teléfono */
   height: auto;
 }
 .nc-logo-chec {
-  max-width: 60px; 
+  max-width: 60px;  /* 🔹 más pequeño para diferenciar */
   height: auto;
 }
 

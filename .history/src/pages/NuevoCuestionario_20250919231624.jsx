@@ -260,10 +260,8 @@ export default function NuevoCuestionario() {
     <div className="nc-phone-screen">
       {/* 🔹 Logo superior */}
       <div className="nc-phone-header">
-        <div className="nc-phone-header">
-  <img src="/logoPlanoria.png" alt="Logo Planoria" className="nc-logo-completo" />
-  <img src="/logochec.png" alt="Logo Chec" className="nc-logo-chec" />
-</div>
+        <img src="/publi/logop.jpg" alt="Logo" className="nc-logo" />
+        <span className="nc-logo-text">Planoria</span>
       </div>
 
       {/* Campos */}

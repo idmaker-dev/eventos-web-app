@@ -201,6 +201,11 @@ export default function NuevoCuestionario() {
 
       <main className="nc-main">
         <aside className="nc-sidebar">
+          <div className="nc-logo-container">
+  <img src="/logoPlanoria.png" alt="Logo Planoria" className="nc-logo-primero" />
+  
+</div>
+
           <h2>Crear invitación de cuestionario</h2>
           <p>Completa los datos y envía el enlace de tu evento.</p>
 

@@ -201,6 +201,7 @@ export default function NuevoCuestionario() {
 
       <main className="nc-main">
         <aside className="nc-sidebar">
+
           <h2>Crear invitación de cuestionario</h2>
           <p>Completa los datos y envía el enlace de tu evento.</p>
 

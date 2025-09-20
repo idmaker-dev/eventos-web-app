@@ -256,51 +256,45 @@ export default function NuevoCuestionario() {
         </aside>
 
         <section className="nc-preview">
-  <div className="nc-phone">
-    <div className="nc-phone-screen">
-      {/* 🔹 Logo superior */}
-      <div className="nc-phone-header">
-        <div className="nc-phone-header">
-  <img src="/logoPlanoria.png" alt="Logo Planoria" className="nc-logo-completo" />
-  <img src="/logochec.png" alt="Logo Chec" className="nc-logo-chec" />
-</div>
-      </div>
+          <div className="nc-phone">
+            <div className="nc-phone-screen">
+              <h2>{formData.title || 'Título del cuestionario'}</h2>
+              <p>{formData.description || 'Descripción del cuestionario'}</p>
 
-      {/* Campos */}
-      <label>Escuela o Institución</label>
-      <input type="text" disabled placeholder="Tu respuesta" />
+              <p><strong>Evento:</strong> {formData.nombreEvento}</p>
+              <p><strong>Lugar:</strong> {formData.lugar}</p>
+              <p><strong>Fecha:</strong> {formData.fecha}</p>
+              <p><strong>Carrera:</strong> {formData.carrera}</p>
+              <p><strong>Escuela:</strong> {formData.escuela}</p>
 
-      <label>Cantidad de boletos requeridos</label>
-      <select disabled>
-        <option>{formData.cantidad_boletos || "6 Boletos"}</option>
-      </select>
+              <label>Nombre completo</label>
+              <input type="text" disabled placeholder="Tu respuesta" />
 
-      {/* Restricciones */}
-      <div className="nc-restricciones">
-        <label>
-          Restricciones alimenticias{" "}
-          <small>(Ejemplo: vegetariano, vegano, sin gluten, alergias...)</small>
-        </label>
+              <label>Teléfono</label>
+              <input type="text" disabled placeholder="Tu respuesta" />
 
-        {formData.restricciones_alimenticias_opciones.map((op, index) => (
-          <div key={index} className="nc-restriccion-item">
-            <span>{op.nombre}</span>
-            <span className="nc-restriccion-cantidad">{op.cantidad} personas</span>
+              <label>Cantidad de boletos</label>
+              <input type="number" disabled placeholder={formData.cantidad_boletos} />
+
+              <div className="nc-preview-restricciones">
+                <h4>Preferencias de comida</h4>
+                {formData.restricciones_alimenticias_opciones.map((op, index) => (
+                  <div key={index} className="nc-preview-opcion">
+                    <span>{op.nombre}</span>
+                    <div className="nc-btns-cantidad">
+                      <button type="button" className="nc-btn-cantidad" onClick={() => handleRestriccionCantidad(index, -1)}>–</button>
+                      <span className="nc-cantidad">{op.cantidad}</span>
+                      <button type="button" className="nc-btn-cantidad" onClick={() => handleRestriccionCantidad(index, +1)}>+</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <label>Contacto de emergencia</label>
+              <input type="text" disabled placeholder="Tu respuesta" />
+            </div>
           </div>
-        ))}
-
-        <input type="text" disabled placeholder="Añadir una restricción específica" />
-      </div>
-
-      <label>Contacto de emergencia</label>
-      <input type="text" disabled placeholder="Tu respuesta" />
-
-      {/* Botón */}
-      <button className="nc-enviar">Enviar</button>
-    </div>
-  </div>
-</section>
-
+        </section>
       </main>
     </div>
   );
