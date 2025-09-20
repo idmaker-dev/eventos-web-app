@@ -10,6 +10,370 @@
 /* HEADER */
 .nc-header {
   display: flex;
+<<<<<<< HEAD
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.nc-header-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.nc-header-subtitle {
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+.nc-buscar {
+  padding: 6px 10px;       /* un poco más pequeño */
+  border-radius: 2px;
+  border: 1px solid #ccc;
+  outline: none;
+  font-size: 14px;
+  width: auto;             /* deja que sea solo lo necesario */
+  max-width: 300px;        /* máximo ancho permitido */
+  box-sizing: border-box;  /* incluye padding en el ancho total */
+  display: inline-block;   /* evita que ocupe todo el contenedor */
+}
+
+
+/* NAVBAR */
+.nc-navbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.nc-btn {
+  background: #ecf0f1;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.nc-btn.activo {
+  background: #3498db;
+  color: #fff;
+}
+
+.nc-btn:hover {
+  background: #dcdde1;
+}
+
+.nc-badge {
+  background: #3498db;
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+/* MAIN LAYOUT */
+.nc-main {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* SIDEBAR IZQUIERDA */
+.nc-sidebar {
+  flex: 1.2;
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+
+  /* 🔹 Clave para el deslizador */
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.nc-sidebar h2 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 18px 0 8px;
+  color: #2c3e50;
+}
+
+.nc-sidebar p {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin-bottom: 15px;
+}
+
+.nc-sidebar label {
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 10px;
+  display: block;
+  color: #34495e;
+}
+
+.nc-sidebar input,
+.nc-sidebar textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #dcdde1;
+  border-radius: 10px;
+  margin-top: 4px;
+  font-size: 14px;
+  background: #f9fbfc;
+}
+
+.nc-sidebar textarea {
+  min-height: 60px;
+  resize: none;
+}
+
+/* SEPARACIÓN ENTRE BLOQUES */
+.nc-sidebar .nc-section {
+  border-top: 1px solid #ecf0f1;
+  padding-top: 15px;
+  margin-top: 20px;
+}
+
+/* BOTONES FORM */
+.nc-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.nc-btn-primario {
+  background: #3498db;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.nc-btn-sec {
+  background: #ecf0f1;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* PREVISUALIZACIÓN DERECHA */
+.nc-preview {
+  flex: 2;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: center; /* 🔹 Centra los teléfonos */
+}
+
+/* TELÉFONOS */
+.nc-phone {
+  flex: 1;
+  background: transparent;       
+  border-radius: 48px;
+  padding: 6px;                  /* pequeño padding para que la pantalla no toque el borde */
+  max-width: 280px;             
+  height: 620px;                
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 8px 20px #00000026; 
+  position: relative;
+  border: 6px solid #000000;   
+}
+
+/* Pantalla interna */
+.nc-phone-screen {
+  background: #fff;
+  border-radius: 42px;           /* ligeramente menor que el contorno */
+  padding: 22px;                 
+  width: 100%;                   /* ocupa todo el ancho disponible dentro del padding */
+  height: 100%;                  /* ocupa todo el alto disponible dentro del padding */
+  box-sizing: border-box;         /* incluye padding en el ancho y alto */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+
+
+/* 🔹 Notch superior */
+.nc-phone::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 28px;
+  background: #000;
+  border-radius: 14px;
+}
+
+/* Encabezados dentro de la pantalla */
+.nc-phone-screen h2 {
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  color: #3498db;
+  margin: 8px 0;
+}
+
+.nc-phone-screen h3 {
+  font-size: 16px;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+}
+
+.nc-phone-screen p {
+  font-size: 14px;
+  color: #555;
+  margin: 0 0 6px;
+  text-align: center;
+}
+
+/* Inputs */
+.nc-phone-screen label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 2px;
+  display: block;
+  text-align: left;
+}
+
+.nc-phone-screen input {
+  width: 100%;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-size: 13px;
+  background: #f9fbfc;
+}
+
+/* Caja de restricciones */
+.nc-restricciones {
+  border: 1px solid #dcdde1;
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 13px;
+  color: #555;
+  background: #fdfdfd;
+}
+
+.nc-restricciones p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #333;
+  text-align: left;
+}
+
+/* Botón enviar */
+.nc-enviar {
+  background: #3498db;
+  color: #fff;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+  font-size: 14px;
+  transition: background 0.3s;
+}
+
+.nc-enviar:hover {
+  background: #2980b9;
+}
+
+/*AJUSTES RESPONSIVOS */
+
+/* Móviles */
+@media (max-width: 480px) {
+  .nuevo-cuestionario {
+    padding: 15px 20px;
+  }
+
+  .nc-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .nc-header-title {
+    font-size: 18px;
+  }
+
+  .nc-header-subtitle {
+    font-size: 12px;
+  }
+
+  .nc-buscar {
+    max-width: 180px;
+    width: 100%;
+  }
+
+  .nc-navbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .nc-main {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .nc-sidebar {
+    max-height: none;
+    padding: 15px;
+  }
+
+  .nc-phone {
+    max-width: 250px;
+    height: 450px;
+    padding: 14px;
+    border-width: 4px;
+  }
+
+  .nc-phone-screen {
+    padding: 16px;
+    gap: 10px;
+  }
+
+  .nc-phone-screen h2 {
+    font-size: 16px;
+  }
+
+  .nc-phone-screen h3 {
+    font-size: 14px;
+  }
+
+  .nc-phone-screen p {
+    font-size: 12px;
+  }
+
+  .nc-phone-screen input {
+    font-size: 12px;
+    padding: 7px 10px;
+  }
+
+  .nc-enviar {
+    padding: 10px;
+    font-size: 13px;
+  }
+=======
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 20px;
@@ -497,6 +861,7 @@
 .nc-cantidad {
   min-width: 20px;
   text-align: center;
+>>>>>>> origin/cuestionarioRegistro
 }
 
 /* Tablets */

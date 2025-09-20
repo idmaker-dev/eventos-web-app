@@ -1,0 +1,101 @@
+.confirmacion-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.confirmacion-content {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 100%;
+}
+
+.confirmacion-icon {
+  margin-bottom: 20px;
+}
+
+.confirmacion-titulo {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2d3748;
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.confirmacion-nombre {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #667eea;
+  margin-bottom: 20px;
+}
+
+.confirmacion-mensaje {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 15px;
+  line-height: 1.3;
+}
+
+.confirmacion-submensaje {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+.confirmacion-boton-container {
+  margin-top: 30px;
+}
+
+.confirmacion-boton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.confirmacion-boton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.confirmacion-boton:active {
+  transform: translateY(0);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .confirmacion-container {
+    padding: 15px;
+  }
+
+  .confirmacion-content {
+    padding: 30px 20px;
+  }
+
+  .confirmacion-titulo {
+    font-size: 1.5rem;
+  }
+
+  .confirmacion-nombre {
+    font-size: 1.2rem;
+  }
+
+  .confirmacion-mensaje {
+    font-size: 1rem;
+  }
+}

@@ -10,6 +10,7 @@ import Cuestionario from "../../pages/Cuestionario";
 
 import NuevoCuestionario from "../../pages/NuevoCuestionario";
 import CrearCuestionario from "../../pages/CrearCuestionario";
+import ConfirmacionRegistro from "../../pages/ConfirmacionRegistro";
 
 
 /* Aqui van las rutas de Admin */
@@ -23,6 +24,7 @@ export default function AppRoutes() {
       <Routes>
         {/* Ruta independiente para el cuestionario */}
   <Route path="/cuestionario/:id" element={<Cuestionario />} />
+  <Route path="/confirmacion-registro" element={<ConfirmacionRegistro />} />
         {/* Ruta Home (incluye hero, resumen y MasterPage adentro) */}
         <Route path="/" element={<Home />}>
           {/* Sub-rutas que se cargan en el Outlet de Home */}

@@ -1,3 +1,31 @@
+<<<<<<< HEAD
+import React, { useState } from "react";
+import "../styles/pages/NuevoCuestionario.css";
+
+export default function NuevoCuestionario() {
+  const [formData, setFormData] = useState({
+    nombreEvento: "",
+    descripcion: "",
+    lugar: "",
+    fecha: "",
+    nombreCompleto: "",
+    carrera: "",
+    escuela: "",
+    boletos: "",
+    restricciones: {
+      vegetariano: 0,
+      vegano: 0,
+      sinGluten: 0,
+      mariscos: 0,
+      otros: "",
+    },
+    contactoEmergencia: "",
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+=======
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEventoPorId } from '../hooks/useEventoPorId';
@@ -52,8 +80,8 @@ function RestriccionesAlimenticiasOpciones({ opciones, setOpciones }) {
 
 export default function NuevoCuestionario() {
   const EVENTO_ID = 'mffj4jsdirg268cs1';
-  const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Im1mb3NvdnQ2NTg4czRlNTIxIiwiZW1haWwiOiJyaDUwMDBAZ21haWwuY29tIiwicm9sIjoiYWRtaW4iLCJpYXQiOjE3NTgzNDQwMjAsImV4cCI6MTc1ODM0NzYyMH0.N6LR02r-K3WArFM9wsHdxnS4PXyrOJuicWqiq2oLtFM';
-
+  const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Im1mb3NvdnQ2NTg4czRlNTIxIiwiZW1haWwiOiJyaDUwMDBAZ21haWwuY29tIiwicm9sIjoiYWRtaW4iLCJpYXQiOjE3NTgzNDA2OTUsImV4cCI6MTc1ODM0NDI5NX0.Wl3RPPg0X0v2n-rx6i-LO7TeJCmx_xtfa9VN5Acgir0';
+  
   let { evento } = useEventoPorId(EVENTO_ID, TOKEN);
   if (evento && evento.data) evento = evento.data;
 
@@ -138,14 +166,6 @@ export default function NuevoCuestionario() {
           placeholder: 'Número de boletos'
         },
         {
-          name: 'contactoEmergencia',
-          label: 'Contacto de emergencia',
-          type: 'string',
-          inputType: 'text',
-          required: false,
-          placeholder: 'Ej. 5512345678'
-        },
-        {
           name: 'preferencias',
           label: 'Preferencias de comida',
           type: 'string',
@@ -181,18 +201,181 @@ export default function NuevoCuestionario() {
       console.error('Error en fetch:', err);
       alert('Error al guardar la estructura');
     }
+>>>>>>> origin/cuestionarioRegistro
   };
 
   return (
     <div className="nuevo-cuestionario">
+<<<<<<< HEAD
+      {/* HEADER */}
+      <header className="nc-header">
+        <div>
+          <h1 className="nc-header-title">Módulo de comunicación</h1>
+          <p className="nc-header-subtitle">
+            Configuración de conversaciones y del Bot de Preguntas Frecuentes (FAQ)
+          </p>
+=======
       <header className="nc-header">
         <div>
           <h1 className="nc-header-title">Módulo de comunicación</h1>
           <p className="nc-header-subtitle">Configuración de conversaciones, asistentes y cuestionarios</p>
+>>>>>>> origin/cuestionarioRegistro
         </div>
         <input type="text" placeholder="Buscar asistente" className="nc-buscar" />
       </header>
 
+<<<<<<< HEAD
+      {/* NAVBAR */}
+      <nav className="nc-navbar">
+        <button className="nc-btn">Configurar respuestas</button>
+        <button className="nc-btn">
+          Monitor de Chats <span className="nc-badge">6</span>
+        </button>
+        <button className="nc-btn activo">Enlace cuestionario</button>
+      </nav>
+
+      {/* MAIN */}
+      <main className="nc-main">
+        {/* Columna izquierda */}
+        <aside className="nc-sidebar">
+  <h2>Crear invitación de cuestionario</h2>
+  <p>Completa los datos y envía el enlace de tu evento.</p>
+
+  {/* Bloque Datos del evento */}
+  <div className="nc-section">
+    <h2>Datos del evento</h2>
+
+    <label>Nombre del evento</label>
+    <input
+      type="text"
+      name="nombreEvento"
+      placeholder="Ejemplo: Ceremonia de Graduación - Generación 2025"
+      value={formData.nombreEvento}
+      onChange={handleChange}
+    />
+
+    <label>Descripción del evento</label>
+    <textarea
+      name="descripcion"
+      placeholder="Ejemplo: ¡Felicidades por tu próxima graduación!..."
+      value={formData.descripcion}
+      onChange={handleChange}
+    ></textarea>
+
+    <label>Lugar del evento</label>
+    <input
+      type="text"
+      name="lugar"
+      placeholder="Auditorio, salón, teatro, etc."
+      value={formData.lugar}
+      onChange={handleChange}
+    />
+
+    <label>Fecha y hora del evento</label>
+    <input
+      type="text"
+      name="fecha"
+      placeholder="Ejemplo: 25 de junio de 2025 – 17:00 hrs"
+      value={formData.fecha}
+      onChange={handleChange}
+    />
+  </div>
+
+  {/* Bloque Datos del asistente */}
+  <div className="nc-section">
+    <h2>Datos del asistente</h2>
+
+    <label>Nombre completo</label>
+    <input
+      type="text"
+      name="nombreCompleto"
+      placeholder="Respuesta"
+      value={formData.nombreCompleto}
+      onChange={handleChange}
+    />
+
+    <label>Carrera o estudios realizados</label>
+    <input
+      type="text"
+      name="carrera"
+      placeholder="Respuesta"
+      value={formData.carrera}
+      onChange={handleChange}
+    />
+
+    <label>Escuela o institución</label>
+    <input
+      type="text"
+      name="escuela"
+      placeholder="Respuesta"
+      value={formData.escuela}
+      onChange={handleChange}
+    />
+  </div>
+
+  {/* Botones */}
+  <div className="nc-buttons">
+    <button className="nc-btn-sec">Editar</button>
+    <button className="nc-btn-sec">Cancelar</button>
+    <button className="nc-btn-primario">Guardar</button>
+  </div>
+</aside>
+
+
+        {/* Previsualización */}
+        <section className="nc-preview">
+          {/* Celular 1 */}
+<div className="nc-phone">
+  <div className="nc-phone-screen">
+    <h2>Planoria</h2>
+    <h3>Cuestionario de Registro</h3>
+    <p>Instituto Villa Rica</p>
+    <p><strong>Ceremonia de Graduación - Generación 2025</strong></p>
+    <p>
+      ¡Felicidades por tu próxima graduación! Completa este formulario con tus datos.
+    </p>
+    <p>
+      <strong>Fecha:</strong> 25 de junio de 2025 – 17:00 hrs<br />
+      <strong>Lugar:</strong> Auditorio Central, Universidad Nacional
+    </p>
+
+    <label>Nombre completo</label>
+    <input type="text" placeholder="Tu respuesta" />
+
+    <label>Carrera o estudios realizados</label>
+    <input type="text" placeholder="Tu respuesta" />
+
+    <label>Escuela o institución</label>
+    <input type="text" placeholder="Tu respuesta" />
+  </div>
+</div>
+
+{/* Celular 2 */}
+<div className="nc-phone">
+  <div className="nc-phone-screen">
+    <h2>Planoria</h2>
+
+    <label>Cantidad de boletos requeridos</label>
+    <input type="number" placeholder="0" />
+
+    <label>Restricciones alimenticias</label>
+    <div className="nc-restricciones">
+      <p>Vegetariano ○ 0 personas</p>
+      <p>Vegano ○ 0 personas</p>
+      <p>Sin gluten ○ 0 personas</p>
+      <p>Alergia a mariscos ○ 0 personas</p>
+      <p>Añadir una restricción específica</p>
+    </div>
+
+    <label>Contacto de emergencia</label>
+    <input type="text" placeholder="Tu respuesta" />
+
+    <button className="nc-enviar">Enviar</button>
+  </div>
+</div>
+
+       
+=======
       <nav className="nc-navbar">
         <button className="nc-btn">Configurar respuestas</button>
         <button className="nc-btn">Monitor de Chats <span className="nc-badge">6</span></button>
@@ -294,9 +477,9 @@ export default function NuevoCuestionario() {
               <input type="text" disabled placeholder="Tu respuesta" />
             </div>
           </div>
+>>>>>>> origin/cuestionarioRegistro
         </section>
       </main>
     </div>
   );
 }
-

@@ -105,3 +105,49 @@
 .restriccion-input:focus {
   border-color: #2b7a7a;
 }
+.form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.df-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.df-label-checkbox {
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.df-input {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.df-select {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.df-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.df-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+}
