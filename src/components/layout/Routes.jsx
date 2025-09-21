@@ -12,10 +12,10 @@ import AccessDenied from "../../pages/AccessDenied"
 import AdminPage from "./AdminPage"
 import Dashboard from "../../pages/Dashboard"
 import Pagos from "../../pages/Pagos"
+import Comunicacion from "../../pages/Comunicacion"
 
 /* Componentes de protección de rutas */
 import { 
-  ProtectedRoute, 
   AdminRoute, 
   AuthenticatedRoute, 
   PublicRoute 
@@ -56,6 +56,7 @@ export default function AppRoutes() {
       }>
         <Route index element={<Dashboard />} />
         <Route path="pagos" element={<Pagos />} />
+        <Route path="chat" element={<Comunicacion />} />
       </Route>
     </Routes>
   )
