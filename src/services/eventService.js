@@ -10,7 +10,7 @@ class EventService {
    */
   async getEvents() {
     try {
-      const response = await httpService.get("/events");
+      const response = await httpService.get("/eventos");
 
       return {
         success: true,
@@ -50,7 +50,7 @@ class EventService {
    */
   async createEvent(eventData) {
     try {
-      const response = await httpService.post("/events", eventData);
+      const response = await httpService.post("/eventos/crear", eventData);
 
       return {
         success: true,

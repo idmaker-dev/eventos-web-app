@@ -15,7 +15,7 @@ import { useEventos } from "../../hooks/useEventos";
 export default function Eventos({ open, onClose }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [formData, setFormData] = useState({
-    nombreInstitucion: "",
+    instituto: "",
     licenciatura: "",
     nombreEvento: "",
     lugarEvento: "",
@@ -52,7 +52,7 @@ export default function Eventos({ open, onClose }) {
   const handleClose = () => {
     setShowConfirmation(false);
     setFormData({
-      nombreInstitucion: "",
+      instituto: "",
       licenciatura: "",
       nombreEvento: "",
       lugarEvento: "",
@@ -103,8 +103,8 @@ export default function Eventos({ open, onClose }) {
                         Nombre de la escuela o institución
                       </label>
                       <Input
-                        value={formData.nombreInstitucion}
-                        onChange={(e) => handleInputChange('nombreInstitucion', e.target.value)}
+                        value={formData.instituto}
+                        onChange={(e) => handleInputChange('instituto', e.target.value)}
                         placeholder="Ejemplo: Universidad Nacional, instituto Tecnológico de Monterrey ..."
                         className={clsx(
                           "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",

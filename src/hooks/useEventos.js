@@ -145,7 +145,7 @@ export const useEventos = () => {
 
         // Preparar datos del evento
         const eventoParaCrear = {
-          nombreInstitucion: datosEvento.nombreInstitucion,
+          instituto: datosEvento.instituto,
           licenciatura: datosEvento.licenciatura,
           nombreEvento: datosEvento.nombreEvento,
           lugarEvento: datosEvento.lugarEvento,
@@ -441,7 +441,7 @@ export const useEventos = () => {
   // Cargar eventos al montar el componente o cambiar autenticación
   useEffect(() => {
     if (isAuthenticated) {
-      //cargarEventos();
+      cargarEventos();
     } else {
       setEventos([]);
       setEventoActual(null);
@@ -491,7 +491,7 @@ export const useEventos = () => {
 const validarDatosEvento = (datos) => {
   const errores = [];
 
-  if (!datos.nombreInstitucion?.trim()) {
+  if (!datos.instituto?.trim()) {
     errores.push("Nombre de institución requerido");
   }
 
