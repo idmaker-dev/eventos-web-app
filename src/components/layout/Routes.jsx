@@ -12,7 +12,7 @@ import AccessDenied from "../../pages/AccessDenied"
 import AdminPage from "./AdminPage"
 import Dashboard from "../../pages/Dashboard"
 import Pagos from "../../pages/Pagos"
-import Comunicacion from "../../pages/Comunicacion"
+// import Comunicacion from "../../pages/Comunicacion"
 
 /* Componentes de protección de rutas */
 import { 
@@ -50,13 +50,13 @@ export default function AppRoutes() {
 
       {/* Ruta Admin - Solo para usuarios con rol admin */}
       <Route path="/admin" element={
-        <AdminRoute>
+        <PublicRoute>
           <AdminPage />
-        </AdminRoute>
+        </PublicRoute>
       }>
         <Route index element={<Dashboard />} />
         <Route path="pagos" element={<Pagos />} />
-        <Route path="chat" element={<Comunicacion />} />
+        
       </Route>
     </Routes>
   )
