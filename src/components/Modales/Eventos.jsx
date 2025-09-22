@@ -10,16 +10,57 @@ import {
 import { ChevronDown, CircleX } from "lucide-react";
 import clsx from "clsx";
 import Confirmacion from "../../assets/recursos/confirmacionAsientos.svg";
+import { useEventos } from "../../hooks/useEventos";
 
 export default function Eventos({ open, onClose }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [formData, setFormData] = useState({
+    instituto: "",
+    licenciatura: "",
+    nombreEvento: "",
+    lugarEvento: "",
+    fechaHora: "",
+    cantidadAsistentes: "",
+    responsable: "",
+  });
 
-  const handleGuardar = () => {
-    setShowConfirmation(true);
+  // Hook de eventos
+  const { crearEvento, isCreating, error, limpiarError } = useEventos();
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Limpiar errores al escribir
+    if (error) {
+      limpiarError();
+    }
+  };
+
+  const handleGuardar = async () => {
+    // Crear el evento
+    const resultado = await crearEvento(formData);
+    
+    if (resultado.success) {
+      setShowConfirmation(true);
+    }
+    // Si hay error, se mostrará automáticamente en el UI
   };
 
   const handleClose = () => {
     setShowConfirmation(false);
+    setFormData({
+      instituto: "",
+      licenciatura: "",
+      nombreEvento: "",
+      lugarEvento: "",
+      fechaHora: "",
+      cantidadAsistentes: "",
+      responsable: "",
+    });
+    limpiarError();
     onClose();
   };
   return (
@@ -50,11 +91,20 @@ export default function Eventos({ open, onClose }) {
                 </DialogTitle>
                 <div>
                   <Field>
+                    {/* Error general */}
+                    {error && (
+                      <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                        {error}
+                      </div>
+                    )}
+                    
                     <div className="mb-3">
                       <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
                         Nombre de la escuela o institución
                       </label>
                       <Input
+                        value={formData.instituto}
+                        onChange={(e) => handleInputChange('instituto', e.target.value)}
                         placeholder="Ejemplo: Universidad Nacional, instituto Tecnológico de Monterrey ..."
                         className={clsx(
                           "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
@@ -68,6 +118,8 @@ export default function Eventos({ open, onClose }) {
                         Licenciatura o especialidad
                       </label>
                       <Input
+                        value={formData.licenciatura}
+                        onChange={(e) => handleInputChange('licenciatura', e.target.value)}
                         placeholder="Ejemplo: Derecho, Medicina, Ingeniería en Sistemas"
                         className={clsx(
                           "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
@@ -81,6 +133,8 @@ export default function Eventos({ open, onClose }) {
                         Nombre del evento
                       </label>
                       <Input
+                        value={formData.nombreEvento}
+                        onChange={(e) => handleInputChange('nombreEvento', e.target.value)}
                         placeholder="Ejemplo: Ceremonia de Graduación, Gala de Fin de Cursos"
                         className={clsx(
                           "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
@@ -94,6 +148,8 @@ export default function Eventos({ open, onClose }) {
                         Lugar del evento
                       </label>
                       <Input
+                        value={formData.lugarEvento}
+                        onChange={(e) => handleInputChange('lugarEvento', e.target.value)}
                         placeholder="Auditorio, sala, teatro, etc."
                         className={clsx(
                           "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
@@ -107,6 +163,8 @@ export default function Eventos({ open, onClose }) {
                         Fecha y hora del evento
                       </label>
                       <Input
+                        value={formData.fechaHora}
+                        onChange={(e) => handleInputChange('fechaHora', e.target.value)}
                         placeholder="Ejemplo: 25 de junio, 18:00 hrs"
                         className={clsx(
                           "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
@@ -121,7 +179,8 @@ export default function Eventos({ open, onClose }) {
                       </label>
                       <div className="relative">
                         <Select
-                          placeholder="Ejemplo: 100, 200, 300 asistentes"
+                          value={formData.cantidadAsistentes}
+                          onChange={(e) => handleInputChange('cantidadAsistentes', e.target.value)}
                           className={clsx(
                             "mt-2 block w-full appearance-none rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                             "placeholder:italic",
@@ -129,9 +188,13 @@ export default function Eventos({ open, onClose }) {
                             "*:text-black"
                           )}
                         >
-                          <option value="active">100 Asistentes </option>
-                          <option value="paused">200 Asistentes</option>
-                          <option value="delayed">300 Asistentes</option>
+                          <option value="">Seleccionar cantidad</option>
+                          <option value="50">50 Asistentes</option>
+                          <option value="100">100 Asistentes</option>
+                          <option value="200">200 Asistentes</option>
+                          <option value="300">300 Asistentes</option>
+                          <option value="500">500 Asistentes</option>
+                          <option value="1000">1000+ Asistentes</option>
                         </Select>
                         <ChevronDown
                           className="group pointer-events-none absolute top-2.5 right-2.5 size-4 fill-white/60"
@@ -144,6 +207,8 @@ export default function Eventos({ open, onClose }) {
                         Responsable o coordinador del evento
                       </label>
                       <Input
+                        value={formData.responsable}
+                        onChange={(e) => handleInputChange('responsable', e.target.value)}
                         placeholder="Ejemplo: Nombre y datos de contacto"
                         className={clsx(
                           "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
@@ -156,16 +221,28 @@ export default function Eventos({ open, onClose }) {
                 </div>
                 <div className="mt-4 flex justify-end gap-2">
                   <button
-                    className="inline-flex items-center gap-2 rounded-md bg-[#CBCBCB] dark:bg-[#808080] px-3 py-1.5 text-sm/6 font-semibold text-white shadow-inner shadow-white/10"
+                    className="inline-flex items-center gap-2 rounded-md bg-[#CBCBCB] dark:bg-[#808080] px-3 py-1.5 text-sm/6 font-semibold text-white shadow-inner shadow-white/10 disabled:opacity-50"
                     onClick={handleClose}
+                    disabled={isCreating}
                   >
                     Cancelar
                   </button>
                   <button
-                    className="inline-flex items-center gap-2 rounded-md bg-[#72B7A4] px-3 py-1.5 text-sm/6 font-semibold text-white shadow-inner shadow-white/10"
+                    className="inline-flex items-center gap-2 rounded-md bg-[#72B7A4] px-3 py-1.5 text-sm/6 font-semibold text-white shadow-inner shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleGuardar}
+                    disabled={isCreating}
                   >
-                    Guardar
+                    {isCreating ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Guardando...
+                      </>
+                    ) : (
+                      'Guardar'
+                    )}
                   </button>
                 </div>
               </DialogPanel>
