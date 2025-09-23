@@ -6,6 +6,7 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import { AuthProvider } from "./hooks/useAuth";
 import NotificationContainer from "./components/NotificationContainer";
 
+
 export default function App() {
   return (
     <Router>

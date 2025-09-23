@@ -7,7 +7,7 @@ import {
 
 } from "@headlessui/react";
 import { ChevronDown, CircleX } from "lucide-react";
-import Confirmacion from "../../assets/recursos/confirmacionAsientos.svg";
+import Confirmacion from "../../assets/recursos/REGISTRO_COMPLETADO.svg";
 import clsx from "clsx";
 
 export default function Eventos({ open, onClose }) {

@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import FormularioCuestionario from "./FormularioCuestionario";
 import { LaptopIcon, Smartphone, Plus, Minus } from "lucide-react";
 import ModalConfimacion from "./ModalConfimacion";
+import { DeviceFrameset } from "react-device-frameset";
+import "react-device-frameset/styles/marvel-devices.min.css";
 
 export default function CrearCuestionarioPages() {
   const [restricciones, setRestricciones] = useState({
@@ -26,7 +28,7 @@ export default function CrearCuestionarioPages() {
   return (
     <div className="grid grid-cols-1  lg:grid-cols-3 md:gap-0 ">
       <div className="md:col-span-1 relative  ">
-        <div className="h-full  lg:h-[72vh] overflow-y-auto pr-2">
+        <div className="h-full  lg:h-[72vh] mb-14 md:mb-14 lg:mb-0 overflow-y-auto pr-2">
           <div className="p-4 border-b-2">
             <h2 className="text-lg font-semibold  text-casal dark:text-Acapulco mb-0">
               Crear invitación de cuestionario
@@ -265,30 +267,73 @@ export default function CrearCuestionarioPages() {
               >
                 Guardar
               </Button>
-            </div>  
+            </div>
           </div>
         </div>
       </div>
-      {/* Presentaciones del formulario */}
-      <div className="md:col-span-2  h-[85vh] overflow-y-auto  md:border-l-2 bg-[#5c8287] dark:bg-[#2a9d8f]/5 rounded-r-xl p-4">
-        <div className="flex">
+      {/* <   Presentaciones del formulario */}
+      <div className="md:col-span-2  h-[85vh] overflow-y-auto  lg:border-l-2 bg-[#5c8287] dark:bg-[#2a9d8f]/5 rounded-r-xl p-4">
+        <div className="flex-col lg:flex-row lg:space-x-4 lg:space-y-0 space-y-4 flex">
           {/* estos son los detalles del cuestionario pero con los botones se puede hacer para modal celular y laptop */}
+          <div className="flex justify-center gap-3 mb-4 lg:hidden">
+        <div className="relative group">
+          <Button
+            onClick={() => setModoVista("laptop")}
+            className={clsx(
+              "text-white px-3 py-1 rounded",
+              "focus:outline-none transition",
+              modoVista === "laptop" ? "bg-Acapulco" : "bg-casal"
+            )}
+          >
+            <LaptopIcon className="w-6 h-6" />
+          </Button>
+          <span className="absolute left-1/2 -translate-x-1/2 -bottom-8 z-10 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition">
+            Vista laptop
+          </span>
+        </div>
+        <div className="relative group">
+          <Button
+            onClick={() => setModoVista("telefono")}
+            className={clsx(
+              "text-white px-3 py-1 rounded",
+              "focus:outline-none transition",
+              modoVista === "telefono" ? "bg-Acapulco" : "bg-casal"
+            )}
+          >
+            <Smartphone className="w-6 h-6" />
+          </Button>
+          <span className="absolute left-1/2 -translate-x-1/2 -bottom-8 z-10 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition">
+            Vista teléfono
+          </span>
+        </div>
+         <div className="">
+              <Button className="bg-casal  w-full text-white px-4 py-1 rounded hover:bg-Acapulco transition">
+                Enlace de cuestionario
+              </Button>
+            </div>
+      </div>
           <div className="w-full ">
             <div
               className={clsx(
-                "flex justify-center items-start transition-all duration-300 mx-auto",
-                modoVista === "laptop"
-                  ? "w-full h-[80vh] "
-                  : "w-[370px] h-[700px]"
+                "flex justify-center items-start transition-all duration-300 mx-auto me-2"
               )}
             >
-              <div className="w-full px-2 mb-4">
-                <FormularioCuestionario />
-              </div>
+              <DeviceFrameset
+                device={modoVista === "laptop" ? "MacBook Pro" : "iPhone X"}
+                color={modoVista === "laptop" ? "silver" : "black"}
+                height={modoVista === "laptop" ? 600 : 700}
+                width={modoVista === "telefono" ? 370 : undefined}
+                landscape={modoVista === "laptop"}
+              >
+                <div className={clsx("h-full overflow-y-auto ", modoVista === "telefono" ? "max-h-[800px]" : "max-h-[600px]")}>
+                  <FormularioCuestionario />
+                </div>
+              </DeviceFrameset>
             </div>
           </div>
           {/* botones para cambiar vista Modo*/}
-          <div className="w-40 space-y-3">
+          <div className="w-full lg:w-40 lg:space-y-3 flex lg:flex-col gap-3 lg:block hidden">
+            
             <div className="flex justify-center gap-3">
               <div className="relative group">
                 <Button
@@ -330,7 +375,7 @@ export default function CrearCuestionarioPages() {
           </div>
         </div>
       </div>
-       <ModalConfimacion open={modalOpen} onClose={() => setModalOpen(false)} />
+      <ModalConfimacion open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import Distribucion from "../../pages/Distribucion"
 import Login from "../../pages/Login"
 import AccessDenied from "../../pages/AccessDenied"
 import Comunicacion from "../../pages/Comunicacion"
+import Cuestionario from "../../pages/Cuestionario"
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
@@ -60,6 +61,8 @@ export default function AppRoutes() {
         <Route path="/admin/chat" element={<Comunicacion />} />
         
       </Route>
+      {/* Ruta pública - Accesible sin autenticación */}
+      <Route path="/Cuestionario" element={<Cuestionario />} />
     </Routes>
   )
 }
