@@ -7,6 +7,7 @@ import Invitados from "../../pages/Invitados"
 import Distribucion from "../../pages/Distribucion"
 import Login from "../../pages/Login"
 import AccessDenied from "../../pages/AccessDenied"
+import Comunicacion from "../../pages/Comunicacion"
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
@@ -56,6 +57,7 @@ export default function AppRoutes() {
       }>
         <Route index element={<Dashboard />} />
         <Route path="pagos" element={<Pagos />} />
+        <Route path="/admin/chat" element={<Comunicacion />} />
         
       </Route>
     </Routes>
