@@ -52,9 +52,9 @@ export default function AppRoutes() {
 
       {/* Ruta Admin - Solo para usuarios con rol admin */}
       <Route path="/admin" element={
-        <PublicRoute>
+        <AdminRoute>
           <AdminPage />
-        </PublicRoute>
+        </AdminRoute>
       }>
         <Route index element={<Dashboard />} />
         <Route path="pagos" element={<Pagos />} />
