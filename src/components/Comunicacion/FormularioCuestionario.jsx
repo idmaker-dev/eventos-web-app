@@ -4,7 +4,8 @@ import IconCuestionario from "../../assets/recursos/IconoCuestionario.svg";
 import { Button, Field, Input, Label } from "@headlessui/react";
 import clsx from "clsx";
 import { Minus, Plus } from "lucide-react";
-export default function FormularioCuestionario() {
+
+export default function FormularioCuestionario({ modoVista }) {
   const [restricciones, setRestricciones] = useState({
     vegetariano: 0,
     vegano: 0,
@@ -186,6 +187,60 @@ export default function FormularioCuestionario() {
                 )}
                 placeholder="Tu Respuesta"
               />
+            </div>
+            <div className="mb-3">
+              <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                Datos del tutor o responsable
+              </Label>
+              <div  className={clsx(
+                  "p-4 border-2 rounded-2xl bg-white/30 border-[#bcd6e4] ",
+                  modoVista === "telefono"
+                    ? "grid grid-cols-1 gap-0"
+                    : "grid grid-cols-1 lg:grid-cols-3 gap-4"
+                )} >
+                <div className="mb-3">
+                  <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                    Nombre completo
+                  </Label>
+                  <Input
+                    type="text"
+                    className={clsx(
+                      "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6  text-gray-700",
+                      "placeholder:italic",
+                      "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                    )}
+                    placeholder="Tu Respuesta"
+                  />
+                </div>
+                <div className="mb-3">
+                  <Label className="text-sm/6 font-semibold text-casal">
+                    Apellido paterno
+                  </Label>
+                  <Input
+                    type="text"
+                    className={clsx(
+                      "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700",
+                      "placeholder:italic",
+                      "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                    )}
+                    placeholder="Tu Respuesta"
+                  />
+                </div>
+                <div className="mb-3">
+                  <Label className="text-sm/6 font-semibold text-casal">
+                    Apellido materno
+                  </Label>
+                  <Input
+                    type="text"
+                    className={clsx(
+                      "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700",
+                      "placeholder:italic",
+                      "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                    )}
+                    placeholder="Tu Respuesta"
+                  />
+                </div>
+              </div>
             </div>
             <div className="my-5 flex justify-center">
               <Button className="bg-casal text-xl text-white w-[70%] mx-auto py-1 rounded-3xl hover:bg-Acapulco transition">

@@ -241,6 +241,55 @@ export default function CrearCuestionarioPages() {
                   placeholder="Respuesta"
                 />
               </div>
+              <div className="mb-3">
+                <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                Datos del tutor o responsable
+                </Label>
+                <div className="p-4 border-2 rounded-2xl bg-transparent border-[#bcd6e4]">
+                  <div className="mb-3">
+                    <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                      Nombre completo
+                    </Label>
+                    <Input
+                      type="text"
+                      className={clsx(
+                        "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                        "placeholder:italic",
+                        "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                      )}
+                      placeholder="Respuesta"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                      Apellido paterno
+                    </Label>
+                    <Input
+                      type="text"
+                      className={clsx(
+                        "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                        "placeholder:italic",
+                        "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                      )}
+                      placeholder="Respuesta"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                      Apellido materno
+                    </Label>
+                    <Input
+                      type="text"
+                      className={clsx(
+                        "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                        "placeholder:italic",
+                        "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                      )}
+                      placeholder="Respuesta"
+                    />
+                  </div>
+                </div>
+              </div>
             </Field>
           </div>
         </div>
@@ -345,7 +394,7 @@ export default function CrearCuestionarioPages() {
                     modoVista === "telefono" ? "max-h-[800px]" : "max-h-[600px]"
                   )}
                 >
-                  <FormularioCuestionario />
+                  <FormularioCuestionario modoVista={modoVista}/>
                 </div>
               </DeviceFrameset>
             </div>

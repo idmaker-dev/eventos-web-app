@@ -28,7 +28,7 @@ export default function Cuestionario() {
     <div className="bg-porcelain min-h-screen flex flex-col justify-center ">
       <div>
         <div className="w-full max-w-4xl mx-auto p-6 ">
-          <div  className="flex-1">
+          <div className="flex-1">
             <img src={logo} alt="Logo" className="w-36 h-auto mx-auto mb-5" />
             {/* Paso uno: Cuestionario que debe llenar el invitado */}
             {pasoActual === 0 && (
@@ -197,6 +197,55 @@ export default function Cuestionario() {
                         )}
                         placeholder="Tu Respuesta"
                       />
+                    </div>
+                    <div className="mb-3">
+                      <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                        Datos del tutor o responsable
+                      </Label>
+                      <div className="p-4 border-2 rounded-2xl bg-white/30 border-[#bcd6e4] grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="mb-3">
+                          <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                            Nombre completo
+                          </Label>
+                          <Input
+                            type="text"
+                            className={clsx(
+                              "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6  text-gray-700",
+                              "placeholder:italic",
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                            )}
+                            placeholder="Nombre(s) de la persona responsable"
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <Label className="text-sm/6 font-semibold text-casal">
+                            Apellido paterno
+                          </Label>
+                          <Input
+                            type="text"
+                            className={clsx(
+                              "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700",
+                              "placeholder:italic",
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                            )}
+                            placeholder="Apellido paterno de la persona responsable"
+                          />
+                        </div>
+                        <div className="mb-3">
+                          <Label className="text-sm/6 font-semibold text-casal">
+                            Apellido materno
+                          </Label>
+                          <Input
+                            type="text"
+                            className={clsx(
+                              "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700",
+                              "placeholder:italic",
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                            )}
+                            placeholder="Apellido materno de la persona responsable"
+                          />
+                        </div>
+                      </div>
                     </div>
                     <div className="my-5 flex justify-center">
                       <Button
