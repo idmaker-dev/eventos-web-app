@@ -7,7 +7,7 @@
 .hero {
   position: relative;
   height: 350px;
-  border-radius: 50px;
+  /* border-radius: 50px; */
   overflow: hidden;
 }
 
@@ -82,13 +82,13 @@
 .progress {
   background: #eee;
   border-radius: 5px;
-  height: 8px;
+  height: 12px;
   margin: 10px 0;
-  width: 100%;
+  /* width: 100%; */
   max-width: 300px;
 }
 .progress-bar {
-  height: 8px;
+  height: 12px;
   background: #a3c76d;
   border-radius: 5px;
   width: 60%;
@@ -230,10 +230,10 @@
   width: 100%;
 }
 
-.circle-text strong {
-  font-size: clamp(1rem, 2.5vw, 1.5rem); /* tamaño flexible */
+/* .circle-text strong {
+  font-size: clamp(1rem, 2.5vw, 1.5rem); 
   display: block;
-}
+} */
 
 .circle-text span {
   font-size: clamp(0.7rem, 1.8vw, 0.9rem);

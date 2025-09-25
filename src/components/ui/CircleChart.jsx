@@ -49,8 +49,8 @@ export const CircleChart = ({ confirmados, pendientes, rechazados }) => {
         />
       </svg>
 
-      <div className="circle-text">
-        <strong>{confirmados}</strong>
+      <div className="circle-text flex flex-col items-center justify-center mt-5">
+        <strong className="text-5xl">{confirmados}</strong>
         <span>de {total}</span>
       </div>
     </div>
