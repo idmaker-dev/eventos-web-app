@@ -1,0 +1,126 @@
+.masterpage {
+  font-family: "Segoe UI", sans-serif;
+  /* background: #fafafa; */
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 0;
+  /* border-bottom: 1px solid #eee; */
+  background: white;
+  /* box-shadow: 0 2px 6px rgba(0,0,0,0.05); */
+}
+
+.navbar {
+  display: flex;
+  gap: 14px;
+}
+
+.nav-item {
+  text-decoration: none;
+  padding: 10px 22px;
+  border-radius: 30px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+  position: relative;
+}
+
+/* Hover efecto */
+.nav-item:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+/* Activo con glow */
+.nav-item.active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 30px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.3);
+}
+
+/* Colores */
+.nav-item.proveedores {
+  background: #FFE4C6; 
+  color: #F7931E;     
+}
+.nav-item.calendario {
+  background: #DEEBD6; 
+  color: #5A9B34; 
+}
+.nav-item.finanzas {
+  background: #D1ECF1; 
+  color: #17A2B8; 
+}
+.nav-item.invitados {
+  background: #FCEBED; 
+  color: #AF0D89; 
+}
+.nav-item.mesas {
+  background: #E8E0EF; 
+  color: #662D91; 
+}
+.nav-item.minutas {
+  background: #FEEFD8; 
+  color: #FBB03B; 
+}
+
+/* Activos */
+.nav-item.proveedores.active {
+  background: #F7931E; 
+  color: #fff;
+}
+.nav-item.calendario.active {
+  background: #5A9B34;
+  color: #fff;
+}
+.nav-item.finanzas.active {
+  background: #17A2B8;
+  color: #fff;
+}
+.nav-item.invitados.active {
+  background: #AF0D89;
+  color: #fff;
+}
+.nav-item.mesas.active {
+  background: #662D91;
+  color: #fff;
+}
+.nav-item.minutas.active {
+  background: #FBB03B; 
+  color: #fff;
+}
+
+/* 📱 RESPONSIVE */
+@media (max-width: 768px) {
+  .navbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+  .nav-item {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .nav-item {
+    width: 90%;
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 20px;
+  }
+}

@@ -1,0 +1,141 @@
+.pagos-container {
+  background: #f6fafd;
+  padding: 20px;
+  border-radius: 12px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.pagos-titulo {
+  font-size: 20px;
+  color: #131212;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.pagos-subtitulo {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: #2a7de1;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+  text-decoration: underline;
+}
+
+.pagos-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.buscar {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  width: 220px;
+}
+
+.btn-csv {
+  background: #2a7de1;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.pagos-tabla {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.pagos-encabezados,
+.pagos-fila {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 1fr 1fr;
+  align-items: center;
+  padding: 14px 16px;
+  font-size: 14px;
+}
+
+.pagos-encabezados {
+  background: #f0f4f8;
+  font-weight: 600;
+}
+
+.pagos-fila:nth-child(even) {
+  background: #fafbfc;
+}
+
+.nombre {
+  font-weight: 500;
+  color: #111827;
+}
+
+.barra-progreso {
+  background: #e5e7eb;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.barra-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease-in-out;
+}
+
+.col-pagado {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+/* Estados con iconos */
+.estado {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  width: fit-content;
+}
+
+.estado.pendiente {
+  background: #fff8e6;
+  color: #d97706;
+}
+
+.estado.aprobado {
+  background: #e6fffa;
+  color: #047857;
+}
+
+.estado.parcial {
+  background: #ffe6e6;
+  color: #b91c1c;
+}
+
+.btn-accion {
+  background: #edf2f7;
+  color: #2a7de1;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1x;
+  font-weight: 500;
+}
+
+.btn-accion:hover {
+  background: #dbeafe;
+}
