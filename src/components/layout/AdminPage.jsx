@@ -27,31 +27,16 @@ import temaClaro from "../../assets/recursos/temaClaro.svg";
 import temaOscuro from "../../assets/recursos/temaOscuro.svg";
 import { Button } from "@headlessui/react";
 
+const graduationOptions = [
+  "Graduación de Lic. Derecho 2020 - 2024",
+  "Graduación de Ing. Sistemas 2019 - 2023",
+  "Graduación de Lic. Administración 2021 - 2025",
+  "Graduación de Lic. Psicología 2020 - 2024",
+]
+
 export default function AdminPage() {
   const [darkMode, setDarkMode] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [graduationOptions, setGraduationOptions] = useState([]);
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
-  
-  // Cargar datos del backend
-  useEffect(() => {
-    const fetchGraduationOptions = async () => {
-      try {
-        const response = await fetch('/api/eventos'); // Cambia esta URL por la de tu backend
-        const data = await response.json();
-        setGraduationOptions(data);
-        if (data.length > 0) {
-          setSelectedOption(data[0]); // Seleccionar el primer elemento por defecto
-        }
-      } catch (error) {
-        console.error('Error al cargar los eventos:', error);
-      }
-    };
-
-    fetchGraduationOptions();
-  }, []);
-  
+  const [modalOpen, setModalOpen] = useState(false); 
   // Cargar preferencia guardada
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
@@ -66,6 +51,9 @@ export default function AdminPage() {
     document.body.classList.toggle("dark", darkMode);
     localStorage.setItem("darkMode", darkMode);
   }, [darkMode]);
+
+  const [isOpen, setIsOpen] = useState(false)
+  const [selectedOption, setSelectedOption] = useState(graduationOptions[0])
 
   const handleSelect = (option) => {
     setSelectedOption(option)
@@ -170,13 +158,20 @@ export default function AdminPage() {
           </div>
 
           {/* Menú despegable central */}
+          {/* <div className="topbar-select-center">
+            <select>
+              <option>Graduación de Lic. Derecho 2020 - 2024</option>
+              <option>Graduación de Ing. Sistemas 2021 - 2025</option>
+              <option>Otro evento</option>
+            </select>
+          </div> */}
           <div className="relative w-full topbar-select-center2">
             {/* Select Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="w-96 bg-white dark:bg-[#1a1a1a] hover:bg-gray-250 transition-colors duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
             >
-              <span className="text-base px-2 py-1">{selectedOption?.name || 'Selecciona un evento'}</span>
+              <span className="text-base px-2 py-1">{selectedOption}</span>
               <div className="bg-[#A1BAC4] px-2 rounded-full transition-transform duration-200">
                 <ChevronDown
                   className={`w-8 h-8 text-white ${
@@ -190,17 +185,17 @@ export default function AdminPage() {
             {/* Dropdown Menu */}
             {isOpen && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 overflow-hidden">
-                {graduationOptions.map((option) => (
+                {graduationOptions.map((option, index) => (
                   <button
-                    key={option.id}
+                    key={index}
                     onClick={() => handleSelect(option)}
                     className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-150 ${
-                      selectedOption?.id === option.id
+                      selectedOption === option
                         ? "bg-gray-100 text-gray-900 font-medium"
                         : "text-gray-700 dark:text-gray-100 "
                     }`}
                   >
-                    {option.name}
+                    {option}
                   </button>
                 ))}
               </div>
