@@ -20,7 +20,7 @@ export default function CrearCuestionarioPages() {
   const [modoVista, setModoVista] = useState("laptop"); // "laptop" o "telefono"
   const [modalOpen, setModalOpen] = useState(false);
   const [Ocultar, setOcultar] = useState(false);
-
+//aqui se debe cambias por la del evento seleccionado 
   const handleCopyLink = () => {
     const link = `${window.location.origin}/cuestionario/mg07vfc5ma7io4axa`;
     navigator.clipboard.writeText(link).then(() => {

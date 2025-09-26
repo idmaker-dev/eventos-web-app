@@ -383,6 +383,7 @@ export default function Cuestionario() {
                 </div>
               </div>
             )}
+    
             {/* paso tres: debe de confirmar el codigo de verificacion */}
             {pasoActual === 2 && (
               <div className="space-y-9">
@@ -413,6 +414,7 @@ export default function Cuestionario() {
                     </div>
                     <div className="my-5 flex justify-center">
                       <Button
+                      //aun falta implementar la verificacion del codigo
                         onClick={handleConfirmar}
                         className="bg-casal text-xl text-white w-[70%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition"
                       >

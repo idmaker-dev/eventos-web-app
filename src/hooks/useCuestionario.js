@@ -1,9 +1,6 @@
 import { useState, useCallback } from "react";
 import cuestService from "../services/cuestService";
 
-/**
- * Hook para manejar invitados del cuestionario
- */
 export const useCuestionario = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState(null);

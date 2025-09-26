@@ -1,9 +1,5 @@
 import httpService from "./httpService";
 
-/**
- * Servicio de cuestionarios / invitados
- * Maneja la creación de invitados
- */
 class CuestService {
   /**
    * Crear un invitado
@@ -11,7 +7,6 @@ class CuestService {
    */
   async createInvitado(invitadoData) {
     try {
-      // Nuevo endpoint manteniendo el estilo anterior
       const response = await httpService.post(
         "/invitadosAlumnos/crear",
         invitadoData
@@ -31,7 +26,6 @@ class CuestService {
   }
 }
 
-// Crear instancia singleton
 const cuestService = new CuestService();
 
 export default cuestService;
