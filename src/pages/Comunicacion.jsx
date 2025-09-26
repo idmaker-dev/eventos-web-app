@@ -3,6 +3,7 @@ import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import clsx from "clsx";
 import CrearCuestionarioPages from "../components/Comunicacion/CrearCuestionarioPages";
 import React from "react";
+import { useOutletContext } from "react-router-dom";
 
 export default function Comunicacion() {
     return (

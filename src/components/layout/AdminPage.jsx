@@ -235,7 +235,7 @@ export default function AdminPage() {
         </div>
 
         <div className="child-content p-5 bg-[#e9f0f6]">
-          <Outlet />
+          <Outlet context={{ selectedEvent: selectedOption }} />
         </div>
       </main>
       <Eventos open={modalOpen} onClose={() => setModalOpen(false)} />

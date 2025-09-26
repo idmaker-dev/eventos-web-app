@@ -31,7 +31,7 @@ class EventService {
    */
   async getEvent(eventId) {
     try {
-      const response = await httpService.get(`/events/${eventId}`);
+      const response = await httpService.get(`/eventos/${eventId}`);
 
       return {
         success: true,
