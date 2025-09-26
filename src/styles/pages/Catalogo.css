@@ -9,19 +9,21 @@
   padding: 8px 16px;
   border-radius: 20px;
   background: #f0e6dd;
+  color: gray;
   cursor: pointer;
 }
 
 .catalogo-filtros .activo {
-  background: #f3d7a6;
+  background: #d5a372;
   font-weight: bold;
+  color: white;
 }
 
 
 .catalogo-container {
   padding: 20px;
   font-family: sans-serif;
-  max-width: 100%; /* que ocupe todo el ancho */
+  /* max-width: 100%; */
 }
 
 .catalogo-grid {
@@ -107,6 +109,7 @@
 
 .favorito.activo {
   color: #e74c3c; /* rojo cuando está activo */
+  background: #ffff;
 }
 
 
