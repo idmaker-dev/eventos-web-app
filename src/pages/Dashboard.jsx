@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
@@ -9,9 +10,51 @@ import Conflicto from "../assets/recursos/conflictoAsignación.svg";
 import Pago from "../assets/recursos/EstadoPendiente.svg";
 
 export default function Dashboard() {
+  const { id } = useParams(); // Obtener ID de la URL
+  const [metricsData, setMetricsData] = useState({
+    pagosCompletados: 0,
+    asientosAsignados: 0,
+    boletosEmitidos: 0,
+    totalAsistentes: 0,
+    subtituloPagos: "",
+    subtituloAsientos: "",
+    subtituloBoletos: ""
+  });
+  const [actionsData, setActionsData] = useState([]);
+
   const hoy = new Date();
   const [mes, setMes] = useState(hoy.getMonth());
   const [anio, setAnio] = useState(hoy.getFullYear());
+
+  // Cargar métricas según el ID del evento
+  useEffect(() => {
+    if (id) {
+      fetchMetricsData(id);
+      fetchActionsData(id);
+    }
+  }, [id]);
+
+  const fetchMetricsData = async (eventId) => {
+    try {
+      // const response = await fetch(`/api/events/${eventId}/metrics`);
+      // const data = await response.json();
+      // setMetricsData(data);
+      console.log(`Cargando métricas para evento ID: ${eventId}`);
+    } catch (error) {
+      console.error('Error al cargar métricas:', error);
+    }
+  };
+
+  const fetchActionsData = async (eventId) => {
+    try {
+      // const response = await fetch(`/api/events/${eventId}/actions`);
+      // const data = await response.json();
+      // setActionsData(data);
+      console.log(`Cargando acciones para evento ID: ${eventId}`);
+    } catch (error) {
+      console.error('Error al cargar acciones:', error);
+    }
+  };
 
   const meses = [
     "Enero",
@@ -98,25 +141,25 @@ export default function Dashboard() {
           </h2>
           <div className="dashboard-metricas">
             <Metrica
-              valor={75}
+              valor={metricsData.pagosCompletados}
               titulo="% de pagos completados"
-              subtitulo="750 / 1000 asistentes"
+              subtitulo={metricsData.subtituloPagos}
               gradienteId="gradPagos"
               color1="#0d3b66"
               color2="#2a9d8f"
             />
             <Metrica
-              valor={60}
+              valor={metricsData.asientosAsignados}
               titulo="Asientos asignados"
-              subtitulo="600 / 1000 asistentes"
+              subtitulo={metricsData.subtituloAsientos}
               gradienteId="gradAsientos"
               color1="#0f4c75"
               color2="#00b7c2"
             />
             <Metrica
-              valor={85}
+              valor={metricsData.boletosEmitidos}
               titulo="Boletos emitidos"
-              subtitulo="600 / 1000 asistentes"
+              subtitulo={metricsData.subtituloBoletos}
               gradienteId="gradBoletos"
               color1="#2a9d8f"
               color2="#0d3b66"
@@ -209,52 +252,73 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody className="text-sm">
-              <tr className="border-b last:border-none hover:bg-gray-50 dark:hover:bg-[#23272e]">
-                <td className="px-4 py-2 flex items-center gap-2">
-                  <img src={Pago} alt="Pago Pendiente" className="w-5 h-5" />
-                  Pago Pendiente
-                </td>
-                <td className="px-4 py-2">
-                  Hay 15 nuevos comprobantes para verificar
-                </td>
-                <td className="px-4 py-2">
-                  <button className="bg-[#D8E8EF] text-cyan-900 dark:bg-cyan-900 dark:text-cyan-100 px-3 py-1 rounded-full text-xs font-semibold hover:bg-[#4b92ac] dark:hover:bg-[#4b92ac] hover:text-white transition">
-                    Ir a Módulo de Pagos
-                  </button>
-                </td>
-              </tr>
-              <tr className="border-b last:border-none hover:bg-gray-50 dark:hover:bg-[#23272e]">
-                <td className="px-4 py-2 flex items-center gap-2">
-                  <img src={Chat} alt="Chat" className="w-5 h-5" />
-                  Chat
-                </td>
-                <td className="px-4 py-2">
-                  3 conversaciones requieren intervención humana
-                </td>
-                <td className="px-4 py-2">
-                  <button className="bg-[#D8E8EF] text-cyan-900 dark:bg-cyan-900 dark:text-cyan-100 px-3 py-1 rounded-full text-xs font-semibold hover:bg-[#4b92ac] dark:hover:bg-[#4b92ac] hover:text-white transition">
-                    Ir a Módulo de Comunicación
-                  </button>
-                </td>
-              </tr>
-              <tr className="hover:bg-gray-50 dark:hover:bg-[#23272e]">
-                <td className="px-4 py-2 flex items-center gap-2">
-                  <img
-                    src={Conflicto}
-                    alt="Conflicto de Asignación"
-                    className="w-5 h-5"
-                  />
-                  Conflicto de asignación
-                </td>
-                <td className="px-4 py-2">
-                  Nuevo conflicto de asignación de asientos
-                </td>
-                <td className="px-4 py-2">
-                  <button className="bg-[#D8E8EF] text-cyan-900 dark:bg-cyan-900 dark:text-cyan-100 px-3 py-1 rounded-full text-xs font-semibold hover:bg-[#4b92ac] dark:hover:bg-[#4b92ac] hover:text-white transition">
-                    Ir a Módulo de Asignaciones
-                  </button>
-                </td>
-              </tr>
+              {actionsData.length > 0 ? (
+                actionsData.map((action, index) => (
+                  <tr key={index} className="border-b last:border-none hover:bg-gray-50 dark:hover:bg-[#23272e]">
+                    <td className="px-4 py-2 flex items-center gap-2">
+                      <img src={action.icon} alt={action.tipo} className="w-5 h-5" />
+                      {action.tipo}
+                    </td>
+                    <td className="px-4 py-2">
+                      {action.descripcion}
+                    </td>
+                    <td className="px-4 py-2">
+                      <button className="bg-[#D8E8EF] text-cyan-900 dark:bg-cyan-900 dark:text-cyan-100 px-3 py-1 rounded-full text-xs font-semibold hover:bg-[#4b92ac] dark:hover:bg-[#4b92ac] hover:text-white transition">
+                        {action.accion}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <>
+                  <tr className="border-b last:border-none hover:bg-gray-50 dark:hover:bg-[#23272e]">
+                    <td className="px-4 py-2 flex items-center gap-2">
+                      <img src={Pago} alt="Pago Pendiente" className="w-5 h-5" />
+                      Pago Pendiente
+                    </td>
+                    <td className="px-4 py-2">
+                      Hay 15 nuevos comprobantes para verificar
+                    </td>
+                    <td className="px-4 py-2">
+                      <button className="bg-[#D8E8EF] text-cyan-900 dark:bg-cyan-900 dark:text-cyan-100 px-3 py-1 rounded-full text-xs font-semibold hover:bg-[#4b92ac] dark:hover:bg-[#4b92ac] hover:text-white transition">
+                        Ir a Módulo de Pagos
+                      </button>
+                    </td>
+                  </tr>
+                  <tr className="border-b last:border-none hover:bg-gray-50 dark:hover:bg-[#23272e]">
+                    <td className="px-4 py-2 flex items-center gap-2">
+                      <img src={Chat} alt="Chat" className="w-5 h-5" />
+                      Chat
+                    </td>
+                    <td className="px-4 py-2">
+                      3 conversaciones requieren intervención humana
+                    </td>
+                    <td className="px-4 py-2">
+                      <button className="bg-[#D8E8EF] text-cyan-900 dark:bg-cyan-900 dark:text-cyan-100 px-3 py-1 rounded-full text-xs font-semibold hover:bg-[#4b92ac] dark:hover:bg-[#4b92ac] hover:text-white transition">
+                        Ir a Módulo de Comunicación
+                      </button>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50 dark:hover:bg-[#23272e]">
+                    <td className="px-4 py-2 flex items-center gap-2">
+                      <img
+                        src={Conflicto}
+                        alt="Conflicto de Asignación"
+                        className="w-5 h-5"
+                      />
+                      Conflicto de asignación
+                    </td>
+                    <td className="px-4 py-2">
+                      Nuevo conflicto de asignación de asientos
+                    </td>
+                    <td className="px-4 py-2">
+                      <button className="bg-[#D8E8EF] text-cyan-900 dark:bg-cyan-900 dark:text-cyan-100 px-3 py-1 rounded-full text-xs font-semibold hover:bg-[#4b92ac] dark:hover:bg-[#4b92ac] hover:text-white transition">
+                        Ir a Módulo de Asignaciones
+                      </button>
+                    </td>
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
         </div>
