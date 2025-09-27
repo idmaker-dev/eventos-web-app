@@ -31,11 +31,11 @@ class EventService {
    */
   async getEvent(eventId) {
     try {
-      const response = await httpService.get(`/events/${eventId}`);
+      const response = await httpService.get(`/eventos/${eventId}`);
 
       return {
         success: true,
-        event: response,
+        event: response.data || response,
       };
     } catch (error) {
       return {
@@ -70,11 +70,11 @@ class EventService {
    */
   async updateEvent(eventId, eventData) {
     try {
-      const response = await httpService.put(`/events/${eventId}`, eventData);
+      const response = await httpService.put(`/eventos/${eventId}`, eventData);
 
       return {
         success: true,
-        event: response,
+        event: response.data || response,
         message: "Evento actualizado exitosamente",
       };
     } catch (error) {
@@ -90,7 +90,7 @@ class EventService {
    */
   async deleteEvent(eventId) {
     try {
-      await httpService.delete(`/events/${eventId}`);
+      await httpService.delete(`/eventos/${eventId}`);
 
       return {
         success: true,
@@ -109,11 +109,11 @@ class EventService {
    */
   async getEventStats(eventId) {
     try {
-      const response = await httpService.get(`/events/${eventId}/stats`);
+      const response = await httpService.get(`/eventos/${eventId}/stats`);
 
       return {
         success: true,
-        stats: response,
+        stats: response.data || response,
       };
     } catch (error) {
       return {
@@ -130,14 +130,14 @@ class EventService {
   async uploadEventImage(eventId, imageFile, onProgress = null) {
     try {
       const response = await httpService.upload(
-        `/events/${eventId}/image`,
+        `/eventos/${eventId}/image`,
         imageFile,
         onProgress
       );
 
       return {
         success: true,
-        imageUrl: response.imageUrl,
+        imageUrl: response.imageUrl || (response.data && response.data.imageUrl),
         message: "Imagen subida exitosamente",
       };
     } catch (error) {
