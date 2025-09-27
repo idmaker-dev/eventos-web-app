@@ -25,8 +25,8 @@ class GuestService {
 
       const queryString = params.toString();
       const url = queryString
-        ? `/events/${eventId}/guests?${queryString}`
-        : `/events/${eventId}/guests`;
+        ? `/eventos/${eventId}/guests?${queryString}`
+        : `/eventos/${eventId}/guests`;
 
       const response = await httpService.get(url);
 
@@ -51,7 +51,7 @@ class GuestService {
   async getGuest(eventId, guestId) {
     try {
       const response = await httpService.get(
-        `/events/${eventId}/guests/${guestId}`
+        `/eventos/${eventId}/guests/${guestId}`
       );
 
       return {
@@ -72,7 +72,7 @@ class GuestService {
   async createGuest(eventId, guestData) {
     try {
       const response = await httpService.post(
-        `/events/${eventId}/guests`,
+        `/eventos/${eventId}/guests`,
         guestData
       );
 
@@ -95,7 +95,7 @@ class GuestService {
   async updateGuest(eventId, guestId, guestData) {
     try {
       const response = await httpService.put(
-        `/events/${eventId}/guests/${guestId}`,
+        `/eventos/${eventId}/guests/${guestId}`,
         guestData
       );
 
@@ -117,7 +117,7 @@ class GuestService {
    */
   async deleteGuest(eventId, guestId) {
     try {
-      await httpService.delete(`/events/${eventId}/guests/${guestId}`);
+  await httpService.delete(`/eventos/${eventId}/guests/${guestId}`);
 
       return {
         success: true,
@@ -137,7 +137,7 @@ class GuestService {
   async deleteMultipleGuests(eventId, guestIds) {
     try {
       const response = await httpService.post(
-        `/events/${eventId}/guests/bulk-delete`,
+        `/eventos/${eventId}/guests/bulk-delete`,
         {
           guestIds,
         }
@@ -162,7 +162,7 @@ class GuestService {
   async updateGuestStatus(eventId, guestId, status) {
     try {
       const response = await httpService.patch(
-        `/events/${eventId}/guests/${guestId}/status`,
+        `/eventos/${eventId}/guests/${guestId}/status`,
         {
           status,
         }
@@ -187,7 +187,7 @@ class GuestService {
   async sendInvitation(eventId, guestId) {
     try {
       await httpService.post(
-        `/events/${eventId}/guests/${guestId}/send-invitation`
+        `/eventos/${eventId}/guests/${guestId}/send-invitation`
       );
 
       return {
@@ -208,7 +208,7 @@ class GuestService {
   async sendBulkInvitations(eventId, guestIds) {
     try {
       const response = await httpService.post(
-        `/events/${eventId}/guests/bulk-invite`,
+        `/eventos/${eventId}/guests/bulk-invite`,
         {
           guestIds,
         }
@@ -233,7 +233,7 @@ class GuestService {
   async importGuests(eventId, csvFile, options = {}) {
     try {
       const response = await httpService.upload(
-        `/events/${eventId}/guests/import`,
+        `/eventos/${eventId}/guests/import`,
         csvFile,
         null,
         options
@@ -267,8 +267,8 @@ class GuestService {
 
       const queryString = params.toString();
       const url = queryString
-        ? `/events/${eventId}/guests/export?${queryString}`
-        : `/events/${eventId}/guests/export`;
+        ? `/eventos/${eventId}/guests/export?${queryString}`
+        : `/eventos/${eventId}/guests/export`;
 
       await httpService.download(url, `invitados-evento-${eventId}.csv`);
 
@@ -289,7 +289,7 @@ class GuestService {
    */
   async getGuestStats(eventId) {
     try {
-      const response = await httpService.get(`/events/${eventId}/guests/stats`);
+  const response = await httpService.get(`/eventos/${eventId}/guests/stats`);
 
       return {
         success: true,

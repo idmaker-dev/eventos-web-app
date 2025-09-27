@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useSelectedEvent } from '../contexts/SelectedEventContext';
 
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
@@ -32,9 +33,13 @@ export default function Dashboard() {
   const primerDia = new Date(anio, mes, 1).getDay() || 7;
   const diasEnMes = new Date(anio, mes + 1, 0).getDate();
 
+  // Hook de eventos compartido desde el contexto
+  const { eventoActual, selectEvent, eventos } = useSelectedEvent();
+
   const cambiarMes = (offset) => {
     let nuevoMes = mes + offset;
     let nuevoAnio = anio;
+
     if (nuevoMes < 0) {
       nuevoMes = 11;
       nuevoAnio--;
@@ -42,9 +47,18 @@ export default function Dashboard() {
       nuevoMes = 0;
       nuevoAnio++;
     }
+
     setMes(nuevoMes);
     setAnio(nuevoAnio);
   };
+
+  // seleccionar auto el primer evento si no hay ninguno seleccionado
+  useEffect(() => {
+    if (!eventoActual && eventos && eventos.length > 0) {
+      const firstId = eventos[0].id || eventos[0]._id || null;
+      if (firstId) selectEvent(firstId);
+    }
+  }, [eventoActual, eventos, selectEvent]);
 
   const Metrica = ({
     valor,
@@ -86,6 +100,55 @@ export default function Dashboard() {
     </div>
   );
 
+  function EventMetrics() {
+    // Obtener número de asistentes del evento actual
+    function resolveAsistentes(evt) {
+      if (!evt) return 0;
+      const v = evt.asistentes;
+      const n = parseInt(v, 10);
+      return !isNaN(n) ? n : 0;
+    }
+
+  const asistentes = resolveAsistentes(eventoActual);
+
+    const pagosPagados = 200; 
+    const asientosAsignadosStatic = 300; 
+    const boletosEmitidos = 200; 
+    
+    const valorPagos = asistentes > 0 ? Math.round((pagosPagados / asistentes) * 100) : 0;
+    const valorAsientos = asistentes > 0 ? Math.round((asientosAsignadosStatic / asistentes) * 100) : 0;
+    const valorBoletos = asistentes > 0 ? Math.round((boletosEmitidos / asistentes) * 100) : 0;
+
+    return (
+      <>
+        <Metrica
+          valor={Math.min(100, valorPagos)}
+          titulo="% de pagos completados"
+          subtitulo={`${pagosPagados} / ${asistentes} asistentes`}
+          gradienteId="gradPagos"
+          color1="#0d3b66"
+          color2="#2a9d8f"
+        />
+        <Metrica
+          valor={Math.min(100, valorAsientos)}
+          titulo="Asientos asignados"
+          subtitulo={`${asientosAsignadosStatic} / ${asistentes} asistentes`}
+          gradienteId="gradAsientos"
+          color1="#0f4c75"
+          color2="#00b7c2"
+        />
+        <Metrica
+          valor={Math.min(100, valorBoletos)}
+          titulo="Boletos emitidos"
+          subtitulo={`${boletosEmitidos} / ${asistentes} asistentes`}
+          gradienteId="gradBoletos"
+          color1="#2a9d8f"
+          color2="#0d3b66"
+        />
+      </>
+    );
+  }
+
   return (
     <div className="dashboard-container">
       <h1 className="dashboard-titulo">Resumen general del evento</h1>
@@ -97,30 +160,8 @@ export default function Dashboard() {
             Métricas clave
           </h2>
           <div className="dashboard-metricas">
-            <Metrica
-              valor={75}
-              titulo="% de pagos completados"
-              subtitulo="750 / 1000 asistentes"
-              gradienteId="gradPagos"
-              color1="#0d3b66"
-              color2="#2a9d8f"
-            />
-            <Metrica
-              valor={60}
-              titulo="Asientos asignados"
-              subtitulo="600 / 1000 asistentes"
-              gradienteId="gradAsientos"
-              color1="#0f4c75"
-              color2="#00b7c2"
-            />
-            <Metrica
-              valor={85}
-              titulo="Boletos emitidos"
-              subtitulo="600 / 1000 asistentes"
-              gradienteId="gradBoletos"
-              color1="#2a9d8f"
-              color2="#0d3b66"
-            />
+          {/* Métricas del evento actual */}
+            <EventMetrics />
           </div>
         </div>
 

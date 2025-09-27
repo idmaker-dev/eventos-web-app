@@ -4,9 +4,9 @@ import "../../styles/components/MasterPage.css"
 
 export default function MasterPage({ children }) {
   return (
-    <div className="masterpage">
+    <div className="masterpage max-w-7xl mx-auto">
       <header className="header">
-        <nav className="navbar">
+        <nav className="navbar px-1 ">
           
           <NavLink to="/Catalogo" className={({ isActive }) => "nav-item proveedores" + (isActive ? " active" : "")
             } > Catálogo de Proveedores </NavLink>

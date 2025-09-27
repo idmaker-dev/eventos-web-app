@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, Navigate } from "react-router-dom"
 import Home from "../../pages/Home"
 import Catalogo from "../../pages/Catalogo"
 import Calendario from "../../pages/Calendario"
@@ -43,6 +43,7 @@ export default function AppRoutes() {
         </AuthenticatedRoute>
       }>
         {/* Sub-rutas que se cargan en el Outlet de Home - Todas requieren autenticación */}
+        <Route index element={<Navigate to="Catalogo" replace />} />
         <Route path="Catalogo" element={<Catalogo />} />
         <Route path="Calendario" element={<Calendario />} />
         <Route path="Finanzas" element={<Finanzas />} />
@@ -62,7 +63,7 @@ export default function AppRoutes() {
         
       </Route>
       {/* Ruta pública - Accesible sin autenticación */}
-      <Route path="/Cuestionario" element={<Cuestionario />} />
+      <Route path="/Cuestionario/:eventId" element={<Cuestionario />} />
     </Routes>
   )
 }

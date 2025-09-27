@@ -6,8 +6,10 @@ import { LaptopIcon, Smartphone, Plus, Minus, ChevronRight, ChevronLeft } from "
 import ModalConfimacion from "./ModalConfimacion";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
+import { useNotifications } from "../../contexts/NotificationContext";
 
 export default function CrearCuestionarioPages() {
+  const { showSuccess, showError } = useNotifications();
   const [restricciones, setRestricciones] = useState({
     vegetariano: 0,
     vegano: 0,
@@ -18,6 +20,15 @@ export default function CrearCuestionarioPages() {
   const [modoVista, setModoVista] = useState("laptop"); // "laptop" o "telefono"
   const [modalOpen, setModalOpen] = useState(false);
   const [Ocultar, setOcultar] = useState(false);
+//aqui se debe cambias por la del evento seleccionado 
+  const handleCopyLink = () => {
+    const link = `${window.location.origin}/cuestionario/mg07vfc5ma7io4axa`;
+    navigator.clipboard.writeText(link).then(() => {
+      showSuccess('Enlace copiado');
+    }).catch((err) => {
+      showError('Error al copiar el enlace');
+    });
+  };
 
   const handleChange = (key, delta) => {
     setRestricciones((prev) => ({
@@ -370,7 +381,7 @@ export default function CrearCuestionarioPages() {
               </span>
             </div>
             <div className="">
-              <Button className="bg-casal  w-full text-white px-4 py-1 rounded hover:bg-Acapulco transition">
+              <Button onClick={handleCopyLink} className="bg-casal  w-full text-white px-4 py-1 rounded hover:bg-Acapulco transition">
                 Enlace de cuestionario
               </Button>
             </div>
@@ -435,7 +446,7 @@ export default function CrearCuestionarioPages() {
               </div>
             </div>
             <div className="">
-              <Button className="bg-casal  w-full text-white px-4 py-1 rounded hover:bg-Acapulco transition">
+              <Button onClick={handleCopyLink} className="bg-casal  w-full text-white px-4 py-1 rounded hover:bg-Acapulco transition">
                 Enlace de cuestionario
               </Button>
             </div>

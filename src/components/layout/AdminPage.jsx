@@ -23,18 +23,14 @@ import ModuloAsignacion from "../../assets/recursos/moduloDeAsignacion.svg";
 import ModuloInvitados from "../../assets/recursos/moduloInvitados.svg";
 import Inicio from "../../assets/recursos/inicio.svg";
 import Eventos from "../Modales/Eventos";
+import { useSelectedEvent } from '../../contexts/SelectedEventContext';
 
 import temaClaro from "../../assets/recursos/temaClaro.svg";
 import temaOscuro from "../../assets/recursos/temaOscuro.svg";
 import { Button } from "@headlessui/react";
 import { useAuth } from "../../hooks/useAuth";
 
-const graduationOptions = [
-  "Graduación de Lic. Derecho 2020 - 2024",
-  "Graduación de Ing. Sistemas 2019 - 2023",
-  "Graduación de Lic. Administración 2021 - 2025",
-  "Graduación de Lic. Psicología 2020 - 2024",
-]
+
 
 export default function AdminPage() {
   const [darkMode, setDarkMode] = useState(false);
@@ -56,11 +52,43 @@ export default function AdminPage() {
   }, [darkMode]);
 
   const [isOpen, setIsOpen] = useState(false)
-  const [selectedOption, setSelectedOption] = useState(graduationOptions[0])
+  const { eventos, selectEvent } = useSelectedEvent();
 
-  const handleSelect = (option) => {
-    setSelectedOption(option)
-    setIsOpen(false)
+  const [selectedOption, setSelectedOption] = useState("Selecciona un evento")
+  // Obtener etiqueta usando únicamente la propiedad nombre_evento (el nombre ya viene así)
+  const getLabel = React.useCallback((evento, index) => {
+    if (!evento) return `Evento ${index + 1}`;
+    if (evento.nombre_evento && typeof evento.nombre_evento === "string" && evento.nombre_evento.trim().length > 0) {
+      return evento.nombre_evento;
+    }
+    return `Evento ${index + 1}`;
+  }, []);
+
+  useEffect(() => {
+    console.debug("[AdminPage] eventos.count=", eventos?.length, "first=", eventos?.[0]);
+    if (eventos && eventos.length > 0) {
+      const first = eventos[0];
+      const label = getLabel(first, 0);
+      setSelectedOption(label);
+      // opcional: cargar el evento actual en el hook
+      const id = first.id || first._id || null;
+      if (id) {
+        // usar selectEvent para centralizar la selección
+        selectEvent(id);
+      }
+    } else {
+      setSelectedOption("Selecciona un evento");
+    }
+  }, [eventos, selectEvent, getLabel]);
+
+  const handleSelect = (evento) => {
+    const label = getLabel(evento, 0);
+    setSelectedOption(label);
+    setIsOpen(false);
+    const id = evento.id || evento._id || null;
+    if (id) {
+      selectEvent(id);
+    }
   }
 
   const handleLogout = async () => {
@@ -197,19 +225,27 @@ export default function AdminPage() {
             {/* Dropdown Menu */}
             {isOpen && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 overflow-hidden">
-                {graduationOptions.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleSelect(option)}
-                    className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-150 ${
-                      selectedOption === option
-                        ? "bg-gray-100 text-gray-900 font-medium"
-                        : "text-gray-700 dark:text-gray-100 "
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
+                {eventos && eventos.length > 0 ? (
+                  eventos.map((option, index) => {
+                    const label = getLabel(option, index);
+                    const isSelected = selectedOption === label;
+                    return (
+                      <button
+                        key={option.id || option._id || index}
+                        onClick={() => handleSelect(option)}
+                        className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-150 ${
+                          isSelected
+                            ? "bg-gray-100 text-gray-900 font-medium"
+                            : "text-gray-700 dark:text-gray-100 "
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="w-full px-4 py-3 text-left text-sm text-gray-500">No tienes eventos aún</div>
+                )}
               </div>
             )}
 
@@ -250,7 +286,7 @@ export default function AdminPage() {
         </div>
 
         <div className="child-content p-5 bg-[#e9f0f6]">
-          <Outlet />
+          <Outlet context={{ selectedEvent: selectedOption }} />
         </div>
       </main>
       <Eventos open={modalOpen} onClose={() => setModalOpen(false)} />

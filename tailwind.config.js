@@ -13,6 +13,7 @@ module.exports = {
         silver: '#CBCBCB',
         blackHaze: '#F7F7F7',
         fodoBlack: '#2a2a2a',
+        fondoGris: '#f6f6f6',
       },
     },
   },

@@ -36,3 +36,16 @@
     transform: rotate(360deg);
   }
 }
+
+@font-face {
+  font-family: 'MinionVariable';
+  src: url('../assets/fonts/minion/MinionPro-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+.minion-medium-italic {
+  font-family: 'MinionVariable', serif;
+  font-weight: 500;
+  font-style: italic;
+}

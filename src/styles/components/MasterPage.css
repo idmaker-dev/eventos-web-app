@@ -1,16 +1,16 @@
 .masterpage {
   font-family: "Segoe UI", sans-serif;
-  background: #fafafa;
+  /* background: #fafafa; */
   min-height: 100vh;
 }
 
 .header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   padding: 20px 0;
-  border-bottom: 1px solid #eee;
+  /* border-bottom: 1px solid #eee; */
   background: white;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  /* box-shadow: 0 2px 6px rgba(0,0,0,0.05); */
 }
 
 .navbar {
@@ -46,53 +46,53 @@
 
 /* Colores */
 .nav-item.proveedores {
-  background: #fae2be; 
-  color: #ee5028;     
+  background: #FFE4C6; 
+  color: #F7931E;     
 }
 .nav-item.calendario {
-  background: #e8f5e9; 
-  color: #2e7d32; 
+  background: #DEEBD6; 
+  color: #5A9B34; 
 }
 .nav-item.finanzas {
-  background: #e3f2fd; 
-  color: #0288d1; 
+  background: #D1ECF1; 
+  color: #17A2B8; 
 }
 .nav-item.invitados {
-  background: #fce4ec; 
-  color: #c2185b; 
+  background: #FCEBED; 
+  color: #AF0D89; 
 }
 .nav-item.mesas {
-  background: #ede7f6; 
-  color: #6a1b9a; 
+  background: #E8E0EF; 
+  color: #662D91; 
 }
 .nav-item.minutas {
-  background: #f9fabe; 
-  color: #eeca28; 
+  background: #FEEFD8; 
+  color: #FBB03B; 
 }
 
 /* Activos */
 .nav-item.proveedores.active {
-  background: #ef6c00; 
+  background: #F7931E; 
   color: #fff;
 }
 .nav-item.calendario.active {
-  background: #2e7d32;
+  background: #5A9B34;
   color: #fff;
 }
 .nav-item.finanzas.active {
-  background: #0288d1;
+  background: #17A2B8;
   color: #fff;
 }
 .nav-item.invitados.active {
-  background: #c2185b;
+  background: #AF0D89;
   color: #fff;
 }
 .nav-item.mesas.active {
-  background: #6a1b9a;
+  background: #662D91;
   color: #fff;
 }
 .nav-item.minutas.active {
-  background: #ebef00; 
+  background: #FBB03B; 
   color: #fff;
 }
 

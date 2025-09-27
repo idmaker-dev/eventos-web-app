@@ -309,7 +309,7 @@
 
   .tabla-invitados td::before {
     content: attr(data-label);
-    font-weight: bold;
+    /* font-weight: bold; */
     flex: 1;
     color:  #a0276e;
     padding-right: 10px;
