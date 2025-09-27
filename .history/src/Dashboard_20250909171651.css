@@ -1,0 +1,275 @@
+/* 🎨 Estilos base del Dashboard */
+.dashboard-container {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Título principal */
+.dashboard-titulo {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* ─── Métricas ───────────────────────────── */
+.dashboard-metricas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.dashboard-metrica {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-circulo {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 6px solid #2ecc71;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+  margin: 0 auto 10px auto;
+  color: #2ecc71;
+}
+
+/* ─── Calendario ───────────────────────────── */
+.dashboard-calendario {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-calendario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.dashboard-calendario-header button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.dashboard-calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.dashboard-dia-semana {
+  font-weight: bold;
+  text-align: center;
+}
+
+.dashboard-dia,
+.dashboard-vacio {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.dashboard-dia.hoy {
+  background: #2ecc71;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* ─── Acciones ───────────────────────────── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.dashboard-acciones {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-subtitulo {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.dashboard-accion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.dashboard-icono {
+  font-size: 20px;
+  margin-right: 10px;
+}
+
+.dashboard-btn {
+  background: #2ecc71;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.dashboard-btn:hover {
+  background: #27ae60;
+}
+
+/* 🌙─── MODO OSCURO ───────────────────────── */
+body.dark-mode .dashboard-metrica,
+body.dark-mode .dashboard-calendario,
+body.dark-mode .dashboard-acciones {
+  background: #1e1e1e;
+  color: #eee;
+  box-shadow: 0 2px 6px rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .dashboard-accion {
+  background: #2c2c2c;
+}
+
+body.dark-mode .dashboard-circulo {
+  border-color: #27ae60;
+  color: #27ae60;
+  background: #1e1e1e;
+}
+
+/* 📱─── RESPONSIVE ───────────────────────── */
+
+/* Tablets y pantallas medianas */
+@media (max-width: 1024px) {
+  .dashboard-metricas {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .dashboard-calendario {
+    grid-column: span 2;
+    width: 100%;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 📲 Móviles grandes (Android + iPhone) */
+@media (max-width: 768px) {
+  .dashboard-metricas {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .dashboard-circulo {
+    width: 70px;
+    height: 70px;
+    font-size: 14px;
+  }
+
+  .dashboard-calendario {
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .dashboard-calendario-grid {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+
+  .dashboard-dia,
+  .dashboard-dia-semana,
+  .dashboard-vacio {
+    min-width: 32px;
+    height: 32px;
+    line-height: 32px;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .dashboard-acciones {
+    padding: 10px;
+  }
+
+  .dashboard-accion {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .dashboard-btn {
+    width: 100%;
+    text-align: center;
+    font-size: 14px;
+    padding: 8px;
+  }
+}
+
+/* 📱 Móviles pequeños */
+@media (max-width: 480px) {
+  .dashboard-titulo {
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .dashboard-circulo {
+    width: 60px;
+    height: 60px;
+    font-size: 12px;
+  }
+
+  .dashboard-calendario-grid {
+    gap: 2px;
+  }
+
+  .dashboard-dia,
+  .dashboard-dia-semana,
+  .dashboard-vacio {
+    min-width: 26px;
+    height: 26px;
+    line-height: 26px;
+    font-size: 10px;
+  }
+
+  .dashboard-acciones h2 {
+    font-size: 16px;
+  }
+
+  .dashboard-accion h4 {
+    font-size: 14px;
+  }
+
+  .dashboard-accion p {
+    font-size: 12px;
+  }
+
+  .dashboard-btn {
+    font-size: 12px;
+    padding: 6px;
+  }
+}

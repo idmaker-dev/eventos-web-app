@@ -1,0 +1,86 @@
+.calendario-container {
+  width: 300px;            /* 📏 más chica */
+  background: #fff;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  font-family: "Segoe UI", sans-serif;
+  text-align: left;        /* 📍 alineado a la izquierda */
+}
+
+.calendario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.calendario-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+  font-weight: 600;
+}
+
+.calendario-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.calendario-nav button {
+  background: none;      /* ❌ sin fondo */
+  border: none;
+  color: #666;           /* 📍 gris */
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.calendario-nav button:hover {
+  color: #000;           /* 📍 más oscuro al pasar */
+}
+
+.calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendario-dia-semana {
+  text-align: center;
+  font-weight: bold;
+  color: #555;
+  font-size: 0.85rem;
+}
+
+.calendario-dia,
+.calendario-vacio {
+  height: 40px;         /* 📏 más compacto */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+  font-size: 0.9rem;
+}
+
+.calendario-dia {
+  cursor: pointer;
+  background: #f5f5f5;
+}
+
+.calendario-dia:hover {
+  background: #007bff;
+  color: white;
+  transform: scale(1.05);
+}
+
+.calendario-dia.hoy {
+  background: #ff9800;
+  color: white;
+  font-weight: bold;
+}
+
+.calendario-vacio {
+  background: transparent;
+}

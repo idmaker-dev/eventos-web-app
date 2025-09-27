@@ -1,0 +1,138 @@
+/* Layout general */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 70px;
+  background: #e9f0f6;
+  padding: 15px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-top ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-top li {
+  margin: 12px 0;
+}
+
+.sidebar a {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #f1f4f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b0b0b0;
+  transition: all 0.3s ease;
+}
+
+.sidebar a.active {
+  background: #206a73;
+  color: white;
+}
+
+.sidebar a:hover {
+  background: #d9e6ed;
+  color: #206a73;
+}
+
+/* Íconos inferiores */
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.sidebar-logo img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}
+
+/* Contenido */
+.content {
+  flex: 1;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Topbar */
+.topbar {
+  background: #eaf0f6;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.topbar-text h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.topbar-text p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.topbar-select select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.child-content {
+  flex: 1;
+  padding: 20px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.topbar-icons {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #555;
+  cursor: pointer;
+}
+
+.topbar-icons svg {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.topbar-icons svg:hover {
+  transform: scale(1.2);
+  color: #007bff;
+}

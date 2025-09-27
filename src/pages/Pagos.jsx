@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import "../styles/pages/Pagos.css";
 import { CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import EstadoPendiente from "../assets/recursos/EstadoPendiente.svg";
+import EstadoAprobado from "../assets/recursos/EstadoAprobado.svg";
+import EstadoParcial from "../assets/recursos/EstadoParcial.svg";
 
 export default function Pagos({ darkMode }) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -19,20 +22,25 @@ export default function Pagos({ darkMode }) {
   const getEstado = (estado) => {
     if (estado === "Pendiente")
       return (
-        <span className="estado pendiente">
-          <AlertCircle size={16} /> Pendiente
+        <span className="flex items-center gap-2">
+          <img src={EstadoPendiente} alt="Estado Pendiente" className="w-4 h-4" /> <span className="text-gray-800 dark:text-gray-200 font-medium">Pendiente</span>
+          {/* <AlertCircle size={16} /> Pendiente */}
         </span>
       );
     if (estado === "Aprobado")
       return (
-        <span className="estado aprobado">
-          <CheckCircle size={16} /> Aprobado
+        <span className="flex items-center gap-2">
+          <img src={EstadoAprobado} alt="Estado Aprobado" className="w-4 h-4" />
+          {/* <CheckCircle size={16} />*/} <span className="text-gray-800 dark:text-gray-200 font-medium">Aprobado</span> 
         </span>
       );
     if (estado === "Parcial")
       return (
-        <span className="estado parcial">
-          <XCircle size={16} /> Parcial
+        <span className="flex items-center gap-2">
+          <img src={EstadoParcial} alt="Estado Parcial" className="w-4 h-4" />
+          <span className="text-gray-800 dark:text-gray-200 font-medium">Parcial</span>
+          {/* 
+          <XCircle size={16} /> Parcial */}
         </span>
       );
   };
@@ -50,13 +58,13 @@ export default function Pagos({ darkMode }) {
   };
 
   return (
-    <div className={`pagos-container ${darkMode ? "dark" : ""}`}>
+    <div className={`pagos-container bg-white dark:bg-[#1e1e1e] rounded-3xl ${darkMode ? "dark" : ""}`}>
       <div className="pagos-header">
         <div className="pagos-info">
           <h2 className="pagos-titulo">Módulo de pagos</h2>
           <p className="pagos-subtitulo">
             Seguimiento de pagos de asistentes mediante{" "}
-            <button className="btn-text">tabla de pagos</button>
+            <span className="text-[#246370] dark:text-[#72B7A4] font-semibold">tabla de pagos</span>
           </p>
         </div>
 
@@ -69,7 +77,7 @@ export default function Pagos({ darkMode }) {
       </div>
 
       <div className="pagos-tabla">
-        <div className="pagos-encabezados">
+        <div className="pagos-encabezados dark:text-gray-200">
           <div>Asistente</div>
           <div>Progreso</div>
           <div>Total pagado</div>
@@ -80,15 +88,15 @@ export default function Pagos({ darkMode }) {
         {data.map((item, idx) => {
           const porcentaje = (item.pagado / item.total) * 100;
           return (
-            <div key={idx} className="pagos-fila">
-              <div className="col" data-label="Asistente">
+            <div key={idx} className="pagos-fila rounded-lg">
+              <div className="col flex items-center" data-label="Asistente">
                 <span className="nombre">{item.nombre}</span>
               </div>
 
-              <div className="col" data-label="Progreso">
-                <div className="barra-progreso">
+              <div className="col flex items-center" data-label="Progreso">
+                <div className="barra-progreso w-4/5">
                   <div
-                    className="barra-fill"
+                    className="barra-fill "
                     style={{
                       width: `${porcentaje}%`,
                       background: getBarraColor(item.estado),
@@ -97,15 +105,15 @@ export default function Pagos({ darkMode }) {
                 </div>
               </div>
 
-              <div className="col" data-label="Total pagado">
+              <div className="col flex items-center" data-label="Total pagado">
                 ${item.pagado.toLocaleString("es-MX")}/{item.total.toLocaleString("es-MX")}
               </div>
 
-              <div className="col" data-label="Estado">
+              <div className="col flex items-center" data-label="Estado">
                 {getEstado(item.estado)}
               </div>
 
-              <div className="col" data-label="Acción">
+              <div className="col flex items-center" data-label="Acción">
                 <button
                   onClick={() => abrirModal(item)}
                   className={`btn-accion ${

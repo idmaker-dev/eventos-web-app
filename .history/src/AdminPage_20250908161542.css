@@ -1,0 +1,171 @@
+/* Layout general */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* 🔹 Sidebar */
+.sidebar {
+  width: 80px;
+  background: #f5f5f5;
+  padding: 15px 10px;
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Eliminar puntos de las listas */
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Para que también se aplique en modo oscuro */
+.dark-mode .sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+
+/* Íconos inferiores */
+.sidebar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.sidebar-logo img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+}
+
+/* Contenido */
+.content {
+  flex: 1;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Topbar */
+.topbar {
+  background: #eaf0f6;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+}
+
+.topbar-text h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.topbar-text p {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.topbar-select select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.child-content {
+  flex: 1;
+  padding: 20px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.topbar-icons {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #555;
+  cursor: pointer;
+}
+
+.topbar-icons svg {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.topbar-icons svg:hover {
+  transform: scale(1.2);
+  color: #007bff;
+}
+/* ----- MODO OSCURO ----- */
+.dark-mode {
+  background: #1a1a1a;
+  color: #f1f1f1;
+}
+
+.dark-mode .sidebar {
+  background: #2a2a2a;
+}
+
+.dark-mode .sidebar a {
+  background: #3a3a3a;
+  color: #ccc;
+}
+
+.dark-mode .sidebar a.active {
+  background: #007bff;
+  color: #fff;
+}
+
+.dark-mode .content {
+  background: #1a1a1a;
+}
+
+.dark-mode .topbar {
+  background: #2a2a2a;
+  border-bottom: 1px solid #444;
+}
+
+.dark-mode .topbar-text h2 {
+  color: #fff;
+}
+
+.dark-mode .topbar-text p {
+  color: #ccc;
+}
+
+.dark-mode .topbar-select select {
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+}
+
+.dark-mode .topbar-icons {
+  color: #ccc;
+}
+
+.dark-mode .child-content {
+  background: #1a1a1a;
+}

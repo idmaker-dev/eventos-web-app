@@ -1,0 +1,192 @@
+.dashboard-container {
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #f5f7fa;
+  min-height: 100vh;
+}
+
+.titulo-principal {
+  text-align: center;
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #444;
+}
+
+/* Métricas clave */
+.metricas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.tarjeta-metrica {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.tarjeta-metrica h3 {
+  font-size: 14px;
+  margin: 10px 0 5px;
+  color: #333;
+}
+
+.tarjeta-metrica p {
+  font-size: 12px;
+  color: #666;
+}
+
+.circulo {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 6px solid #2ecc71;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 18px;
+  margin: 0 auto 10px;
+  color: #2ecc71;
+}
+
+/* Grid principal */
+.contenido-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+/* Acciones */
+.acciones {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.acciones h2 {
+  font-size: 16px;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.subtitulo {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 15px;
+}
+
+.accion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.accion-item:last-child {
+  border-bottom: none;
+}
+
+.icono {
+  font-size: 20px;
+  margin-right: 10px;
+}
+
+.alerta {
+  color: #f39c12;
+}
+.chat {
+  color: #e91e63;
+}
+.conflicto {
+  color: #00bcd4;
+}
+
+.accion-texto h4 {
+  font-size: 14px;
+  margin: 0;
+  color: #333;
+}
+
+.accion-texto p {
+  font-size: 12px;
+  color: #666;
+  margin: 0;
+}
+
+.btn-accion {
+  background: #eef2f7;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-accion:hover {
+  background: #d9e0ea;
+}
+
+/* Calendario */
+.calendario {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.calendario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.calendario-header h2 {
+  font-size: 14px;
+  color: #333;
+}
+
+.calendario-header button {
+  background: #eef2f7;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  text-align: center;
+}
+
+.calendario-dia-semana {
+  font-size: 12px;
+  font-weight: bold;
+  color: #666;
+}
+
+.calendario-dia {
+  padding: 6px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #333;
+}
+
+.calendario-dia.hoy {
+  background: #3498db;
+  color: white;
+  font-weight: bold;
+}
+
+.calendario-vacio {
+  visibility: hidden;
+}

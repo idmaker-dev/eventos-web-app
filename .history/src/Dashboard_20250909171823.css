@@ -1,0 +1,57 @@
+/* 🌙─── DARK MODE ───────────────────────────── */
+body.dark-mode .dashboard-container {
+  background: #1e1e1e;
+  color: #ddd;
+}
+
+body.dark-mode .dashboard-titulo {
+  color: #eee;
+}
+
+/* Tarjetas */
+body.dark-mode .dashboard-metrica,
+body.dark-mode .dashboard-calendario,
+body.dark-mode .dashboard-acciones {
+  background: #2a2a2a;
+  color: #ddd;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+}
+
+body.dark-mode .dashboard-metrica h3,
+body.dark-mode .dashboard-calendario-header h2,
+body.dark-mode .dashboard-acciones h2 {
+  color: #fff;
+}
+
+body.dark-mode .dashboard-metrica p,
+body.dark-mode .dashboard-subtitulo,
+body.dark-mode .col-desc {
+  color: #aaa;
+}
+
+/* Botones */
+body.dark-mode .dashboard-btn {
+  background: #444;
+  color: #ddd;
+}
+
+body.dark-mode .dashboard-btn:hover {
+  background: #555;
+}
+
+/* Calendario */
+body.dark-mode .dashboard-dia {
+  color: #ddd;
+}
+
+body.dark-mode .dashboard-dia.hoy {
+  background: #3498db;
+  color: #fff;
+}
+
+/* Métricas circulares */
+body.dark-mode .dashboard-circulo {
+  border-color: #27ae60;  /* verde más brillante */
+  color: #27ae60;
+  background: #1e1e1e;
+}
