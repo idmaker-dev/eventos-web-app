@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import logo from "../../assets/recursos/logoTentativo2.svg";
 import IconCuestionario from "../../assets/recursos/IconoCuestionario.svg";
 import confirmacionWhatsapp from "../../assets/recursos/ConfirmacionWhastapp.svg";
@@ -7,8 +8,12 @@ import CuestionarioCreado from "../../assets/recursos/CUESTIONARIO_CREADO.svg";
 import { Button, Field, Input, Label } from "@headlessui/react";
 import clsx from "clsx";
 import { Minus, Plus } from "lucide-react";
-
+import { useCuestionario } from "../../hooks/useCuestionario";
+import eventService from "../../services/eventService";
 export default function Cuestionario() {
+  const { eventId } = useParams();
+  const [event, setEvent] = useState(null);
+  const [code, setCode] = useState("");
   const [restricciones, setRestricciones] = useState({
     vegetariano: 0,
     vegano: 0,
@@ -17,12 +22,66 @@ export default function Cuestionario() {
   });
   const [otra, setOtra] = useState("");
   const [pasoActual, setPasoActual] = useState(0);
+  const { crearInvitado } = useCuestionario();
+  const [nombre, setNombre]= useState("");
+  const [carrera, setCarrera] = useState("");
+  const [escuela, setEscuela] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [boletos, setBoletos] = useState("");
+  const [contactoEmergencia, setContactoEmergencia] = useState("");
+  const [nombreTutor, setNombreTutor] = useState("");
+  const [apellidoPaternoTutor, setApellidoPaternoTutor] = useState("");
+  const [apellidoMaternoTutor, setApellidoMaternoTutor] = useState("");
+
+  useEffect(() => {
+    if (eventId) {
+      eventService.getEvent(eventId).then((res) => {
+        if (res.success) {
+          setEvent(res.event);
+        }
+      });
+    }
+  }, [eventId]);
 
   const handleChange = (key, delta) => {
     setRestricciones((prev) => ({
       ...prev,
       [key]: Math.max(0, prev[key] + delta),
     }));
+  };
+  const handleConfirmar = async () => {
+    // Bypassed code validation for now - always proceed to submit form data
+
+    const payload = {
+      id_evento: eventId,
+      numero: telefono,
+      nombre: nombre,
+      licenciatura: carrera,
+      instituto: escuela,
+      cantidad_boletos: parseInt(boletos) || 0,
+      contacto_emergencias: contactoEmergencia,
+      tutor: {
+        nombre: nombreTutor,
+        apellidoPaterno: apellidoPaternoTutor,
+        apellidoMaterno: apellidoMaternoTutor,
+      },
+      restricciones: [
+        {
+          vegetariano: restricciones.vegetariano,
+          vegano: restricciones.vegano,
+          sin_gluten: restricciones.sinGluten,
+          alergias_mariscos: restricciones.alergiaMarisco,
+          otra: otra ? 1 : 0,
+        }
+      ]
+    };
+
+    const res = await crearInvitado(payload);
+    if (res.success) {
+      setPasoActual(3);
+    } else {
+      console.error('Error al guardar:', res.error);
+    }
   };
   return (
     <div className="bg-porcelain min-h-screen flex flex-col justify-center ">
@@ -39,14 +98,14 @@ export default function Cuestionario() {
                   className="w-20 h-auto mx-auto"
                 />
                 <h1 className="text-3xl font-semibold mt-4 text-center text-dark-sienna mb-6 text-casal">
-                  {"Cuestionario de Registro Intituto Villa Rica"}
+                  {`Cuestionario de Registro ${event?.institution || "Instituto Villa Rica"}`}
                 </h1>
                 <h1 className="text-xl font-semibold mt-4 text-center text-gray-800 mb-6 text-grey-800">
-                  {"Ceremonia de Graduación - Generación 2025"}
+                  {event?.eventName || "Ceremonia de Graduación - Generación 2025"}
                 </h1>
                 <div className="bg-white p-6 rounded-lg shadow-md w-full mx-auto">
                   <p className="text-casal font-bold text-center">
-                    !Felicidades por tu próxima graduación!
+                    ¡Felicidades por tu próxima graduación!
                   </p>
                   <p className="text-gray-900 mt-4 text-justify">
                     Por favor completa este formulario con tus datos. Esta
@@ -55,13 +114,13 @@ export default function Cuestionario() {
                     necesidades.
                   </p>
                   <p className="text-gray-900 mt-4 text-justify">
-                    <b> Fecha:</b> 25 de junio de 2025
+                    <b> Fecha:</b> {event?.date || "25 de junio de 2025"}
                   </p>
                   <p className="text-gray-900 mt-0 text-justify">
-                    <b>Hora:</b> 17:00 hrs
+                    <b>Hora:</b> {event?.time || "17:00 hrs"}
                   </p>
                   <p className="text-gray-900 mt-0 text-justify">
-                    <b>Lugar:</b> Auditorio Central, Universidad Nacional
+                    <b>Lugar:</b> {event?.location || "Auditorio Central, Universidad Nacional"}
                   </p>
                 </div>
                 <div className="w-full mx-auto mt-6">
@@ -72,6 +131,8 @@ export default function Cuestionario() {
                       </Label>
                       <Input
                         type="text"
+                        value={nombre}
+                        onChange={(e) => setNombre(e.target.value)}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
@@ -86,6 +147,8 @@ export default function Cuestionario() {
                       </Label>
                       <Input
                         type="text"
+                        value={carrera}
+                        onChange={(e) => setCarrera(e.target.value)}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
@@ -100,6 +163,8 @@ export default function Cuestionario() {
                       </Label>
                       <Input
                         type="text"
+                        value={escuela}
+                        onChange={(e) => setEscuela(e.target.value)}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
@@ -114,6 +179,10 @@ export default function Cuestionario() {
                       </Label>
                       <Input
                         type="number"
+                        value={boletos}
+                        onChange={(e) => setBoletos(e.target.value)}
+                        min={1}
+                        max={8}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
@@ -190,6 +259,8 @@ export default function Cuestionario() {
                       </Label>
                       <Input
                         type="text"
+                        value={contactoEmergencia}
+                        onChange={(e) => setContactoEmergencia(e.target.value)}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
@@ -209,6 +280,8 @@ export default function Cuestionario() {
                           </Label>
                           <Input
                             type="text"
+                            value={nombreTutor}
+                            onChange={(e) => setNombreTutor(e.target.value)}
                             className={clsx(
                               "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6  text-gray-700",
                               "placeholder:italic",
@@ -222,6 +295,9 @@ export default function Cuestionario() {
                             Apellido paterno
                           </Label>
                           <Input
+                            value={apellidoPaternoTutor}
+                            onChange={(e) => setApellidoPaternoTutor(e.target.value)
+                            }
                             type="text"
                             className={clsx(
                               "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700",
@@ -237,6 +313,8 @@ export default function Cuestionario() {
                           </Label>
                           <Input
                             type="text"
+                            value={apellidoMaternoTutor}
+                            onChange={(e) => setApellidoMaternoTutor(e.target.value)}
                             className={clsx(
                               "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700",
                               "placeholder:italic",
@@ -283,6 +361,8 @@ export default function Cuestionario() {
                     <div className="mb-3 w-full mx-auto px-6">
                       <Input
                         type="text"
+                        value={telefono}
+                        onChange={(e) => setTelefono(e.target.value)}
                         className={clsx(
                           "mt-2 block w-full lg:w-3/4 mx-auto rounded-3xl border-2 bg-white px-4 py-2 text-lg font-semibold dark:text-white text-gray-700",
                           "placeholder:italic",
@@ -303,6 +383,7 @@ export default function Cuestionario() {
                 </div>
               </div>
             )}
+    
             {/* paso tres: debe de confirmar el codigo de verificacion */}
             {pasoActual === 2 && (
               <div className="space-y-9">
@@ -321,6 +402,8 @@ export default function Cuestionario() {
                     <div className="mb-3 w-full mx-auto px-6">
                       <Input
                         type="text"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
                         className={clsx(
                           "mt-2 block w-full lg:w-3/4 mx-auto rounded-3xl border-2 text-center bg-white px-4 py-2 text-xl font-semibold dark:text-white text-casal",
                           "placeholder:italic",
@@ -331,7 +414,8 @@ export default function Cuestionario() {
                     </div>
                     <div className="my-5 flex justify-center">
                       <Button
-                        onClick={() => setPasoActual(3)}
+                      //aun falta implementar la verificacion del codigo
+                        onClick={handleConfirmar}
                         className="bg-casal text-xl text-white w-[70%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition"
                       >
                         Verificar y confirmar
@@ -350,7 +434,7 @@ export default function Cuestionario() {
                   className="w-20 h-auto mx-auto mt-10"
                 />
                 <h1 className="text-3xl font-bold mt-4 text-center text-dark-sienna mb-3 text-casal">
-                  ¡Registro completado <br /> María Sofía!
+                  ¡Registro completado <br /> {nombre}!
                 </h1>
                 <div className="p-6 w-full mx-auto">
                   <p className="text-casal mt-4 text-center font-semibold">
@@ -377,9 +461,9 @@ export default function Cuestionario() {
           <div className="mt-auto">
             <p className="text-gray-500 text-sm text-center mt-10">
               Información de privacidad y dudas{" "}
-              <a href="#" className="text-casal">
+              <button className="text-casal underline">
                 accede aquí
-              </a>
+              </button>
             </p>
           </div>
         </div>

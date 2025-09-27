@@ -63,7 +63,7 @@ export default function AppRoutes() {
         
       </Route>
       {/* Ruta pública - Accesible sin autenticación */}
-      <Route path="/Cuestionario" element={<Cuestionario />} />
+      <Route path="/Cuestionario/:eventId" element={<Cuestionario />} />
     </Routes>
   )
 }
