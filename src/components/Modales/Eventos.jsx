@@ -25,6 +25,8 @@ export default function Eventos({ open, onClose }) {
     fechaHora: "",
     cantidadAsistentes: "",
     responsable: "",
+    costo: "",
+    fechas: [],
   });
   const [selectedDates, setSelectedDates] = useState([]);
 
@@ -45,6 +47,9 @@ export default function Eventos({ open, onClose }) {
 
   const handleGuardar = async () => {
     // Crear el evento
+    formData.fechas = selectedDates.map((date) =>
+      date.toISOString().split("T")[0]
+    ); // Convertir a formato YYYY-MM-DD
     const resultado = await crearEvento(formData);
 
     if (resultado.success) {
@@ -63,7 +68,10 @@ export default function Eventos({ open, onClose }) {
       fechaHora: "",
       cantidadAsistentes: "",
       responsable: "",
+      costo: "",
+      fechas: [],
     });
+    setSelectedDates([]);
     limpiarError();
     onClose();
   };
@@ -250,12 +258,12 @@ export default function Eventos({ open, onClose }) {
                       </div>
                       <div className="mb-3">
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
-                          Costos
+                          costo
                         </label>
                         <Input
-                          value={formData.responsable}
+                          value={formData.costo}
                           onChange={(e) =>
-                            handleInputChange("responsable", e.target.value)
+                            handleInputChange("costo", e.target.value)
                           }
                           placeholder="Ejemplo: Gratuito, $500 por persona, etc."
                           className={clsx(

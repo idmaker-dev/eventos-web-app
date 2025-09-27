@@ -156,6 +156,8 @@ export const useEventos = () => {
           usuarioId: user?.id,
           fechaCreacion: new Date().toISOString(),
           estado: "activo",
+          costos: datosEvento.costos || "",
+          fechas: datosEvento.fechas || [],
         };
 
         const result = await eventService.createEvent(eventoParaCrear);

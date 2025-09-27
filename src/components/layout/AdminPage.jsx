@@ -13,7 +13,8 @@ import {
   Moon,
   Sun,
   ChevronDown,
-  CalendarPlus2
+  CalendarPlus2,
+  LogOut
 } from "lucide-react";
 import "../../styles/pages/AdminPage.css";
 import ResumenProgreso from "../../assets/recursos/resumen_progreso.svg";
@@ -26,6 +27,7 @@ import Eventos from "../Modales/Eventos";
 import temaClaro from "../../assets/recursos/temaClaro.svg";
 import temaOscuro from "../../assets/recursos/temaOscuro.svg";
 import { Button } from "@headlessui/react";
+import { useAuth } from "../../hooks/useAuth";
 
 const graduationOptions = [
   "Graduación de Lic. Derecho 2020 - 2024",
@@ -37,6 +39,7 @@ const graduationOptions = [
 export default function AdminPage() {
   const [darkMode, setDarkMode] = useState(false);
   const [modalOpen, setModalOpen] = useState(false); 
+  const { logout } = useAuth(); 
   // Cargar preferencia guardada
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
@@ -58,6 +61,15 @@ export default function AdminPage() {
   const handleSelect = (option) => {
     setSelectedOption(option)
     setIsOpen(false)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      // La función logout ya maneja la redirección a /login
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
   }
 
   return (
@@ -231,6 +243,9 @@ export default function AdminPage() {
                   <img src={temaOscuro} alt="Tema Oscuro" className="w-4 h-4" />
                 </Button>
             )}
+            <Button onClick={handleLogout} className="acciones-distribucion w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center">
+              <LogOut className="text-gray-600 dark:text-gray-800" />
+            </Button>
           </div>
         </div>
 
