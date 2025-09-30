@@ -9,6 +9,8 @@ import Login from "../../pages/Login"
 import AccessDenied from "../../pages/AccessDenied"
 import Comunicacion from "../../pages/Comunicacion"
 import Cuestionario from "../../pages/Cuestionario"
+import PortalPagos from "../../pages/PortalPagos"
+import Checkout from "../../pages/checkout"
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
@@ -64,6 +66,8 @@ export default function AppRoutes() {
       </Route>
       {/* Ruta pública - Accesible sin autenticación */}
       <Route path="/Cuestionario" element={<Cuestionario />} />
+      <Route path="/PortalPagos" element={<PortalPagos />} />
+      <Route path="/Checkout" element={<Checkout />} />
     </Routes>
   )
 }

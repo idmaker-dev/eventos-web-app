@@ -92,7 +92,7 @@
 /* CONTENIDO */
 .content {
   flex: 1;
-  background: #fafafa;
+  /* background: #fafafa; */
   display: flex;
   flex-direction: column;
 }
