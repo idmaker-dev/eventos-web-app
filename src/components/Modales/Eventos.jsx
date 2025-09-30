@@ -11,9 +11,13 @@ import { ChevronDown, CircleX } from "lucide-react";
 import clsx from "clsx";
 import Confirmacion from "../../assets/recursos/confirmacionAsientos.svg";
 import { useEventos } from "../../hooks/useEventos";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
+import "../../styles/components/Custom.css";
 
 export default function Eventos({ open, onClose }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedDates, setSelectedDates] = useState([]);
   const [formData, setFormData] = useState({
     instituto: "",
     licenciatura: "",
@@ -89,7 +93,10 @@ export default function Eventos({ open, onClose }) {
             {!showConfirmation ? (
               <DialogPanel
                 transition
-                className="w-full max-w-md rounded-xl bg-white dark:bg-[#1a1a1a] p-6 backdrop-blur-2xl duration-300 ease-out data-closed:transform-[scale(95%)] data-closed:opacity-0"
+                className={clsx(
+                  "w-full max-w-2xl rounded-xl bg-white dark:bg-[#1a1a1a] p-6 backdrop-blur-2xl duration-300 ease-out",
+                  "max-h-[95vh] overflow-y-auto" // <-- agrega esto
+                )}
               >
                 <DialogTitle className="text-2xl font-semibold text-[#246370] dark:text-[#2a9d8f]">
                   Crear evento
