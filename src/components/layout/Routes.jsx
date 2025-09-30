@@ -65,7 +65,7 @@ export default function AppRoutes() {
         
       </Route>
       {/* Ruta pública - Accesible sin autenticación */}
-      <Route path="/Cuestionario" element={<Cuestionario />} />
+      <Route path="/Cuestionario/:eventId" element={<Cuestionario />} />
       <Route path="/PortalPagos" element={<PortalPagos />} />
       <Route path="/Checkout" element={<Checkout />} />
     </Routes>

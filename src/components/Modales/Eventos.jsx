@@ -11,9 +11,6 @@ import { ChevronDown, CircleX } from "lucide-react";
 import clsx from "clsx";
 import Confirmacion from "../../assets/recursos/confirmacionAsientos.svg";
 import { useEventos } from "../../hooks/useEventos";
-import { DayPicker } from "react-day-picker";
-import "react-day-picker/dist/style.css";
-import "../../styles/components/Custom.css";
 
 export default function Eventos({ open, onClose }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -25,18 +22,19 @@ export default function Eventos({ open, onClose }) {
     fechaHora: "",
     cantidadAsistentes: "",
     responsable: "",
+    costo: "",
+    fechas: [],
   });
-  const [selectedDates, setSelectedDates] = useState([]);
 
   // Hook de eventos
   const { crearEvento, isCreating, error, limpiarError } = useEventos();
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      [field]: value,
+      [field]: value
     }));
-
+    
     // Limpiar errores al escribir
     if (error) {
       limpiarError();
@@ -45,8 +43,11 @@ export default function Eventos({ open, onClose }) {
 
   const handleGuardar = async () => {
     // Crear el evento
+    formData.fechas = selectedDates.map((date) =>
+      date.toISOString().split("T")[0]
+    ); // Convertir a formato YYYY-MM-DD
     const resultado = await crearEvento(formData);
-
+    
     if (resultado.success) {
       setShowConfirmation(true);
     }
@@ -63,7 +64,10 @@ export default function Eventos({ open, onClose }) {
       fechaHora: "",
       cantidadAsistentes: "",
       responsable: "",
+      costo: "",
+      fechas: [],
     });
+    setSelectedDates([]);
     limpiarError();
     onClose();
   };
@@ -85,10 +89,7 @@ export default function Eventos({ open, onClose }) {
             {!showConfirmation ? (
               <DialogPanel
                 transition
-                className={clsx(
-                  "w-full max-w-2xl rounded-xl bg-white dark:bg-[#1a1a1a] p-6 backdrop-blur-2xl duration-300 ease-out",
-                  "max-h-[95vh] overflow-y-auto" // <-- agrega esto
-                )}
+                className="w-full max-w-md rounded-xl bg-white dark:bg-[#1a1a1a] p-6 backdrop-blur-2xl duration-300 ease-out data-closed:transform-[scale(95%)] data-closed:opacity-0"
               >
                 <DialogTitle className="text-2xl font-semibold text-[#246370] dark:text-[#2a9d8f]">
                   Crear evento
@@ -250,12 +251,12 @@ export default function Eventos({ open, onClose }) {
                       </div>
                       <div className="mb-3">
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
-                          Costos
+                          costo
                         </label>
                         <Input
-                          value={formData.responsable}
+                          value={formData.costo}
                           onChange={(e) =>
-                            handleInputChange("responsable", e.target.value)
+                            handleInputChange("costo", e.target.value)
                           }
                           placeholder="Ejemplo: Gratuito, $500 por persona, etc."
                           className={clsx(
@@ -331,30 +332,14 @@ export default function Eventos({ open, onClose }) {
                   >
                     {isCreating ? (
                       <>
-                        <svg
-                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                         Guardando...
                       </>
                     ) : (
-                      "Guardar"
+                      'Guardar'
                     )}
                   </button>
                 </div>
