@@ -46,6 +46,27 @@ class EventService {
   }
 
   /**
+   * Obtener un evento específico para el cuestionario
+   */
+  async getEventCuestionario(eventId) {
+    try {
+      const response = await httpService.get(
+        `/eventos/cuestionario/${eventId}`
+      );
+
+      return {
+        success: true,
+        event: response.data || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage,
+      };
+    }
+  }
+
+  /**
    * Crear nuevo evento
    */
   async createEvent(eventData) {
@@ -137,7 +158,8 @@ class EventService {
 
       return {
         success: true,
-        imageUrl: response.imageUrl || (response.data && response.data.imageUrl),
+        imageUrl:
+          response.imageUrl || (response.data && response.data.imageUrl),
         message: "Imagen subida exitosamente",
       };
     } catch (error) {

@@ -11,6 +11,7 @@ import Comunicacion from "../../pages/Comunicacion"
 import Cuestionario from "../../pages/Cuestionario"
 import PortalPagos from "../../pages/PortalPagos"
 import Checkout from "../../pages/checkout"
+import SignalRTest from "../../pages/SignalRTest"
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
@@ -62,6 +63,7 @@ export default function AppRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="pagos" element={<Pagos />} />
         <Route path="/admin/chat" element={<Comunicacion />} />
+        <Route path="signalr-test" element={<SignalRTest />} />
         
       </Route>
       {/* Ruta pública - Accesible sin autenticación */}

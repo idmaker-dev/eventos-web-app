@@ -179,6 +179,9 @@ export default function AdminPage() {
           <NavLink to="/admin/configuracion">
             <Settings size={22} />
           </NavLink>
+          <NavLink className="mt-3" to="/admin/signalr-test" title="Prueba SignalR">
+            <Bell size={22} />
+          </NavLink>
           <NavLink className="mt-3" to="/">
             <img src={Inicio} alt="Logo inferior" className="w-6 h-6 "/>
           </NavLink>
