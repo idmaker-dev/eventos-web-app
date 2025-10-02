@@ -14,6 +14,7 @@ module.exports = {
         blackHaze: '#F7F7F7',
         fodoBlack: '#2a2a2a',
         fondoGris: '#f6f6f6',
+        cafe: '#C28F4E',
       },
     },
   },

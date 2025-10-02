@@ -9,7 +9,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
-import { Nav } from "react-day-picker";
 import { Link } from "react-router-dom";
 import logo from "../assets/recursos/logoTentativo2.svg";
 import Navbar from "../components/PortalPagos/Navbar.jsx";

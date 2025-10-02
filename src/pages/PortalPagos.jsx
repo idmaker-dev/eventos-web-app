@@ -3,7 +3,6 @@ import { InstallmentsTable } from "../components/PortalPagos/Index.jsx";
 import Productos from "../components/PortalPagos/Productos.jsx";
 import Navbar from "../components/PortalPagos/Navbar.jsx";
 import HistorialPagos from "../components/PortalPagos/HistorialPagos.jsx";
-import { Nav } from "react-day-picker";
 
 export default function PortalPagos() {
   const [activeTab, setActiveTab] = useState("cuotas");
