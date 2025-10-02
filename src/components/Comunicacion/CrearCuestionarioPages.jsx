@@ -1,28 +1,73 @@
 import { Button, Field, Input, Label, Textarea } from "@headlessui/react";
 import clsx from "clsx";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FormularioCuestionario from "./FormularioCuestionario";
 import { LaptopIcon, Smartphone, Plus, Minus, ChevronRight, ChevronLeft } from "lucide-react";
 import ModalConfimacion from "./ModalConfimacion";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
 import { useNotifications } from "../../contexts/NotificationContext";
+import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 
 export default function CrearCuestionarioPages() {
   const { showSuccess, showError } = useNotifications();
+  const { eventoActual, isLoading } = useSelectedEvent();
+  
+  // Estado del formulario inicializado con datos del evento
+  const [formData, setFormData] = useState({
+    nombreEvento: "",
+    descripcionEvento: "",
+    lugarEvento: "",
+    fechaHoraEvento: "",
+    nombreCompleto: "",
+    carreraEstudios: "",
+    escuelaInstitucion: "",
+    cantidadBoletos: "",
+    contactoEmergencia: "",
+    tutorNombre: "",
+    tutorApellidoPaterno: "",
+    tutorApellidoMaterno: ""
+  });
+
+  // Estado para restricciones alimenticias
   const [restricciones, setRestricciones] = useState({
     vegetariano: 0,
     vegano: 0,
     sinGluten: 0,
     alergiaMarisco: 0,
   });
+  
   const [otra, setOtra] = useState("");
   const [modoVista, setModoVista] = useState("laptop"); // "laptop" o "telefono"
   const [modalOpen, setModalOpen] = useState(false);
   const [Ocultar, setOcultar] = useState(false);
-//aqui se debe cambias por la del evento seleccionado 
+
+  // Efecto para cargar datos del evento seleccionado
+  useEffect(() => {
+    if (eventoActual) {
+      setFormData(prev => ({
+        ...prev,
+        nombreEvento: eventoActual.nombreEvento || "",
+        descripcionEvento: eventoActual.descripcionEvento || "",
+        lugarEvento: eventoActual.lugarEvento || "",
+        fechaHoraEvento: eventoActual.fechaHora || "",
+        escuelaInstitucion: eventoActual.nombreInstitucion || ""
+      }));
+    }
+  }, [eventoActual]);
+
+  // Función para manejar cambios en el formulario
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Función para copiar enlace usando el ID del evento seleccionado
   const handleCopyLink = () => {
-    const link = `${window.location.origin}/cuestionario/mg07vfc5ma7io4axa`;
+    const eventId = eventoActual?.id || 'mg07vfc5ma7io4axa'; // fallback al ID original
+    const link = `${window.location.origin}/cuestionario/${eventId}`;
     navigator.clipboard.writeText(link).then(() => {
       showSuccess('Enlace copiado');
     }).catch((err) => {
@@ -47,8 +92,23 @@ export default function CrearCuestionarioPages() {
               Crear invitación de cuestionario
             </h2>
             <p className="text-gray-500 dark:text-gray-200 mb-4">
-              Completa los campos y envia enlace de tu evento.
+              Completa los campos y envía enlace de tu evento.
             </p>
+            
+            {/* Mostrar información del evento seleccionado */}
+            {/* {eventoActual && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
+                  📅 Evento seleccionado: <span className="font-semibold">{eventoActual.nombre_evento}</span>
+                </p>
+                {eventoActual.fechaHora && (
+                  <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                    {eventoActual.fechaHora}
+                  </p>
+                )}
+              </div>
+            )} */}
+            
             <p className="text-gray-800 dark:text-gray-200 mb-4 text-lg font-semibold">
               Datos del evento
             </p>
@@ -60,6 +120,8 @@ export default function CrearCuestionarioPages() {
                   </Label>
                   <Input
                     type="text"
+                    value={formData.nombreEvento}
+                    onChange={(e) => handleInputChange('nombreEvento', e.target.value)}
                     className={clsx(
                       "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                       "placeholder:italic",
@@ -73,7 +135,8 @@ export default function CrearCuestionarioPages() {
                     Descripción del evento
                   </Label>
                   <Textarea
-                    type="text"
+                    value={formData.descripcionEvento}
+                    onChange={(e) => handleInputChange('descripcionEvento', e.target.value)}
                     className={clsx(
                       "mt-2 block w-full rounded-lg border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                       "placeholder:italic",
@@ -85,10 +148,12 @@ export default function CrearCuestionarioPages() {
                 </div>
                 <div className="mb-3">
                   <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
-                    Lugar de vento
+                    Lugar de evento
                   </Label>
                   <Input
                     type="text"
+                    value={formData.lugarEvento}
+                    onChange={(e) => handleInputChange('lugarEvento', e.target.value)}
                     className={clsx(
                       "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                       "placeholder:italic",
@@ -103,12 +168,14 @@ export default function CrearCuestionarioPages() {
                   </Label>
                   <Input
                     type="datetime-local"
+                    value={formData.fechaHoraEvento}
+                    onChange={(e) => handleInputChange('fechaHoraEvento', e.target.value)}
                     className={clsx(
                       "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                       "placeholder:italic",
                       "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
                     )}
-                    placeholder="Ejamplo: 25 de junio de 2025 - 19:00 hrs"
+                    placeholder="Ejemplo: 25 de junio de 2025 - 19:00 hrs"
                   />
                 </div>
               </Field>
@@ -126,6 +193,8 @@ export default function CrearCuestionarioPages() {
                 </Label>
                 <Input
                   type="text"
+                  value={formData.nombreCompleto}
+                  onChange={(e) => handleInputChange('nombreCompleto', e.target.value)}
                   className={clsx(
                     "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                     "placeholder:italic",
@@ -136,10 +205,12 @@ export default function CrearCuestionarioPages() {
               </div>
               <div className="mb-3">
                 <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
-                  Carrera o estudios o realizados
+                  Carrera o estudios realizados
                 </Label>
                 <Input
                   type="text"
+                  value={formData.carreraEstudios}
+                  onChange={(e) => handleInputChange('carreraEstudios', e.target.value)}
                   className={clsx(
                     "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                     "placeholder:italic",
@@ -154,6 +225,8 @@ export default function CrearCuestionarioPages() {
                 </Label>
                 <Input
                   type="text"
+                  value={formData.escuelaInstitucion}
+                  onChange={(e) => handleInputChange('escuelaInstitucion', e.target.value)}
                   className={clsx(
                     "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                     "placeholder:italic",
@@ -168,6 +241,8 @@ export default function CrearCuestionarioPages() {
                 </Label>
                 <Input
                   type="number"
+                  value={formData.cantidadBoletos}
+                  onChange={(e) => handleInputChange('cantidadBoletos', e.target.value)}
                   className={clsx(
                     "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                     "placeholder:italic",
@@ -244,6 +319,8 @@ export default function CrearCuestionarioPages() {
                 </Label>
                 <Input
                   type="text"
+                  value={formData.contactoEmergencia}
+                  onChange={(e) => handleInputChange('contactoEmergencia', e.target.value)}
                   className={clsx(
                     "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                     "placeholder:italic",
@@ -263,6 +340,8 @@ export default function CrearCuestionarioPages() {
                     </Label>
                     <Input
                       type="text"
+                      value={formData.tutorNombre}
+                      onChange={(e) => handleInputChange('tutorNombre', e.target.value)}
                       className={clsx(
                         "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                         "placeholder:italic",
@@ -277,6 +356,8 @@ export default function CrearCuestionarioPages() {
                     </Label>
                     <Input
                       type="text"
+                      value={formData.tutorApellidoPaterno}
+                      onChange={(e) => handleInputChange('tutorApellidoPaterno', e.target.value)}
                       className={clsx(
                         "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                         "placeholder:italic",
@@ -291,6 +372,8 @@ export default function CrearCuestionarioPages() {
                     </Label>
                     <Input
                       type="text"
+                      value={formData.tutorApellidoMaterno}
+                      onChange={(e) => handleInputChange('tutorApellidoMaterno', e.target.value)}
                       className={clsx(
                         "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                         "placeholder:italic",
@@ -352,7 +435,7 @@ export default function CrearCuestionarioPages() {
           <div className="flex justify-center gap-3 mb-4 lg:hidden">
             <div className="relative group">
               <Button
-                onClick={() => setModoVista("laptop")}
+                onClick={() => setModoVista("telefono")}
                 className={clsx(
                   "text-white px-3 py-1 rounded",
                   "focus:outline-none transition",
@@ -405,7 +488,11 @@ export default function CrearCuestionarioPages() {
                     modoVista === "telefono" ? "max-h-[800px]" : "max-h-[600px]"
                   )}
                 >
-                  <FormularioCuestionario modoVista={modoVista}/>
+                  <FormularioCuestionario 
+                    modoVista={modoVista}
+                    eventoData={eventoActual}
+                    formData={formData}
+                  />
                 </div>
               </DeviceFrameset>
             </div>

@@ -10,6 +10,44 @@ import clsx from "clsx";
 import { Minus, Plus } from "lucide-react";
 import { useCuestionario } from "../../hooks/useCuestionario";
 import eventService from "../../services/eventService";
+
+// Función para formatear fecha
+const formatearFecha = (fechaString) => {
+  if (!fechaString) return "25 de junio de 2025";
+  
+  try {
+    const fecha = new Date(fechaString);
+    const opciones = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      timeZone: 'America/Mexico_City'
+    };
+    
+    return fecha.toLocaleDateString('es-MX', opciones);
+  } catch (error) {
+    return fechaString; // Retorna la fecha original si hay error
+  }
+};
+
+// Función para formatear hora
+const formatearHora = (fechaString) => {
+  if (!fechaString) return "17:00 hrs";
+  
+  try {
+    const fecha = new Date(fechaString);
+    const opciones = { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZone: 'America/Mexico_City'
+    };
+    
+    return fecha.toLocaleTimeString('es-MX', opciones) + " hrs";
+  } catch (error) {
+    return fechaString; // Retorna la fecha original si hay error
+  }
+};
+
 export default function Cuestionario() {
   const { eventId } = useParams();
   const [event, setEvent] = useState(null);
@@ -35,9 +73,11 @@ export default function Cuestionario() {
 
   useEffect(() => {
     if (eventId) {
-      eventService.getEvent(eventId).then((res) => {
+      eventService.getEventCuestionario(eventId).then((res) => {
         if (res.success) {
           setEvent(res.event);
+          console.log(res.event);
+
         }
       });
     }
@@ -55,7 +95,7 @@ export default function Cuestionario() {
     const payload = {
       id_evento: eventId,
       numero: telefono,
-      nombre: nombre,
+      nombre_completo: nombre,
       licenciatura: carrera,
       instituto: escuela,
       cantidad_boletos: parseInt(boletos) || 0,
@@ -98,10 +138,10 @@ export default function Cuestionario() {
                   className="w-20 h-auto mx-auto"
                 />
                 <h1 className="text-3xl font-semibold mt-4 text-center text-dark-sienna mb-6 text-casal">
-                  {`Cuestionario de Registro ${event?.institution || "Instituto Villa Rica"}`}
+                  {`Cuestionario de Registro ${event?.instituto || "Instituto Villa Rica"}`}
                 </h1>
                 <h1 className="text-xl font-semibold mt-4 text-center text-gray-800 mb-6 text-grey-800">
-                  {event?.eventName || "Ceremonia de Graduación - Generación 2025"}
+                  {event?.nombre_evento || "Ceremonia de Graduación - Generación 2025"}
                 </h1>
                 <div className="bg-white p-6 rounded-lg shadow-md w-full mx-auto">
                   <p className="text-casal font-bold text-center">
@@ -114,13 +154,13 @@ export default function Cuestionario() {
                     necesidades.
                   </p>
                   <p className="text-gray-900 mt-4 text-justify">
-                    <b> Fecha:</b> {event?.date || "25 de junio de 2025"}
+                    <b> Fecha: </b> {formatearFecha(event?.fecha_evento)}
                   </p>
                   <p className="text-gray-900 mt-0 text-justify">
-                    <b>Hora:</b> {event?.time || "17:00 hrs"}
+                    <b>Hora:</b> {formatearHora(event?.fecha_evento)}
                   </p>
                   <p className="text-gray-900 mt-0 text-justify">
-                    <b>Lugar:</b> {event?.location || "Auditorio Central, Universidad Nacional"}
+                    <b>Lugar:</b> {event?.lugar_evento || "Auditorio Central, Universidad Nacional"}
                   </p>
                 </div>
                 <div className="w-full mx-auto mt-6">
@@ -383,7 +423,7 @@ export default function Cuestionario() {
                 </div>
               </div>
             )}
-    
+
             {/* paso tres: debe de confirmar el codigo de verificacion */}
             {pasoActual === 2 && (
               <div className="space-y-9">

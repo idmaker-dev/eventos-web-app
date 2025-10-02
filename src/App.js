@@ -5,18 +5,20 @@ import AppRoutes from "./components/layout/Routes";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { AuthProvider } from "./hooks/useAuth";
 import { SelectedEventProvider } from "./contexts/SelectedEventContext";
+import { SignalRProvider } from "./contexts/SignalRContext";
 import NotificationContainer from "./components/NotificationContainer";
-
 
 export default function App() {
   return (
     <Router>
       <NotificationProvider>
         <AuthProvider>
-          <SelectedEventProvider>
-            <AppRoutes />
-            <NotificationContainer />
-          </SelectedEventProvider>
+          <SignalRProvider>
+            <SelectedEventProvider>
+              <AppRoutes />
+              <NotificationContainer />
+            </SelectedEventProvider>
+          </SignalRProvider>
         </AuthProvider>
       </NotificationProvider>
     </Router>

@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSelectedEvent } from '../contexts/SelectedEventContext';
+import { useSignalRDashboard, useSignalRConnection } from '../hooks/useSignalR';
 
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import "../styles/pages/Dashboard.css";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Wifi, WifiOff } from "lucide-react";
 import Chat from "../assets/recursos/CHAT.svg";
 import Conflicto from "../assets/recursos/conflictoAsignación.svg";
 import Pago from "../assets/recursos/EstadoPendiente.svg";
@@ -13,6 +14,34 @@ export default function Dashboard() {
   const hoy = new Date();
   const [mes, setMes] = useState(hoy.getMonth());
   const [anio, setAnio] = useState(hoy.getFullYear());
+  const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
+
+  // Hook de eventos compartido desde el contexto
+  const { eventoActual, selectEvent, eventos, cargarEventos } = useSelectedEvent();
+  
+  // Hook de SignalR para el dashboard
+  const { conectado } = useSignalRConnection();
+  
+  // Callback para manejar actualizaciones del dashboard desde SignalR
+  const handleDashboardUpdate = useCallback((data) => {
+    console.log('🔄 Dashboard recibió notificación de actualización:', data);
+    setUltimaActualizacion(new Date().toISOString());
+    
+    // Recargar datos del evento actual si está disponible
+    if (cargarEventos) {
+      console.log('📊 Recargando eventos desde SignalR...');
+      cargarEventos();
+    }
+    
+    // Aquí puedes agregar más lógica específica según el tipo de actualización
+    // Por ejemplo, actualizar métricas específicas, mostrar notificaciones, etc.
+  }, [cargarEventos]);
+  
+  // Usar el hook de SignalR para dashboard
+  const { 
+    ultimaActualizacion: signalRUltimaActualizacion, 
+    notificacionesDashboard 
+  } = useSignalRDashboard(handleDashboardUpdate);
 
   const meses = [
     "Enero",
@@ -32,9 +61,6 @@ export default function Dashboard() {
 
   const primerDia = new Date(anio, mes, 1).getDay() || 7;
   const diasEnMes = new Date(anio, mes + 1, 0).getDate();
-
-  // Hook de eventos compartido desde el contexto
-  const { eventoActual, selectEvent, eventos } = useSelectedEvent();
 
   const cambiarMes = (offset) => {
     let nuevoMes = mes + offset;
@@ -151,7 +177,39 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-container">
-      <h1 className="dashboard-titulo">Resumen general del evento</h1>
+      {/* <div className="flex justify-between items-center mb-4"> */}
+        <h1 className="dashboard-titulo">Resumen general del evento</h1>
+        
+        {/* Indicador de conexión SignalR */}
+        {/* <div className="flex items-center gap-2 text-sm">
+          {conectado ? (
+            <>
+              <Wifi className="w-4 h-4 text-green-500" />
+              <span className="text-green-600 dark:text-green-400">Conectado en tiempo real</span>
+            </>
+          ) : (
+            <>
+              <WifiOff className="w-4 h-4 text-red-500" />
+              <span className="text-red-600 dark:text-red-400">Sin conexión en tiempo real</span>
+            </>
+          )}
+          {notificacionesDashboard > 0 && (
+            <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+              {notificacionesDashboard} actualizaciones
+            </span>
+          )}
+        </div> */}
+      {/* </div> */}
+
+      {/* Información de última actualización */}
+      {(ultimaActualizacion || signalRUltimaActualizacion) && (
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            📊 Dashboard actualizado automáticamente: {' '}
+            {new Date(signalRUltimaActualizacion || ultimaActualizacion).toLocaleString()}
+          </p>
+        </div>
+      )}
 
       {/* Métricas + calendario */}
       <div className="dashboard-panel ">

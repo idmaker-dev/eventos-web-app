@@ -5,7 +5,7 @@ import { Button, Field, Input, Label } from "@headlessui/react";
 import clsx from "clsx";
 import { Minus, Plus } from "lucide-react";
 
-export default function FormularioCuestionario({ modoVista }) {
+export default function FormularioCuestionario({ modoVista, eventoData }) {
   const [restricciones, setRestricciones] = useState({
     vegetariano: 0,
     vegano: 0,
@@ -30,10 +30,10 @@ export default function FormularioCuestionario({ modoVista }) {
           className="w-20 h-auto mx-auto"
         />
         <h1 className="text-3xl font-semibold mt-4 text-center text-dark-sienna mb-6 text-casal">
-          {"Cuestionario de Registro Intituto Villa Rica"}
+          {"Cuestionario de Registro " + eventoData?.instituto}
         </h1>
         <h1 className="text-xl font-semibold mt-4 text-center text-gray-800 mb-6 text-grey-800">
-          {"Ceremonia de Graduación - Generación 2025"}
+          {eventoData?.nombre_evento}
         </h1>
         <div className="bg-white p-6 rounded-lg shadow-md w-full mx-auto">
           <p className="text-casal font-bold text-center">
@@ -45,13 +45,13 @@ export default function FormularioCuestionario({ modoVista }) {
             boletos y tomar en cuenta tus necesidades.
           </p>
           <p className="text-gray-900 mt-4 text-justify">
-            <b> Fecha:</b> 25 de junio de 2025
+            <b> Fecha:</b> {eventoData?.fecha_evento}
           </p>
           <p className="text-gray-900 mt-0 text-justify">
-            <b>Hora:</b> 17:00 hrs
+            <b>Hora:</b> {eventoData?.hora_evento}
           </p>
           <p className="text-gray-900 mt-0 text-justify">
-            <b>Lugar:</b> Auditorio Central, Universidad Nacional
+            <b>Lugar:</b> {eventoData?.lugar_evento}
           </p>
         </div>
         <div className="w-full mx-auto mt-6">
