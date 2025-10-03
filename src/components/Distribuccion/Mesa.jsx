@@ -25,7 +25,7 @@ const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, onDrop 
   // Función para obtener el color de las sillas
   const getColorSilla = (indice) => {
     if (indice < invitadosAsignados) {
-      // Silla ocupada - usar el mismo esquema de colores que la mesa
+      // Silla ocupada 
       if (porcentajeOcupacion <= 50) return 'bg-blue-500';
       if (porcentajeOcupacion <= 80) return 'bg-yellow-500';
       if (porcentajeOcupacion < 100) return 'bg-orange-500';
@@ -34,7 +34,6 @@ const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, onDrop 
     return 'bg-gray-300'; // Silla vacía
   };
 
-  // Posiciones de las sillas alrededor de la mesa (en grados)
   const posicionesSillas = [
     { top: '10%', left: '50%', transform: 'translateX(-50%)' }, // Arriba
     { top: '25%', right: '20%', transform: 'translate(50%, -50%)' }, // Arriba derecha
@@ -46,7 +45,6 @@ const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, onDrop 
     { top: '25%', left: '20%', transform: 'translate(-50%, -50%)' }, // Arriba izquierda
   ];
 
-  // Manejar el drop de invitados
   const handleDrop = (e) => {
     e.preventDefault();
     const invitadoData = JSON.parse(e.dataTransfer.getData('text/plain'));

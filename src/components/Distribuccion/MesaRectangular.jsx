@@ -25,7 +25,7 @@ const MesaRectangular = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima =
   // Función para obtener el color de las sillas
   const getColorSilla = (indice) => {
     if (indice < invitadosAsignados) {
-      // Silla ocupada - usar el mismo esquema de colores que la mesa
+      // Silla ocupada 
       if (porcentajeOcupacion <= 50) return 'bg-blue-500';
       if (porcentajeOcupacion <= 80) return 'bg-yellow-500';
       if (porcentajeOcupacion < 100) return 'bg-orange-500';
@@ -55,7 +55,6 @@ const MesaRectangular = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima =
     { top: '35%', left: '5%', transform: 'translateY(-50%)' },
   ];
 
-  // Manejar el drop de invitados
   const handleDrop = (e) => {
     e.preventDefault();
     const invitadoData = JSON.parse(e.dataTransfer.getData('text/plain'));

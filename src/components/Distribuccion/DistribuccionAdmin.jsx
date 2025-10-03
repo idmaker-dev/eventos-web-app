@@ -299,7 +299,6 @@ export default function DistribuccionAdmin({
             </div>
           </div>
 
-          {/* Panel de Controles Admin */}
           <div className="mb-6 p-6 bg-white border rounded-lg shadow-sm">
             <h2 className="text-xl font-semibold mb-4 text-gray-800"> Herramientas de Diseño</h2>
             <div className="flex flex-wrap gap-3">
@@ -353,11 +352,6 @@ export default function DistribuccionAdmin({
               <h3 className="text-lg font-semibold">
                 Área de Diseño - "Jardín Romántico"
               </h3>
-              {/* <p className="text-sm text-gray-600 mt-1">
-                Mesas: {allElements.filter(el => el.type === 'mesa' || el.type === 'mesaRectangular').length} | 
-                Barras: {allElements.filter(el => el.type === 'barra').length} | 
-                Otros: {allElements.filter(el => !['mesa', 'mesaRectangular', 'barra'].includes(el.type)).length}
-              </p> */}
             </div>
             
             <div className="overflow-x-auto overflow-y-auto">
@@ -382,21 +376,16 @@ export default function DistribuccionAdmin({
                   </DraggableElement>
                 ))}
                 
-                {/* Grid de referencia */}
                 <div 
-                  className="absolute inset-0 pointer-events-none opacity-10"
+                  className="absolute inset-0 pointer-events-none opacity-5"
                   style={{
                     backgroundImage: `
-                      linear-gradient(to right, #ccc 1px, transparent 1px),
-                      linear-gradient(to bottom, #ccc 1px, transparent 1px)
+                      linear-gradient(to right, #ec4899 1px, transparent 1px),
+                      linear-gradient(to bottom, #ec4899 1px, transparent 1px)
                     `,
                     backgroundSize: '40px 40px'
                   }}
                 />
-
-                {/* <div className="absolute top-2 left-2 text-xs text-gray-400 bg-white px-2 py-1 rounded shadow">
-                  1600 x 800px - Área de diseño | Admin Mode
-                </div> */}
               </div>
             </div>
 

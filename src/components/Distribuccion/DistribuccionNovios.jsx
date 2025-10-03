@@ -20,7 +20,7 @@ export default function DistribuccionNovios({
   
   const [activeInvitado, setActiveInvitado] = React.useState(null);
 
-  // Configurar sensores solo para invitados
+  
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -96,7 +96,6 @@ export default function DistribuccionNovios({
       return <MesaRectangularEstatica element={element} />;
     }
 
-    // Elementos decorativos completamente estáticos
     switch (element.type) {
       case 'entrada':
         return (
@@ -146,9 +145,6 @@ export default function DistribuccionNovios({
   return (
     <div className="min-h-screen ">
       <div className="p-4">
-        {/* Header Novios */}
-      
-
         <div className="flex flex-col xl:flex-row gap-6">
           {/* Lista de Invitados */}
           <div className="w-full xl:w-80 flex-shrink-0">
@@ -182,12 +178,6 @@ export default function DistribuccionNovios({
                 <h3 className="text-lg font-semibold text-gray-800">
                     Plano del Salón - "Jardín Romántico"
                 </h3>
-                {/* <p className="text-sm text-gray-600 mt-1">
-                  {layoutGuardado 
-                    ? `Layout finalizado con ${layoutFinal.estadisticas.mesasRedondas + layoutFinal.estadisticas.mesasRectangulares} mesas`
-                    : 'El layout está siendo diseñado por el administrador'
-                  }
-                </p> */}
               </div>
               
               <div className="overflow-x-auto overflow-y-auto">
@@ -215,9 +205,8 @@ export default function DistribuccionNovios({
                     </div>
                   ))}
                   
-                  {/* Grid de referencia más sutil */}
                   <div 
-                    className="absolute inset-0 pointer-events-none opacity-5"
+                    className="absolute inset-0 pointer-events-none opacity-0"
                     style={{
                       backgroundImage: `
                         linear-gradient(to right, #ec4899 1px, transparent 1px),
@@ -226,13 +215,6 @@ export default function DistribuccionNovios({
                       backgroundSize: '40px 40px'
                     }}
                   />
-
-                
-
-                  {/* Indicador visual de que los elementos no se mueven */}
-                  <div className="absolute bottom-2 right-2 text-xs text-pink-400 bg-white px-2 py-1 rounded shadow border border-pink-200">
-                    🔒 Elementos fijos - No se pueden mover
-                  </div>
                 </div>
               </div>
 
