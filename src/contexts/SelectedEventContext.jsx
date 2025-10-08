@@ -1,28 +1,33 @@
 import React, { createContext, useContext, useEffect, useCallback } from 'react';
 import { useEventos } from '../hooks/useEventos';
+import { useAuth } from '../hooks/useAuth';
 
 const SelectedEventContext = createContext(null);
 
 export const SelectedEventProvider = ({ children }) => {
- 
   const eventosHook = useEventos();
+  const { user } = useAuth();
   const { cargarEvento } = eventosHook;
 
+  const isAdmin = user?.rol === 'admin';
+
   const selectEvent = useCallback((id) => {
+    if (!isAdmin) return; // sólo admins pueden seleccionar/cargar eventos globales
     if (!id) return;
     cargarEvento(id);
     try { localStorage.setItem('selectedEventId', id); } catch (e) {}
-  }, [cargarEvento]);
+  }, [cargarEvento, isAdmin]);
 
   useEffect(() => {
+    if (!isAdmin) return; // no intentar restaurar selección si no es admin
     const stored = (() => {
       try { return localStorage.getItem('selectedEventId'); } catch (e) { return null; }
     })();
     if (stored) selectEvent(stored);
-  }, [selectEvent]);
+  }, [selectEvent, isAdmin]);
 
   return (
-    <SelectedEventContext.Provider value={{ ...eventosHook, selectEvent }}>
+    <SelectedEventContext.Provider value={{ ...eventosHook, selectEvent, isAdmin }}>
       {children}
     </SelectedEventContext.Provider>
   );

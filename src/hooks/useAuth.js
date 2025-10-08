@@ -19,10 +19,12 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem("userToken");
       const userRole = localStorage.getItem("userRole");
       const userEmail = localStorage.getItem("userEmail");
+      const userId = localStorage.getItem("userId"); // ✅ Recuperar ID del usuario
 
       if (token) {
         // Construir objeto user desde localStorage
         const userData = {
+          id: userId, // ✅ Incluir ID en el objeto user
           token,
           rol: userRole,
           email: userEmail || "usuario@ejemplo.com",
@@ -83,6 +85,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("userToken", result.token);
         localStorage.setItem("userRole", result.user.rol);
         localStorage.setItem("userEmail", result.user.email);
+        localStorage.setItem("userId", result.user.id); // ✅ Guardar ID del usuario
 
         // Actualizar estado
         const userData = {
@@ -131,6 +134,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem("userToken");
       localStorage.removeItem("userRole");
       localStorage.removeItem("userEmail");
+      localStorage.removeItem("userId"); // ✅ Limpiar ID del usuario
       setUser(null);
       setIsAuthenticated(false);
       navigate("/login");

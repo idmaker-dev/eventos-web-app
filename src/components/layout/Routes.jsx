@@ -12,18 +12,22 @@ import Cuestionario from "../../pages/Cuestionario"
 import PortalPagos from "../../pages/PortalPagos"
 import Checkout from "../../pages/checkout"
 import SignalRTest from "../../pages/SignalRTest"
+import HomeLugar from "../../pages/HomeLugar" // nueva vista para rol lugar
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
 import Dashboard from "../../pages/Dashboard"
 import Pagos from "../../pages/Pagos"
+import Lugares from "../../pages/Lugares"
+import Usuarios from "../../pages/Usuarios"
 // import Comunicacion from "../../pages/Comunicacion"
 
 /* Componentes de protección de rutas */
 import { 
   AdminRoute, 
   AuthenticatedRoute, 
-  PublicRoute 
+  PublicRoute,
+  RoleBasedRoute
 } from "../auth/ProtectedRoute"
 
 export default function AppRoutes() {
@@ -54,6 +58,13 @@ export default function AppRoutes() {
         <Route path="Distribucion" element={<Distribucion />} />
       </Route>
 
+      {/* Nueva ruta para usuarios rol 'lugar' */}
+      <Route path="/lugar" element={
+        <RoleBasedRoute allowedRoles={["lugar"]} redirectTo="/login">
+          <HomeLugar />
+        </RoleBasedRoute>
+      } />
+
       {/* Ruta Admin - Solo para usuarios con rol admin */}
       <Route path="/admin" element={
         <AdminRoute>
@@ -62,14 +73,16 @@ export default function AppRoutes() {
       }>
         <Route index element={<Dashboard />} />
         <Route path="pagos" element={<Pagos />} />
-        <Route path="/admin/chat" element={<Comunicacion />} />
+        <Route path="lugares" element={<Lugares />} />
+        <Route path="usuarios" element={<Usuarios />} />
+        <Route path="chat" element={<Comunicacion />} />
         <Route path="signalr-test" element={<SignalRTest />} />
         
       </Route>
       {/* Ruta pública - Accesible sin autenticación */}
       <Route path="/Cuestionario/:eventId" element={<Cuestionario />} />
-      <Route path="/PortalPagos" element={<PortalPagos />} />
-      <Route path="/Checkout" element={<Checkout />} />
+      <Route path="/PortalPagos/:invitadoId" element={<PortalPagos />} />
+      <Route path="/Checkout/:invitadoId" element={<Checkout />} />
     </Routes>
   )
 }

@@ -5,6 +5,43 @@ import { Button, Field, Input, Label } from "@headlessui/react";
 import clsx from "clsx";
 import { Minus, Plus } from "lucide-react";
 
+// Función para formatear fecha
+const formatearFecha = (fechaString) => {
+  if (!fechaString) return "25 de junio de 2025";
+  
+  try {
+    const fecha = new Date(fechaString);
+    const opciones = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      timeZone: 'America/Mexico_City'
+    };
+    
+    return fecha.toLocaleDateString('es-MX', opciones);
+  } catch (error) {
+    return fechaString; // Retorna la fecha original si hay error
+  }
+};
+
+// Función para formatear hora
+const formatearHora = (fechaString) => {
+  if (!fechaString) return "17:00 hrs";
+  
+  try {
+    const fecha = new Date(fechaString);
+    const opciones = { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZone: 'America/Mexico_City'
+    };
+    
+    return fecha.toLocaleTimeString('es-MX', opciones) + " hrs";
+  } catch (error) {
+    return fechaString; // Retorna la fecha original si hay error
+  }
+};
+
 export default function FormularioCuestionario({ modoVista, eventoData }) {
   const [restricciones, setRestricciones] = useState({
     vegetariano: 0,
@@ -45,13 +82,13 @@ export default function FormularioCuestionario({ modoVista, eventoData }) {
             boletos y tomar en cuenta tus necesidades.
           </p>
           <p className="text-gray-900 mt-4 text-justify">
-            <b> Fecha:</b> {eventoData?.fecha_evento}
+            <b> Fecha:</b> {formatearFecha(eventoData?.fecha_evento)}
           </p>
           <p className="text-gray-900 mt-0 text-justify">
-            <b>Hora:</b> {eventoData?.hora_evento}
+            <b>Hora:</b> {formatearHora(eventoData?.fecha_evento)}
           </p>
           <p className="text-gray-900 mt-0 text-justify">
-            <b>Lugar:</b> {eventoData?.lugar_evento}
+            <b>Lugar:</b> {eventoData?.lugar?.nombre || eventoData?.lugar_evento}
           </p>
         </div>
         <div className="w-full mx-auto mt-6">
