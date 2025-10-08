@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, onDrop }) => {
+const MesaRectangular = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 10, onDrop }) => {
   // Calcular porcentaje de ocupación
   const porcentajeOcupacion = (invitadosAsignados / capacidadMaxima) * 100;
   
@@ -34,15 +34,25 @@ const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, onDrop 
     return 'bg-gray-300'; // Silla vacía
   };
 
+  // Posiciones de las sillas alrededor de la mesa rectangular (10 sillas)
   const posicionesSillas = [
-    { top: '10%', left: '50%', transform: 'translateX(-50%)' }, // Arriba
-    { top: '25%', right: '20%', transform: 'translate(50%, -50%)' }, // Arriba derecha
-    { top: '50%', right: '5%', transform: 'translateY(-50%)' }, // Derecha
-    { bottom: '25%', right: '20%', transform: 'translate(50%, 50%)' }, // Abajo derecha
-    { bottom: '10%', left: '50%', transform: 'translateX(-50%)' }, // Abajo
-    { bottom: '25%', left: '20%', transform: 'translate(-50%, 50%)' }, // Abajo izquierda
-    { top: '50%', left: '5%', transform: 'translateY(-50%)' }, // Izquierda
-    { top: '25%', left: '20%', transform: 'translate(-50%, -50%)' }, // Arriba izquierda
+    // Lado superior (3 sillas)
+    { top: '5%', left: '25%', transform: 'translateX(-50%)' },
+    { top: '5%', left: '50%', transform: 'translateX(-50%)' },
+    { top: '5%', left: '75%', transform: 'translateX(-50%)' },
+    
+    // Lado derecho (2 sillas)
+    { top: '35%', right: '5%', transform: 'translateY(-50%)' },
+    { top: '65%', right: '5%', transform: 'translateY(-50%)' },
+    
+    // Lado inferior (3 sillas)
+    { bottom: '5%', left: '75%', transform: 'translateX(-50%)' },
+    { bottom: '5%', left: '50%', transform: 'translateX(-50%)' },
+    { bottom: '5%', left: '25%', transform: 'translateX(-50%)' },
+    
+    // Lado izquierdo (2 sillas)
+    { top: '65%', left: '5%', transform: 'translateY(-50%)' },
+    { top: '35%', left: '5%', transform: 'translateY(-50%)' },
   ];
 
   const handleDrop = (e) => {
@@ -58,7 +68,7 @@ const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, onDrop 
   };
 
   return (
-    <div className="relative w-40 h-40 flex items-center justify-center">
+    <div className="relative w-48 h-32 flex items-center justify-center">
       {/* Sillas alrededor de la mesa */}
       {posicionesSillas.slice(0, capacidadMaxima).map((posicion, index) => (
         <div
@@ -68,9 +78,9 @@ const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, onDrop 
         />
       ))}
       
-      {/* Mesa central */}
+      {/* Mesa rectangular central */}
       <div
-        className={`border-dashed rounded-full w-20 h-20 flex flex-col items-center justify-center text-center p-2 shadow-lg border-2 transition-all duration-300 cursor-pointer hover:scale-105 bg-white`}
+        className={`rounded w-32 h-18 flex flex-col items-center justify-center text-center p-2 shadow-lg border-2 border-dashed transition-all duration-300 cursor-pointer hover:scale-105 ${getColorMesa()}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
@@ -80,9 +90,10 @@ const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, onDrop 
         <div className={`text-xs ${getColorTexto()}`}>
           {invitadosAsignados}/{capacidadMaxima}
         </div>
+        
       </div>
     </div>
   );
 };
 
-export default Mesa;
+export default MesaRectangular;
