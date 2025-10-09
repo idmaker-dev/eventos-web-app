@@ -9,46 +9,9 @@ import "react-device-frameset/styles/marvel-devices.min.css";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 
-// Función para formatear fecha
-const formatearFecha = (fechaString) => {
-  if (!fechaString) return "25 de junio de 2025";
-  
-  try {
-    const fecha = new Date(fechaString);
-    const opciones = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      timeZone: 'America/Mexico_City'
-    };
-    
-    return fecha.toLocaleDateString('es-MX', opciones);
-  } catch (error) {
-    return fechaString; // Retorna la fecha original si hay error
-  }
-};
-
-// Función para formatear hora
-const formatearHora = (fechaString) => {
-  if (!fechaString) return "17:00 hrs";
-  
-  try {
-    const fecha = new Date(fechaString);
-    const opciones = { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      timeZone: 'America/Mexico_City'
-    };
-    
-    return fecha.toLocaleTimeString('es-MX', opciones) + " hrs";
-  } catch (error) {
-    return fechaString; // Retorna la fecha original si hay error
-  }
-};
-
 export default function CrearCuestionarioPages() {
   const { showSuccess, showError } = useNotifications();
-  const { eventoActual, isLoading } = useSelectedEvent();
+  const { eventoActual } = useSelectedEvent(); // removido isLoading no usado
   
   // Estado para lugares
   const [lugares, setLugares] = useState([]);

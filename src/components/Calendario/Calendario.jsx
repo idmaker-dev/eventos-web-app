@@ -12,17 +12,6 @@ export function TimelineProgress({ items, title = "Progreso General" }) {
     (completedItems.length / items.length) * 100
   );
 
-  const getLineProgress = () => {
-    if (completedItems.length === 0) return 0;
-    if (completedItems.length === items.length) return 100;
-
-    const baseProgress = (completedItems.length / (items.length - 1)) * 100;
-    const inProgressBonus =
-      inProgressIndex !== -1 ? (1 / (items.length - 1)) * 30 : 0;
-
-    return Math.min(100, baseProgress + inProgressBonus);
-  };
-
   const StatusIcon = ({ status, isLast }) => {
     if (status === "completed") {
       return (

@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useSelectedEvent } from '../contexts/SelectedEventContext';
-import { useSignalRDashboard, useSignalRConnection } from '../hooks/useSignalR';
+import { useSignalRDashboard } from '../hooks/useSignalR';
 
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import "../styles/pages/Dashboard.css";
-import { ChevronLeft, Wifi, WifiOff } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Chat from "../assets/recursos/CHAT.svg";
 import Conflicto from "../assets/recursos/conflictoAsignación.svg";
 import Pago from "../assets/recursos/EstadoPendiente.svg";
@@ -20,9 +20,6 @@ export default function Dashboard() {
 
   // Hook de eventos compartido desde el contexto
   const { eventoActual, selectEvent, eventos, cargarEventos } = useSelectedEvent();
-  
-  // Hook de SignalR para el dashboard
-  const { conectado } = useSignalRConnection();
   
   // Función para cargar estadísticas del dashboard
   const cargarEstadisticas = useCallback(async () => {
@@ -63,8 +60,7 @@ export default function Dashboard() {
   
   // Usar el hook de SignalR para dashboard
   const { 
-    ultimaActualizacion: signalRUltimaActualizacion, 
-    notificacionesDashboard 
+    ultimaActualizacion: signalRUltimaActualizacion 
   } = useSignalRDashboard(handleDashboardUpdate);
   
   // Cargar estadísticas cuando cambia el evento actual
@@ -167,7 +163,6 @@ export default function Dashboard() {
     // Datos de boletos desde el API
     const boletosEmitidos = dashboardStats?.boletos?.boletos_emitidos || 0;
     const porcentajeBoletos = dashboardStats?.boletos?.porcentaje_ocupacion || 0;
-    const invitadosRegistrados = dashboardStats?.boletos?.invitados_registrados || 0;
     // const capacidadMaxima = dashboardStats?.evento?.capacidad_maxima || 0;
     
     // Asientos asignados (pendiente - valor estático por ahora)
