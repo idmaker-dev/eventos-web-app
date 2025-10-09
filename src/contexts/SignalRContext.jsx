@@ -18,6 +18,7 @@ export const SignalRProvider = ({ children }) => {
 
   // Referencia para manejar callbacks
   const dashboardUpdateCallbackRef = useRef(null);
+  const pagoCompletadoCallbackRef = useRef(null);
   const intentosConexionRef = useRef(0);
   const conectandoRef = useRef(false); // Flag para evitar conexiones simultáneas
   const ultimoIntentoRef = useRef(0); // Timestamp del último intento
@@ -61,7 +62,7 @@ export const SignalRProvider = ({ children }) => {
     try {
       // Crear nueva conexión SignalR
       const newConnection = new signalR.HubConnectionBuilder()
-        .withUrl(`http://localhost:7071/api/v1?userId=${userId}`)
+        .withUrl(`https://eventosapi-v2.azurewebsites.net/api/v1?userId=${userId}`)
         .withAutomaticReconnect([0, 20000, 50000, 60000]) // Intervalos más controlados
         .configureLogging(signalR.LogLevel.Information) // Reducir logs
         .build();
@@ -121,6 +122,46 @@ export const SignalRProvider = ({ children }) => {
           dashboardUpdateCallbackRef.current(data);
         }
       });
+
+      // Escuchar evento de pago completado (intentar ambos formatos)
+      const registrarEventoPago = (nombreEvento) => {
+        newConnection.on(nombreEvento, (data) => {
+          if (EnvConfig.DEBUG_MODE) {
+            console.log(`💰 Notificación recibida: ${nombreEvento}`);
+            console.log('💳 Datos del pago:', JSON.stringify(data, null, 2));
+          }
+
+          // Agregar notificación al estado
+          const nuevaNotificacion = {
+            tipo: 'pago_completado',
+            mensaje: 'Pago completado exitosamente',
+            data,
+            timestamp: new Date().toISOString(),
+          };
+
+          setNotificaciones(prev => [nuevaNotificacion, ...prev]);
+
+          // Ejecutar callback de pago completado si existe (solo si estás en el módulo de Pagos)
+          if (pagoCompletadoCallbackRef.current) {
+            console.log('🔔 [SignalR] Ejecutando callback de pago completado');
+            pagoCompletadoCallbackRef.current(data);
+          } else if (EnvConfig.DEBUG_MODE) {
+            console.log('ℹ️ [SignalR] Callback de pagos no activo (no estás en el módulo de Pagos)');
+          }
+
+          // ✅ También actualizar el dashboard cuando se complete un pago
+          if (dashboardUpdateCallbackRef.current) {
+            console.log('📊 [SignalR] Actualizando dashboard por pago completado');
+            dashboardUpdateCallbackRef.current(data);
+          } else if (EnvConfig.DEBUG_MODE) {
+            console.log('ℹ️ [SignalR] Callback de dashboard no activo (no estás en el Dashboard)');
+          }
+        });
+      };
+
+      // Registrar ambos formatos del evento
+      registrarEventoPago('pagoCompletado');
+      registrarEventoPago('pagocompletado');
 
       // Listener genérico para debug
       newConnection.onreceive = (data) => {
@@ -210,6 +251,16 @@ export const SignalRProvider = ({ children }) => {
     dashboardUpdateCallbackRef.current = null;
   }, []);
 
+  // Función para registrar callback de pago completado
+  const registrarCallbackPagoCompletado = useCallback((callback) => {
+    pagoCompletadoCallbackRef.current = callback;
+  }, []);
+
+  // Función para desregistrar callback de pago completado
+  const desregistrarCallbackPagoCompletado = useCallback(() => {
+    pagoCompletadoCallbackRef.current = null;
+  }, []);
+
   // Función para obtener información de estado
   const obtenerEstadoConexion = useCallback(() => {
     return {
@@ -233,6 +284,8 @@ export const SignalRProvider = ({ children }) => {
     limpiarNotificaciones,
     registrarCallbackDashboard,
     desregistrarCallbackDashboard,
+    registrarCallbackPagoCompletado,
+    desregistrarCallbackPagoCompletado,
     obtenerEstadoConexion,
   };
 

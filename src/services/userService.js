@@ -5,6 +5,85 @@ import httpService from "./httpService";
  * Maneja todas las operaciones relacionadas con la gestión de usuarios
  */
 class UserService {
+  /** ================== ADMIN (CATÁLOGO DE USUARIOS) ================== */
+  // Endpoints reales (según respuesta recibida):
+  // GET    /usuarios/listar              -> lista usuarios (response: { success, data: { usuarios: [] }, total?, message })
+  // POST   /usuarios/crear               -> crear usuario
+  // PUT    /usuarios/:id                 -> actualizar usuario
+  // PATCH  /usuarios/:id/desactivar      -> desactivar (soft delete / inactivar)
+  // NOTA: Adaptamos parsing de forma resiliente por si el backend ajusta la forma.
+
+  async getUsuarios() {
+    try {
+      const response = await httpService.get("/usuarios/listar");
+      // response esperado: { success: true, data: { usuarios: [...] }, total?, message }
+      const usuarios =
+        response?.data?.usuarios || response?.usuarios || response?.data || [];
+      const total = response?.total ?? usuarios.length;
+      return {
+        success: true,
+        usuarios: Array.isArray(usuarios) ? usuarios : [],
+        total,
+        message: response?.message,
+        raw: response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al cargar usuarios",
+        usuarios: [],
+        total: 0,
+      };
+    }
+  }
+
+  async crearUsuario(data) {
+    try {
+      const response = await httpService.post("/usuarios/crear", data);
+      return {
+        success: response?.success !== false,
+        data: response?.data || response,
+        message: response?.message || "Usuario creado correctamente",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al crear usuario",
+      };
+    }
+  }
+
+  async actualizarUsuario(id, data) {
+    try {
+      const response = await httpService.put(`/usuarios/${id}`, data);
+      return {
+        success: response?.success !== false,
+        data: response?.data || response,
+        message: response?.message || "Usuario actualizado correctamente",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al actualizar usuario",
+      };
+    }
+  }
+
+  async desactivarUsuario(id) {
+    try {
+      const response = await httpService.delete(`/usuarios/${id}`);
+      return {
+        success: response?.success !== false,
+        message: response?.message || "Usuario desactivado correctamente",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al desactivar usuario",
+      };
+    }
+  }
+
   /**
    * Obtener perfil del usuario actual
    */

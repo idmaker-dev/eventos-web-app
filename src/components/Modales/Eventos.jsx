@@ -9,20 +9,25 @@ import {
 } from "@headlessui/react";
 import { ChevronDown, CircleX } from "lucide-react";
 import clsx from "clsx";
+import { useNavigate } from "react-router-dom";
 import Confirmacion from "../../assets/recursos/confirmacionAsientos.svg";
-import { useEventos } from "../../hooks/useEventos";
+import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import "../../styles/components/Custom.css";
+import DateTimePicker from "../ui/DateTimePicker";
+import { es } from "react-day-picker/locale";
 
 export default function Eventos({ open, onClose }) {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [selectedDates, setSelectedDates] = useState([]);
+  const [lugares, setLugares] = useState([]);
+  const [isLoadingLugares, setIsLoadingLugares] = useState(false);
   const [formData, setFormData] = useState({
     instituto: "",
     licenciatura: "",
     nombreEvento: "",
-    lugarEvento: "",
+    lugar_id: "",
     fechaHora: "",
     cantidadAsistentes: "",
     responsable: "",
@@ -30,10 +35,37 @@ export default function Eventos({ open, onClose }) {
     fechas: [],
   });
 
-  // Hook de eventos
-  const { crearEvento, isCreating, error, limpiarError } = useEventos();
+  // Hook de eventos desde el contexto (incluye cargarEventos)
+  const { crearEvento, isCreating, error, limpiarError, cargarEventos } = useSelectedEvent();
+  const navigate = useNavigate();
+
+  // Cargar lugares cuando se abre el modal
+  React.useEffect(() => {
+    const cargarLugares = async () => {
+      if (open) {
+        setIsLoadingLugares(true);
+        try {
+          const eventService = (await import('../../services/eventService')).default;
+          const resultado = await eventService.getLugares();
+          
+          if (resultado.success) {
+            setLugares(resultado.data);
+          } else {
+            console.error('❌ Error al cargar lugares:', resultado.error);
+          }
+        } catch (error) {
+          console.error('❌ Error inesperado al cargar lugares:', error);
+        } finally {
+          setIsLoadingLugares(false);
+        }
+      }
+    };
+
+    cargarLugares();
+  }, [open]);
 
   const handleInputChange = (field, value) => {
+    console.log(field, value);
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -53,6 +85,8 @@ export default function Eventos({ open, onClose }) {
     const resultado = await crearEvento(formData);
     
     if (resultado.success) {
+      // Recargar la lista de eventos para actualizar el select
+      await cargarEventos();
       setShowConfirmation(true);
     }
     // Si hay error, se mostrará automáticamente en el UI
@@ -64,7 +98,7 @@ export default function Eventos({ open, onClose }) {
       instituto: "",
       licenciatura: "",
       nombreEvento: "",
-      lugarEvento: "",
+      lugar_id: "",
       fechaHora: "",
       cantidadAsistentes: "",
       responsable: "",
@@ -74,6 +108,11 @@ export default function Eventos({ open, onClose }) {
     setSelectedDates([]);
     limpiarError();
     onClose();
+  };
+
+  const handleGenerarCuestionario = () => {
+    handleClose();
+    navigate('/admin/chat');
   };
   return (
     <Dialog
@@ -171,18 +210,35 @@ export default function Eventos({ open, onClose }) {
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
                           Lugar del evento
                         </label>
-                        <Input
-                          value={formData.lugarEvento}
-                          onChange={(e) =>
-                            handleInputChange("lugarEvento", e.target.value)
-                          }
-                          placeholder="Auditorio, sala, teatro, etc."
-                          className={clsx(
-                            "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
-                            "placeholder:italic",
-                            "focus:not-data-focus:outline-none data-focus:outline-2 data-focus:-outline-offset-2 data-focus:outline-white/25"
-                          )}
-                        />
+                        <div className="relative">
+                          <Select
+                            value={formData.lugar_id}
+                            onChange={(e) =>
+                              handleInputChange("lugar_id", e.target.value)
+                            }
+                            disabled={isLoadingLugares}
+                            className={clsx(
+                              "mt-2 block w-full appearance-none rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                              "placeholder:italic",
+                              "focus:not-data-focus:outline-none data-focus:outline-2 data-focus:-outline-offset-2 data-focus:outline-white/25",
+                              "*:text-black",
+                              "disabled:opacity-50 disabled:cursor-not-allowed"
+                            )}
+                          >
+                            <option value="">
+                              {isLoadingLugares ? "Cargando lugares..." : "Seleccionar lugar"}
+                            </option>
+                            {lugares.map((lugar) => (
+                              <option key={lugar.id} value={lugar.id}>
+                                {lugar.nombre}
+                              </option>
+                            ))}
+                          </Select>
+                          <ChevronDown
+                            className="group pointer-events-none absolute top-2.5 right-2.5 size-4 fill-white/60"
+                            aria-hidden="true"
+                          />
+                        </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -190,17 +246,10 @@ export default function Eventos({ open, onClose }) {
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
                           Fecha y hora del evento
                         </label>
-                        <Input
+                        <DateTimePicker
                           value={formData.fechaHora}
-                          onChange={(e) =>
-                            handleInputChange("fechaHora", e.target.value)
-                          }
-                          placeholder="Ejemplo: 25 de junio, 18:00 hrs"
-                          className={clsx(
-                            "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
-                            "placeholder:italic",
-                            "focus:not-data-focus:outline-none data-focus:outline-2 data-focus:-outline-offset-2 data-focus:outline-white/25"
-                          )}
+                          onChange={(value) => handleInputChange("fechaHora", value)}
+                          placeholder="Seleccionar fecha y hora del evento"
                         />
                       </div>
                       <div className="mb-3">
@@ -258,7 +307,7 @@ export default function Eventos({ open, onClose }) {
                       </div>
                       <div className="mb-3">
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
-                          costo
+                          Precio
                         </label>
                         <Input
                           value={formData.costo}
@@ -277,13 +326,14 @@ export default function Eventos({ open, onClose }) {
                     <div className="">
                       {/* Calendario se debe seleccionar un string de fechas */}
                       <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
-                        Fechas del evento
+                        Fechas de pago
                       </label>
                       <div className="flex gap-6">
                         {/* Calendario visual para seleccionar varias fechas */}
                         <div className="">
                           <DayPicker
                             mode="multiple"
+                            locale={es}
                             selected={selectedDates}
                             onSelect={setSelectedDates}
                             className="my-2 border h-auto rounded-lg p-2 mt-2 bg-white dark:bg-[#23272f] text-[#246370] dark:text-[#bcd6e4] [&_.rdp-nav_button]:text-[#246370] [&_.rdp-nav_button:hover]:bg-[#e0f7fa] [&_.rdp-nav_button:hover]:text-[#2a9d8f]"
@@ -383,8 +433,8 @@ export default function Eventos({ open, onClose }) {
                 </div>
                 <div className="flex justify-center">
                   <button
-                    className="inline-flex my-5 items-center justify-center gap-2 rounded-md bg-[#72B7A4] px-6 py-1.5 text-xl font-semibold text-white shadow-inner shadow-white/10"
-                    onClick={handleClose}
+                    className="inline-flex my-5 items-center justify-center gap-2 rounded-md bg-[#72B7A4] px-6 py-1.5 text-xl font-semibold text-white shadow-inner shadow-white/10 hover:bg-[#5fa090] transition-colors"
+                    onClick={handleGenerarCuestionario}
                   >
                     Generar enlace <br /> de cuestionario
                   </button>

@@ -11,19 +11,22 @@ import {
 import { Fragment } from "react";
 import { X } from "lucide-react";
 
-const productData = {
-  name: "Graduacion PREPA IBERO 26 Santiago Mendez Lopez",
-  debt: 0.0,
-  ticketsRequested: 4,
-  installments: [
-    { amount: 1950.0, dueDate: "02/02/2026", status: "futura" },
-    { amount: 1950.0, dueDate: "03/04/2026", status: "futura" },
-    { amount: 1950.0, dueDate: "01/05/2026", status: "futura" },
-    { amount: 1950.0, dueDate: "15/09/2025", status: "pagada" },
-  ],
+const formatearFecha = (fechaISO) => {
+  if (!fechaISO) return "";
+  const [year, month, day] = fechaISO.split("-");
+  return `${day}/${month}/${year}`;
 };
 
-export function ProductDetailsModal({ isOpen, onClose }) {
+const mapearEstado = (cuota) => {
+  if (cuota.vencida) return "vencida";
+  if (cuota.estado === "PAGADA") return "pagada";
+  if (cuota.dias_para_vencimiento <= 7 && cuota.dias_para_vencimiento > 0) {
+    return "por_vencer";
+  }
+  return "futura";
+};
+
+export function ProductDetailsModal({ isOpen, onClose, producto }) {
   const [showDetallesCuota, setShowDetallesCuota] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState(null);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -56,6 +59,24 @@ export function ProductDetailsModal({ isOpen, onClose }) {
     setShowProductModal(false);
     onClose();
   };
+
+  // Si no hay producto, no renderizar nada
+  if (!producto) {
+    return null;
+  }
+
+  // Calcular deuda vencida (suma de cuotas vencidas)
+  const calcularDeudaVencida = () => {
+    if (!producto.cuotas || producto.cuotas.length === 0) {
+      return 0;
+    }
+    
+    return producto.cuotas
+      .filter(cuota => cuota.vencida === true)
+      .reduce((total, cuota) => total + (cuota.monto_pendiente || 0), 0);
+  };
+
+  const deudaVencida = calcularDeudaVencida();
 
   return (
     <div>
@@ -95,7 +116,7 @@ export function ProductDetailsModal({ isOpen, onClose }) {
                   
                   <div className="p-8 pt-8">
                     <DialogTitle className="text-xl font-semibold text-casal mb-8">
-                      {productData.name}
+                      {producto.nombre}
                     </DialogTitle>
                     
                     <div className="border-b border-gray-300 mb-8"></div>
@@ -106,7 +127,7 @@ export function ProductDetailsModal({ isOpen, onClose }) {
                           Product ID
                         </span>
                         <span className="text-sm text-gray-900 text-right max-w-md">
-                          {productData.name}
+                          {producto.id_producto}
                         </span>
                       </div>
                       
@@ -114,8 +135,8 @@ export function ProductDetailsModal({ isOpen, onClose }) {
                         <span className="text-sm text-gray-500 font-semibold">
                           Deuda
                         </span>
-                        <span className="text-sm text-gray-900">
-                          ${productData.debt.toLocaleString("es-MX", {
+                        <span className={`text-sm font-medium ${deudaVencida > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                          ${deudaVencida.toLocaleString("es-MX", {
                             minimumFractionDigits: 2,
                           })}
                         </span>
@@ -126,7 +147,7 @@ export function ProductDetailsModal({ isOpen, onClose }) {
                           Boletos Solicitados
                         </span>
                         <span className="text-sm text-gray-900">
-                          {productData.ticketsRequested}
+                          {producto.boletos_solicitados}
                         </span>
                       </div>
                     </div>
@@ -144,28 +165,34 @@ export function ProductDetailsModal({ isOpen, onClose }) {
                       </div>
                       
                       <div className="space-y-3">
-                        {productData.installments.map((installment, index) => (
-                          <div key={index}>
+                        {producto.cuotas?.map((cuota, index) => {
+                          const estado = mapearEstado(cuota);
+                          return (
+                          <div key={cuota.id_cuota || index}>
                             <div
-                              onClick={() => openDetallesCuota(installment)}
+                              onClick={() => openDetallesCuota(cuota)}
                               className="grid grid-cols-3 gap-4 py-3 px-3 bg-slate-50 rounded-lg hover:bg-casal/25 transition-colors cursor-pointer"
                             >
                               <div className="text-sm text-gray-900 font-medium">
-                                ${installment.amount.toLocaleString("es-MX", {
+                                ${cuota.monto_pendiente?.toLocaleString("es-MX", {
                                   minimumFractionDigits: 2,
                                 })}
                               </div>
                               <div className="text-sm text-gray-600">
-                                {installment.dueDate}
+                                {formatearFecha(cuota.fecha_vencimiento)}
                               </div>
                               <div>
-                                {installment.status === "pagada" ? (
+                                {estado === "pagada" ? (
                                   <span className="inline-flex items-center rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
                                     Pagada
                                   </span>
-                                ) : installment.status === "vencida" ? (
+                                ) : estado === "vencida" ? (
                                   <span className="inline-flex items-center rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
                                     Vencida
+                                  </span>
+                                ) : estado === "por_vencer" ? (
+                                  <span className="inline-flex items-center rounded bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
+                                    Por vencer
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
@@ -175,7 +202,8 @@ export function ProductDetailsModal({ isOpen, onClose }) {
                               </div>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </div>

@@ -1,0 +1,12 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*", "/api/*"]
+  },
+  "globalHeaders": {
+    "Cache-Control": "public, max-age=600"
+  },
+  "mimeTypes": {
+    ".json": "application/json; charset=utf-8"
+  }
+}

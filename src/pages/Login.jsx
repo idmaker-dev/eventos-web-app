@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import InlineSpinner from "../components/ui/InlineSpinner";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useNotifications } from "../contexts/NotificationContext";
@@ -69,19 +70,18 @@ export default function Login() {
         
         // Obtener la ruta de origen si existe (desde ProtectedRoute)
         const from = location.state?.from?.pathname || '/';
-        
-        // Redirigir a la ruta de origen o según el rol
-        if (from !== '/' && from !== '/login') {
-            console.log("Navigating to original route:", from);
-            
+        const userRol = result.user.rol;
+        const isAdminRoute = from.startsWith('/admin');
+
+        if (userRol === 'admin') {
+          navigate('/admin', { replace: true });
+        } else if (userRol === 'lugar') {
+          // Siempre dirigir a /lugar, ignorando from si era admin o raíz
+          navigate('/lugar', { replace: true });
+        } else if (from !== '/' && from !== '/login' && !isAdminRoute) {
           navigate(from, { replace: true });
-        } else if (result.user.rol === "admin") {
-            console.log("✅ Redirecting to admin - user role:", result.user.rol);
-          navigate("/admin");
         } else {
-            console.log("➡️ Redirecting to user home - user role:", result.user.rol);
-            
-          navigate("/");
+          navigate('/');
         }
       } else {
         showError(result.error || "Error al iniciar sesión");
@@ -173,9 +173,13 @@ export default function Login() {
             type="submit"
             className={`login-submit ${authLoading ? 'loading' : ''}`}
             disabled={authLoading}
+            aria-busy={authLoading}
           >
             {authLoading ? (
-              <div className="login-spinner"></div>
+              <span className="flex items-center gap-2 justify-center">
+                <InlineSpinner size="sm" />
+                <span>Iniciando...</span>
+              </span>
             ) : (
               "Iniciar Sesión"
             )}

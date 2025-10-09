@@ -8,21 +8,40 @@ import {
   TransitionChild,
 } from "@headlessui/react";
 import { Fragment } from "react";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
-const cuotaData = {
-  name: "Graduacion PREPA IBERO 26 Santiago Mendez Lopez",
-  amount: 1950.0,
-  dueDate: "15/09/2025",
-  status: "pagada",
-  product: "Graduacion PREPA IBERO 26 Santiago Mendez Lopez",
-  ticketsRequested: 4,
-  debt: 0.0,
+const formatearFecha = (fechaISO) => {
+  if (!fechaISO) return "";
+  const [year, month, day] = fechaISO.split("-");
+  return `${day}/${month}/${year}`;
+};
+
+const mapearEstado = (cuota) => {
+  if (cuota.vencida) return "vencida";
+  if (cuota.estado === "PAGADA") return "pagada";
+  if (cuota.dias_para_vencimiento <= 7 && cuota.dias_para_vencimiento > 0) {
+    return "por_vencer";
+  }
+  return "futura";
+};
+
+const obtenerEstadoLabel = (estado) => {
+  const labels = {
+    pagada: "Pagada",
+    vencida: "Vencida",
+    por_vencer: "Por vencer",
+    futura: "Futura"
+  };
+  return labels[estado] || estado;
 };
 
 export function DetallesCuota({ isOpen, onClose, installment }) {
-  // Usar datos del installment si están disponibles, sino usar datos mock
-  const currentData = installment || cuotaData;
+  // Si no hay installment, no mostrar nada
+  if (!installment) {
+    return null;
+  }
+
+  const estado = mapearEstado(installment);
   
   return (
     <Transition show={isOpen} as={Fragment}>
@@ -73,7 +92,7 @@ export function DetallesCuota({ isOpen, onClose, installment }) {
                         Monto
                       </span>
                       <span className="text-sm text-gray-900 text-right">
-                        ${currentData.amount.toLocaleString("es-MX", {
+                        ${installment.monto_pendiente?.toLocaleString("es-MX", {
                           minimumFractionDigits: 2,
                         })}
                       </span>
@@ -84,7 +103,7 @@ export function DetallesCuota({ isOpen, onClose, installment }) {
                         Fecha de vencimiento
                       </span>
                       <span className="text-sm text-gray-900">
-                        {currentData.dueDate}
+                        {formatearFecha(installment.fecha_vencimiento)}
                       </span>
                     </div>
 
@@ -93,13 +112,15 @@ export function DetallesCuota({ isOpen, onClose, installment }) {
                         Estado
                       </span>
                       <span className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${
-                        currentData.status === "pagada" 
+                        estado === "pagada" 
                           ? "bg-green-100 text-green-800"
-                          : currentData.status === "vencida" 
+                          : estado === "vencida" 
                           ? "bg-red-100 text-red-800"
+                          : estado === "por_vencer"
+                          ? "bg-yellow-100 text-yellow-800"
                           : "bg-blue-100 text-blue-800"
                       }`}>
-                        {currentData.status === "pagada" ? "Pagada" : currentData.status === "vencida" ? "Vencida" : "Futura"}
+                        {obtenerEstadoLabel(estado)}
                       </span>
                     </div>
                     
@@ -108,7 +129,7 @@ export function DetallesCuota({ isOpen, onClose, installment }) {
                         Producto asociado
                       </span>
                       <span className="text-sm text-gray-900 text-right max-w-md">
-                        {cuotaData.product}
+                        {installment.producto_asociado}
                       </span>
                     </div>
                   </div>

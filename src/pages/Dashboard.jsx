@@ -15,6 +15,8 @@ export default function Dashboard() {
   const [mes, setMes] = useState(hoy.getMonth());
   const [anio, setAnio] = useState(hoy.getFullYear());
   const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   // Hook de eventos compartido desde el contexto
   const { eventoActual, selectEvent, eventos, cargarEventos } = useSelectedEvent();
@@ -22,26 +24,53 @@ export default function Dashboard() {
   // Hook de SignalR para el dashboard
   const { conectado } = useSignalRConnection();
   
+  // Función para cargar estadísticas del dashboard
+  const cargarEstadisticas = useCallback(async () => {
+    if (!eventoActual?.id) return;
+    
+    setIsLoadingStats(true);
+    try {
+      const eventService = (await import('../services/eventService')).default;
+      const resultado = await eventService.getDashboardStats(eventoActual.id);
+      
+      if (resultado.success) {
+        setDashboardStats(resultado.data);
+        console.log('📊 Estadísticas del dashboard cargadas:', resultado.data);
+      } else {
+        console.error('❌ Error al cargar estadísticas:', resultado.error);
+      }
+    } catch (error) {
+      console.error('❌ Error inesperado al cargar estadísticas:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, [eventoActual?.id]);
+  
   // Callback para manejar actualizaciones del dashboard desde SignalR
   const handleDashboardUpdate = useCallback((data) => {
     console.log('🔄 Dashboard recibió notificación de actualización:', data);
     setUltimaActualizacion(new Date().toISOString());
     
-    // Recargar datos del evento actual si está disponible
+    // Recargar estadísticas del dashboard
+    cargarEstadisticas();
+    
+    // Recargar eventos si es necesario
     if (cargarEventos) {
       console.log('📊 Recargando eventos desde SignalR...');
       cargarEventos();
     }
-    
-    // Aquí puedes agregar más lógica específica según el tipo de actualización
-    // Por ejemplo, actualizar métricas específicas, mostrar notificaciones, etc.
-  }, [cargarEventos]);
+  }, [cargarEstadisticas, cargarEventos]);
   
   // Usar el hook de SignalR para dashboard
   const { 
     ultimaActualizacion: signalRUltimaActualizacion, 
     notificacionesDashboard 
   } = useSignalRDashboard(handleDashboardUpdate);
+  
+  // Cargar estadísticas cuando cambia el evento actual
+  useEffect(() => {
+    cargarEstadisticas();
+  }, [cargarEstadisticas]);
 
   const meses = [
     "Enero",
@@ -127,46 +156,48 @@ export default function Dashboard() {
   );
 
   function EventMetrics() {
-    // Obtener número de asistentes del evento actual
-    function resolveAsistentes(evt) {
-      if (!evt) return 0;
-      const v = evt.asistentes;
-      const n = parseInt(v, 10);
-      return !isNaN(n) ? n : 0;
-    }
-
-  const asistentes = resolveAsistentes(eventoActual);
-
-    const pagosPagados = 200; 
-    const asientosAsignadosStatic = 300; 
-    const boletosEmitidos = 200; 
+    // Obtener capacidad máxima del evento
+    const capacidadMaxima = dashboardStats?.evento?.capacidad_maxima || 0;
     
-    const valorPagos = asistentes > 0 ? Math.round((pagosPagados / asistentes) * 100) : 0;
-    const valorAsientos = asistentes > 0 ? Math.round((asientosAsignadosStatic / asistentes) * 100) : 0;
-    const valorBoletos = asistentes > 0 ? Math.round((boletosEmitidos / asistentes) * 100) : 0;
+    // Datos de pagos desde el API
+    const porcentajePagos = dashboardStats?.pagos?.porcentaje_pagos_completados || 0;
+    const deudasPagadas = dashboardStats?.pagos?.deudas_completamente_pagadas || 0;
+    const totalDeudas = dashboardStats?.pagos?.total_deudas || 0;
+    
+    // Datos de boletos desde el API
+    const boletosEmitidos = dashboardStats?.boletos?.boletos_emitidos || 0;
+    const porcentajeBoletos = dashboardStats?.boletos?.porcentaje_ocupacion || 0;
+    const invitadosRegistrados = dashboardStats?.boletos?.invitados_registrados || 0;
+    // const capacidadMaxima = dashboardStats?.evento?.capacidad_maxima || 0;
+    
+    // Asientos asignados (pendiente - valor estático por ahora)
+    const asientosAsignadosStatic = 0; // Pendiente de implementar
+    const porcentajeAsientos = capacidadMaxima > 0 
+      ? Math.round((asientosAsignadosStatic / capacidadMaxima) * 100) 
+      : 0;
 
     return (
       <>
         <Metrica
-          valor={Math.min(100, valorPagos)}
+          valor={Math.round(porcentajePagos)}
           titulo="% de pagos completados"
-          subtitulo={`${pagosPagados} / ${asistentes} asistentes`}
+          subtitulo={`${deudasPagadas} / ${totalDeudas} pagos`}
           gradienteId="gradPagos"
           color1="#0d3b66"
           color2="#2a9d8f"
         />
         <Metrica
-          valor={Math.min(100, valorAsientos)}
+          valor={Math.round(porcentajeAsientos)}
           titulo="Asientos asignados"
-          subtitulo={`${asientosAsignadosStatic} / ${asistentes} asistentes`}
+          subtitulo={`${asientosAsignadosStatic} / ${capacidadMaxima} asientos`}
           gradienteId="gradAsientos"
           color1="#0f4c75"
           color2="#00b7c2"
         />
         <Metrica
-          valor={Math.min(100, valorBoletos)}
+          valor={Math.round(porcentajeBoletos)}
           titulo="Boletos emitidos"
-          subtitulo={`${boletosEmitidos} / ${asistentes} asistentes`}
+          subtitulo={`${boletosEmitidos} / ${capacidadMaxima} invitados`}
           gradienteId="gradBoletos"
           color1="#2a9d8f"
           color2="#0d3b66"
@@ -217,10 +248,16 @@ export default function Dashboard() {
           <h2 className="dashboard-subtitle font-semibold text-base">
             Métricas clave
           </h2>
-          <div className="dashboard-metricas">
-          {/* Métricas del evento actual */}
-            <EventMetrics />
-          </div>
+          {isLoadingStats ? (
+            <div className="flex items-center justify-center h-40">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#246370] dark:border-[#72b7a4]"></div>
+            </div>
+          ) : (
+            <div className="dashboard-metricas">
+              {/* Métricas del evento actual */}
+              <EventMetrics />
+            </div>
+          )}
         </div>
 
         {/* CALENDARIO */}
@@ -240,6 +277,22 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
+              
+              {/* Leyenda del calendario */}
+              <div className="flex gap-3 mb-2 text-xs justify-center flex-wrap">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-[#22c55e]"></div>
+                  <span className="text-gray-600 dark:text-gray-300">Evento</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-[#fbbf24]"></div>
+                  <span className="text-gray-600 dark:text-gray-300">Fechas de pago</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-[#808080]"></div>
+                  <span className="text-gray-600 dark:text-gray-300">Hoy</span>
+                </div>
+              </div>
               <div className="dashboard-calendario-grid">
                 {diasSemana.map((dia, i) => (
                   <div key={i} className="dashboard-dia-semana">
@@ -257,12 +310,52 @@ export default function Dashboard() {
                     dia === hoy.getDate() &&
                     mes === hoy.getMonth() &&
                     anio === hoy.getFullYear();
+                  
+                  // Función auxiliar para comparar fechas en formato YYYY-MM-DD sin conversión de zona horaria
+                  const esMismoDia = (fechaCalendario, fechaString) => {
+                    if (!fechaString) return false;
+                    
+                    // Si es un string en formato YYYY-MM-DD, comparar directamente sin crear Date
+                    if (typeof fechaString === 'string' && fechaString.match(/^\d{4}-\d{2}-\d{2}/)) {
+                      const [year, month, day] = fechaString.split('T')[0].split('-').map(Number);
+                      return fechaCalendario.getFullYear() === year &&
+                             fechaCalendario.getMonth() === month - 1 && // mes es 0-indexed
+                             fechaCalendario.getDate() === day;
+                    }
+                    
+                    // Si es un Date object o string con hora, usar conversión normal
+                    const d = new Date(fechaString);
+                    return fechaCalendario.getDate() === d.getDate() &&
+                           fechaCalendario.getMonth() === d.getMonth() &&
+                           fechaCalendario.getFullYear() === d.getFullYear();
+                  };
+                  
+                  // Crear fecha actual del día del loop
+                  const fechaActual = new Date(anio, mes, dia);
+                  
+                  // Verificar si es la fecha del evento (verde)
+                  const esFechaEvento = eventoActual?.fecha_evento && 
+                    esMismoDia(fechaActual, eventoActual.fecha_evento);
+                  
+                  // Verificar si es una fecha de pago (amarillo)
+                  const esFechaPago = eventoActual?.fechas?.some(fecha => 
+                    esMismoDia(fechaActual, fecha)
+                  );
+                  
+                  // Determinar la clase CSS
+                  let claseEspecial = '';
+                  if (esFechaEvento) {
+                    claseEspecial = 'fecha-evento'; // Verde
+                  } else if (esFechaPago) {
+                    claseEspecial = 'fecha-pago'; // Amarillo
+                  }
+                  
                   return (
                     <div
                       key={dia}
                       className={`dashboard-dia ${
                         esHoy ? "hoy text-center" : ""
-                      }`}
+                      } ${claseEspecial}`}
                     >
                       <p className="">{dia}</p>
                     </div>

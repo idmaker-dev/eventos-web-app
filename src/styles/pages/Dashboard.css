@@ -139,6 +139,39 @@
   font-weight: bold;
   /* border-radius: 50%; */
 }
+
+/* Fecha del evento (verde) */
+.dashboard-dia.fecha-evento {
+  background: #22c55e;
+  color: #ffffff;
+  font-weight: bold;
+  position: relative;
+}
+
+.dashboard-dia.fecha-evento::after {
+  content: '🎉';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+}
+
+/* Fechas de pago (amarillo) */
+.dashboard-dia.fecha-pago {
+  background: #fbbf24;
+  color: #000000;
+  font-weight: bold;
+  position: relative;
+}
+
+.dashboard-dia.fecha-pago::after {
+  content: '💰';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+}
+
 .dashboard-vacio {
   visibility: hidden;
 }
@@ -627,6 +660,17 @@ body.dark-mode .dashboard-dia {
 body.dark-mode .dashboard-dia.hoy {
   background: #72b7a4;
   color: #fff;
+}
+
+/* Fechas especiales en modo oscuro */
+body.dark-mode .dashboard-dia.fecha-evento {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+body.dark-mode .dashboard-dia.fecha-pago {
+  background: #d97706;
+  color: #ffffff;
 }
 
 /* Encabezados */

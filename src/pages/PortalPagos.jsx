@@ -1,15 +1,51 @@
 import { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { InstallmentsTable } from "../components/PortalPagos/Index.jsx";
 import Productos from "../components/PortalPagos/Productos.jsx";
 import Navbar from "../components/PortalPagos/Navbar.jsx";
 import HistorialPagos from "../components/PortalPagos/HistorialPagos.jsx";
+import guestService from "../services/guestService";
 
 export default function PortalPagos() {
   const [activeTab, setActiveTab] = useState("cuotas");
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Obtener invitado_id desde los parámetros de la URL
+  const { invitadoId } = useParams();
+  const navigate = useNavigate();
 
   const cuotasRef = useRef(null);
   const productosRef = useRef(null);
   const historialRef = useRef(null);
+
+  // Cargar datos del dashboard
+  useEffect(() => {
+    // Validar que existe invitadoId
+    if (!invitadoId) {
+      setError("ID de invitado no proporcionado");
+      setLoading(false);
+      return;
+    }
+
+    const cargarDashboard = async () => {
+      setLoading(true);
+      setError(null);
+      
+      const resultado = await guestService.getGuestDashboard(invitadoId);
+      
+      if (resultado.success) {
+        setDashboardData(resultado.data);
+      } else {
+        console.error("Error al cargar dashboard:", resultado.error);
+        setError(resultado.error || "Error al cargar la información del invitado");
+      }
+      setLoading(false);
+    };
+
+    cargarDashboard();
+  }, [invitadoId]);
 
   useEffect(() => {
     const scrollContainer = document.getElementById('scroll-container');
@@ -59,9 +95,40 @@ export default function PortalPagos() {
     });
   };
 
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#eaf0f6]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-casal mx-auto mb-4"></div>
+          <p className="text-casal font-semibold">Cargando información...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#eaf0f6]">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button
+              onClick={() => navigate(-1)}
+              className="bg-casal text-white px-6 py-2 rounded-lg hover:bg-casal/80 transition-colors"
+            >
+              Regresar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col bg-[#eaf0f6]">
-      <Navbar />
+      <Navbar invitado={dashboardData?.invitado} />
       <div className="max-w-5xl mx-auto w-full px-4 sm:px-2 lg:px-8 py-6 flex-shrink-0">
         <p className="text-casal text-base font-normal">
           Recuerda que puedes adelantar la fecha de liquidación de pago y esto
@@ -125,21 +192,31 @@ export default function PortalPagos() {
           <h2 className="text-2xl font-semibold text-casal mb-6">
             Mis Cuotas
           </h2>
-          <InstallmentsTable />
+          <InstallmentsTable 
+            cuotas={dashboardData?.cuotas || []}
+            resumen={dashboardData?.resumen}
+            invitadoId={invitadoId}
+          />
         </div>
 
         <div ref={productosRef} className="mb-16 pt-8" id="productos-section">
           <h2 className="text-2xl font-semibold text-casal mb-6">
             Mis Productos
           </h2>
-          <Productos />
+          <Productos 
+            producto={dashboardData?.producto}
+            invitado={dashboardData?.invitado}
+            cuotas={dashboardData?.cuotas || []}
+          />
         </div>
 
         <div ref={historialRef} className="mb-16 pt-8" id="historial-section">
           <h2 className="text-2xl font-semibold text-casal mb-6">
             Historial de Pagos
           </h2>
-          <HistorialPagos />
+          <HistorialPagos 
+            pagos={dashboardData?.historial_pagos || []}
+          />
         </div>
       </div>
     </div>

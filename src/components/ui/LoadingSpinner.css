@@ -58,3 +58,22 @@
   z-index: 9999;
   min-height: 100vh;
 }
+
+/* Overlay variant (used inside cards/panels without shifting layout) */
+.spinner-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.65);
+  backdrop-filter: blur(2px);
+  z-index: 40;
+  border-radius: inherit;
+}
+
+body.dark .spinner-overlay,
+.dark-mode .spinner-overlay {
+  background: rgba(30,30,30,0.55);
+}

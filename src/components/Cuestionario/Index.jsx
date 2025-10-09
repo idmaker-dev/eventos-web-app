@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import InlineSpinner from "../ui/InlineSpinner";
 import { useParams } from "react-router-dom";
 import logo from "../../assets/recursos/logoTentativo2.svg";
 import IconCuestionario from "../../assets/recursos/IconoCuestionario.svg";
@@ -10,6 +11,7 @@ import clsx from "clsx";
 import { Minus, Plus } from "lucide-react";
 import { useCuestionario } from "../../hooks/useCuestionario";
 import eventService from "../../services/eventService";
+import EnvConfig from "../../utils/config";
 
 // Función para formatear fecha
 const formatearFecha = (fechaString) => {
@@ -70,6 +72,7 @@ export default function Cuestionario() {
   const [nombreTutor, setNombreTutor] = useState("");
   const [apellidoPaternoTutor, setApellidoPaternoTutor] = useState("");
   const [apellidoMaternoTutor, setApellidoMaternoTutor] = useState("");
+  const [customerId, setCustomerId] = useState("");
 
   useEffect(() => {
     if (eventId) {
@@ -89,7 +92,10 @@ export default function Cuestionario() {
       [key]: Math.max(0, prev[key] + delta),
     }));
   };
+  const [isConfirming, setIsConfirming] = useState(false);
   const handleConfirmar = async () => {
+    if (isConfirming) return;
+    setIsConfirming(true);
     // Bypassed code validation for now - always proceed to submit form data
 
     const payload = {
@@ -116,13 +122,24 @@ export default function Cuestionario() {
       ]
     };
 
-    const res = await crearInvitado(payload);
-    if (res.success) {
-      setPasoActual(3);
-    } else {
-      console.error('Error al guardar:', res.error);
+    try {
+      const res = await crearInvitado(payload);
+      if (res.success) {
+        setCustomerId(res.invitado.id || "");
+        setPasoActual(3);
+      } else {
+        console.error('Error al guardar:', res.error);
+      }
+    } finally {
+      setIsConfirming(false);
     }
   };
+
+  const handleIrAPortalPagos = async () => {
+    //navegar en una nueva pestaña al portal de pagos
+    window.open(EnvConfig.BASE_URL + '/PortalPagos/' + customerId, '_blank');
+  };
+
   return (
     <div className="bg-porcelain min-h-screen flex flex-col justify-center ">
       <div>
@@ -160,7 +177,7 @@ export default function Cuestionario() {
                     <b>Hora:</b> {formatearHora(event?.fecha_evento)}
                   </p>
                   <p className="text-gray-900 mt-0 text-justify">
-                    <b>Lugar:</b> {event?.lugar_evento || "Auditorio Central, Universidad Nacional"}
+                    <b>Lugar:</b> {event?.lugar?.nombre || event?.lugar_evento || "Auditorio Central, Universidad Nacional"}
                   </p>
                 </div>
                 <div className="w-full mx-auto mt-6">
@@ -454,11 +471,13 @@ export default function Cuestionario() {
                     </div>
                     <div className="my-5 flex justify-center">
                       <Button
-                      //aun falta implementar la verificacion del codigo
                         onClick={handleConfirmar}
-                        className="bg-casal text-xl text-white w-[70%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition"
+                        disabled={isConfirming}
+                        aria-busy={isConfirming}
+                        className="bg-casal text-xl text-white w-[70%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        Verificar y confirmar
+                        {isConfirming && <InlineSpinner size="sm" />}
+                        {isConfirming ? 'Enviando...' : 'Verificar y confirmar'}
                       </Button>
                     </div>
                   </Field>
@@ -489,7 +508,9 @@ export default function Cuestionario() {
                 <div>
                   <Field>
                     <div className="my-5 flex justify-center">
-                      <Button className="bg-casal text-xl text-white w-[90%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition">
+                      <Button 
+                        onClick={handleIrAPortalPagos}
+                      className="bg-casal text-xl text-white w-[90%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition">
                         Realizar pago · Abonar ahora
                       </Button>
                     </div>

@@ -1,35 +1,31 @@
 "use client"
 
-import { Button } from "@headlessui/react"
 import { Coins, CreditCard, Flame } from "lucide-react"
 import { DetallesPagoModal } from "./DetallesPago"
 import { useState } from "react"
 
-const mockPayments = [
-  {
-    id: "1",
-    amount: 1950.0,
-    paymentDate: "26/09/2025",
-    paymentMethod: "Transferencia",
-    methodIcon: "transfer",
-  },
-  {
-    id: "2",
-    amount: 2850.0,
-    paymentDate: "15/08/2025",
-    paymentMethod: "Pago por tarjeta",
-    methodIcon: "card",
-  },
-  {
-    id: "3",
-    amount: 1200.0,
-    paymentDate: "10/07/2025",
-    paymentMethod: "Efectivo",
-    methodIcon: "cash",
-  },
-]
+const formatearFecha = (fechaISO) => {
+  if (!fechaISO) return "";
+  const fecha = new Date(fechaISO);
+  const day = String(fecha.getDate()).padStart(2, '0');
+  const month = String(fecha.getMonth() + 1).padStart(2, '0');
+  const year = fecha.getFullYear();
+  return `${day}/${month}/${year}`;
+};
 
-export default function HistorialPagos() {
+const obtenerIconoMetodo = (metodo) => {
+  const metodosLower = metodo?.toLowerCase() || "";
+  
+  if (metodosLower.includes("tarjeta") || metodosLower.includes("card")) {
+    return "card";
+  } else if (metodosLower.includes("transferencia") || metodosLower.includes("transfer")) {
+    return "transfer";
+  } else {
+    return "cash";
+  }
+};
+
+export default function HistorialPagos({ pagos = [] }) {
   const [open, setOpen] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState(null)
 
@@ -56,28 +52,31 @@ export default function HistorialPagos() {
         </div>
 
         <div className="overflow-x-auto">
-          {mockPayments.map((payment) => (
-            <div key={payment.id}>
+          {pagos.length > 0 ? (
+            pagos.map((payment) => {
+              const iconoMetodo = obtenerIconoMetodo(payment.metodo_pago);
+              return (
+            <div key={payment.id_pago}>
 
               {/* Vista Laptop */}
               <div className="hidden md:grid grid-cols-4 gap-4 py-6 bg-white border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors px-8">
                 <div className="text-sm text-gray-900 font-medium">
-                  ${payment.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                  ${payment.monto.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                 </div>
-                <div className="text-sm text-gray-600">{payment.paymentDate}</div>
+                <div className="text-sm text-gray-600">{formatearFecha(payment.fecha_pago)}</div>
                 <div className="flex items-center gap-2">
                   <div className="flex h-5 w-5 items-center justify-center rounded bg-red-500/10">
                     {
-                            payment.methodIcon === "card" ? (
+                            iconoMetodo === "card" ? (
                               <CreditCard className="h-3 w-3 text-red-500" />
-                            ) : payment.methodIcon === "transfer" ? (
+                            ) : iconoMetodo === "transfer" ? (
                               <Flame className="h-3 w-3 text-red-500" />
                             ) : (
                               <Coins className="h-3 w-3 text-red-500" />
                             )
                           }
                   </div>
-                  <span className="text-sm text-gray-600">{payment.paymentMethod}</span>
+                  <span className="text-sm text-gray-600">{payment.metodo_pago || "Transferencia"}</span>
                 </div>
                 <div>
                   <button 
@@ -95,7 +94,7 @@ export default function HistorialPagos() {
                   
                   <div className="flex items-center justify-between">
                     <div className="text-lg font-semibold text-gray-900">
-                      ${payment.amount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
+                      ${payment.monto.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
                     </div>
                     <span className="inline-flex items-center rounded px-2 py-1 text-xs font-medium bg-green-100 text-green-800">
                       Pagado
@@ -105,7 +104,7 @@ export default function HistorialPagos() {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-500">Fecha de pago:</span>
-                      <span className="text-sm text-gray-900">{payment.paymentDate}</span>
+                      <span className="text-sm text-gray-900">{formatearFecha(payment.fecha_pago)}</span>
                     </div>
                     
                     <div className="flex justify-between items-center">
@@ -113,16 +112,16 @@ export default function HistorialPagos() {
                       <div className="flex items-center gap-2">
                         <div className="flex h-4 w-4 items-center justify-center rounded bg-red-500/10">
                           {
-                            payment.methodIcon === "card" ? (
+                            iconoMetodo === "card" ? (
                               <CreditCard className="h-3 w-3 text-red-500" />
-                            ) : payment.methodIcon === "transfer" ? (
+                            ) : iconoMetodo === "transfer" ? (
                               <Flame className="h-3 w-3 text-red-500" />
                             ) : (
                               <Coins className="h-3 w-3 text-red-500" />
                             )
                           }
                         </div>
-                        <span className="text-sm text-gray-900">{payment.paymentMethod}</span>
+                        <span className="text-sm text-gray-900">{payment.metodo_pago || "Transferencia"}</span>
                       </div>
                     </div>
                   </div>
@@ -138,10 +137,12 @@ export default function HistorialPagos() {
                 </div>
               </div>
             </div>
-          ))}
+              );
+            })
+          ) : null}
         </div>
 
-        {mockPayments.length === 0 && (
+        {pagos.length === 0 && (
           <div className="text-center py-12 bg-white">
             <div className="text-gray-500 text-sm">
               No hay pagos registrados

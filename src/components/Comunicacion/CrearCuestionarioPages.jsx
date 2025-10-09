@@ -1,23 +1,64 @@
-import { Button, Field, Input, Label, Textarea } from "@headlessui/react";
+import { Button, Field, Input, Label, Textarea, Select } from "@headlessui/react";
 import clsx from "clsx";
 import React, { useState, useEffect } from "react";
 import FormularioCuestionario from "./FormularioCuestionario";
-import { LaptopIcon, Smartphone, Plus, Minus, ChevronRight, ChevronLeft } from "lucide-react";
+import { LaptopIcon, Smartphone, Plus, Minus, ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
 import ModalConfimacion from "./ModalConfimacion";
 import { DeviceFrameset } from "react-device-frameset";
 import "react-device-frameset/styles/marvel-devices.min.css";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 
+// Función para formatear fecha
+const formatearFecha = (fechaString) => {
+  if (!fechaString) return "25 de junio de 2025";
+  
+  try {
+    const fecha = new Date(fechaString);
+    const opciones = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      timeZone: 'America/Mexico_City'
+    };
+    
+    return fecha.toLocaleDateString('es-MX', opciones);
+  } catch (error) {
+    return fechaString; // Retorna la fecha original si hay error
+  }
+};
+
+// Función para formatear hora
+const formatearHora = (fechaString) => {
+  if (!fechaString) return "17:00 hrs";
+  
+  try {
+    const fecha = new Date(fechaString);
+    const opciones = { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZone: 'America/Mexico_City'
+    };
+    
+    return fecha.toLocaleTimeString('es-MX', opciones) + " hrs";
+  } catch (error) {
+    return fechaString; // Retorna la fecha original si hay error
+  }
+};
+
 export default function CrearCuestionarioPages() {
   const { showSuccess, showError } = useNotifications();
   const { eventoActual, isLoading } = useSelectedEvent();
+  
+  // Estado para lugares
+  const [lugares, setLugares] = useState([]);
+  const [isLoadingLugares, setIsLoadingLugares] = useState(false);
   
   // Estado del formulario inicializado con datos del evento
   const [formData, setFormData] = useState({
     nombreEvento: "",
     descripcionEvento: "",
-    lugarEvento: "",
+    lugar_id: "",
     fechaHoraEvento: "",
     nombreCompleto: "",
     carreraEstudios: "",
@@ -40,7 +81,30 @@ export default function CrearCuestionarioPages() {
   const [otra, setOtra] = useState("");
   const [modoVista, setModoVista] = useState("laptop"); // "laptop" o "telefono"
   const [modalOpen, setModalOpen] = useState(false);
-  const [Ocultar, setOcultar] = useState(false);
+  const [Ocultar, setOcultar] = useState(true);
+
+  // Efecto para cargar lugares
+  useEffect(() => {
+    const cargarLugares = async () => {
+      setIsLoadingLugares(true);
+      try {
+        const eventService = (await import('../../services/eventService')).default;
+        const resultado = await eventService.getLugares();
+        
+        if (resultado.success) {
+          setLugares(resultado.data);
+        } else {
+          console.error('❌ Error al cargar lugares:', resultado.error);
+        }
+      } catch (error) {
+        console.error('❌ Error inesperado al cargar lugares:', error);
+      } finally {
+        setIsLoadingLugares(false);
+      }
+    };
+
+    cargarLugares();
+  }, []);
 
   // Efecto para cargar datos del evento seleccionado
   useEffect(() => {
@@ -49,7 +113,7 @@ export default function CrearCuestionarioPages() {
         ...prev,
         nombreEvento: eventoActual.nombreEvento || "",
         descripcionEvento: eventoActual.descripcionEvento || "",
-        lugarEvento: eventoActual.lugarEvento || "",
+        lugar_id: eventoActual.lugar_id || eventoActual.lugar?.id || "",
         fechaHoraEvento: eventoActual.fechaHora || "",
         escuelaInstitucion: eventoActual.nombreInstitucion || ""
       }));
@@ -150,17 +214,33 @@ export default function CrearCuestionarioPages() {
                   <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
                     Lugar de evento
                   </Label>
-                  <Input
-                    type="text"
-                    value={formData.lugarEvento}
-                    onChange={(e) => handleInputChange('lugarEvento', e.target.value)}
-                    className={clsx(
-                      "mt-2 block w-full rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
-                      "placeholder:italic",
-                      "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
-                    )}
-                    placeholder="Auditorio, salón, teatro, etc."
-                  />
+                  <div className="relative">
+                    <Select
+                      value={formData.lugar_id}
+                      onChange={(e) => handleInputChange('lugar_id', e.target.value)}
+                      disabled={isLoadingLugares}
+                      className={clsx(
+                        "mt-2 block w-full appearance-none rounded-3xl border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                        "placeholder:italic",
+                        "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                        "*:text-black",
+                        "disabled:opacity-50 disabled:cursor-not-allowed"
+                      )}
+                    >
+                      <option value="">
+                        {isLoadingLugares ? "Cargando lugares..." : "Seleccionar lugar"}
+                      </option>
+                      {lugares.map((lugar) => (
+                        <option key={lugar.id} value={lugar.id}>
+                          {lugar.nombre}
+                        </option>
+                      ))}
+                    </Select>
+                    <ChevronDown
+                      className="group pointer-events-none absolute top-2.5 right-2.5 size-4 fill-black/60 dark:fill-white/60"
+                      aria-hidden="true"
+                    />
+                  </div>
                 </div>
                 <div className="mb-3">
                   <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">

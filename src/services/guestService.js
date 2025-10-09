@@ -117,7 +117,7 @@ class GuestService {
    */
   async deleteGuest(eventId, guestId) {
     try {
-  await httpService.delete(`/eventos/${eventId}/guests/${guestId}`);
+      await httpService.delete(`/eventos/${eventId}/guests/${guestId}`);
 
       return {
         success: true,
@@ -289,7 +289,9 @@ class GuestService {
    */
   async getGuestStats(eventId) {
     try {
-  const response = await httpService.get(`/eventos/${eventId}/guests/stats`);
+      const response = await httpService.get(
+        `/eventos/${eventId}/guests/stats`
+      );
 
       return {
         success: true,
@@ -305,6 +307,49 @@ class GuestService {
           pending: 0,
           rejected: 0,
         },
+      };
+    }
+  }
+
+  /**
+   * Obtener dashboard del invitado (Portal de Pagos)
+   */
+  async getGuestDashboard(guestId) {
+    try {
+      const response = await httpService.get(
+        `/invitados/dashboard?invitado_id=${guestId}`
+      );
+
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error.userMessage || "Error al obtener el dashboard del invitado",
+      };
+    }
+  }
+
+  /**
+   * Obtener información de CLABE virtual del invitado
+   */
+  async getGuestClabe(guestId) {
+    try {
+      const response = await httpService.get(
+        `/invitados/clabe?invitado_id=${guestId}`
+      );
+
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al obtener la información de CLABE",
       };
     }
   }

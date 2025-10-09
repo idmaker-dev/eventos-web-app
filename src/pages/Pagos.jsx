@@ -1,23 +1,77 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "../styles/pages/Pagos.css";
-import { CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import EstadoPendiente from "../assets/recursos/EstadoPendiente.svg";
 import EstadoAprobado from "../assets/recursos/EstadoAprobado.svg";
 import EstadoParcial from "../assets/recursos/EstadoParcial.svg";
+import DetalleFacturas from "../components/Pagos/DetalleFacturas";
+import eventService from "../services/eventService";
+import { useSelectedEvent } from "../contexts/SelectedEventContext";
+import { useSignalRPagos } from "../hooks/useSignalRPagos";
+import { useNotifications } from "../contexts/NotificationContext";
 
 export default function Pagos({ darkMode }) {
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalData, setModalData] = useState(null);
+  const [selectedDeuda, setSelectedDeuda] = useState(null);
+  const [deudas, setDeudas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const { eventoActual } = useSelectedEvent();
+  const { showSuccess } = useNotifications();
 
-  const data = [
-    { nombre: "Ana Sofía Garza", pagado: 15000, total: 20000, estado: "Pendiente", accion: "Verificar Comprobante" },
-    { nombre: "Carlos Martínez", pagado: 20000, total: 20000, estado: "Aprobado", accion: "Ver historial" },
-    { nombre: "David Jiménez", pagado: 5000, total: 20000, estado: "Parcial", accion: "Ver historial" },
-    { nombre: "Víctor Ocampo", pagado: 20000, total: 20000, estado: "Aprobado", accion: "Verificar Comprobante" },
-    { nombre: "Juan Antonio", pagado: 20000, total: 20000, estado: "Aprobado", accion: "Ver historial" },
-    { nombre: "Javier Lara Flores", pagado: 12000, total: 20000, estado: "Pendiente", accion: "Verificar Comprobante" },
-    { nombre: "Esmeralda Jiménez", pagado: 3000, total: 20000, estado: "Parcial", accion: "Ver historial" },
-  ];
+  // Función para cargar deudas del evento
+  const cargarDeudas = useCallback(async () => {
+    console.log('🔄 [cargarDeudas] Iniciando carga...');
+    console.log('🔄 [cargarDeudas] Evento actual ID:', eventoActual?.id);
+    
+    if (!eventoActual?.id) {
+      console.warn('⚠️ [cargarDeudas] No hay evento seleccionado');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    console.log('🔄 [cargarDeudas] Llamando a API con evento:', eventoActual.id);
+    const resultado = await eventService.getEventDebts(eventoActual.id);
+    
+    if (resultado.success) {
+      console.log('✅ [cargarDeudas] Deudas recibidas:', resultado.data.deudas?.length || 0);
+      console.log('✅ [cargarDeudas] Datos:', resultado.data.deudas);
+      setDeudas(resultado.data.deudas || []);
+    } else {
+      console.error("❌ [cargarDeudas] Error al cargar deudas:", resultado.error);
+    }
+    setLoading(false);
+    console.log('🔄 [cargarDeudas] Carga completada');
+  }, [eventoActual?.id]);
+
+  // Callback para cuando se complete un pago
+  const handlePagoCompletado = useCallback((data) => {
+    console.log('💰 [Pagos] Pago completado recibido:', data);
+    console.log('💰 [Pagos] Evento ID actual:', eventoActual?.id);
+    console.log('💰 [Pagos] Ejecutando cargarDeudas...');
+    
+    // Mostrar notificación
+    showSuccess(
+      `Pago completado: ${data.asistente?.nombre || 'Asistente'}`,
+      { duration: 5000 }
+    );
+
+    // Recargar las deudas
+    cargarDeudas();
+  }, [showSuccess, cargarDeudas, eventoActual?.id]);
+
+  // Hook de SignalR para pagos
+  useSignalRPagos(handlePagoCompletado);
+
+  // Cargar deudas del evento al montar o cambiar evento
+  useEffect(() => {
+    cargarDeudas();
+  }, [cargarDeudas]);
+
+  // Filtrar deudas por búsqueda
+  const deudasFiltradas = deudas.filter((deuda) =>
+    deuda.asistente.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const getEstado = (estado) => {
     if (estado === "Pendiente")
@@ -45,17 +99,26 @@ export default function Pagos({ darkMode }) {
       );
   };
 
-  const getBarraColor = (estado) => {
-    if (estado === "Pendiente") return "#facc15";
-    if (estado === "Aprobado") return "#34d399"; 
-    if (estado === "Parcial") return "#9ca3af"; 
-    return "#6fcf97";
+  const getBarraColor = (progreso) => {
+    if (!progreso || !progreso.color) return "#6fcf97";
+    return progreso.color;
   };
 
-  const abrirModal = (item) => {
-    setModalData(item);
+  const abrirModal = (deuda) => {
+    setSelectedDeuda(deuda);
     setModalOpen(true);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-casal mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Cargando deudas...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`pagos-container bg-white dark:bg-[#1e1e1e] rounded-3xl ${darkMode ? "dark" : ""}`}>
@@ -70,7 +133,13 @@ export default function Pagos({ darkMode }) {
 
         <div className="pagos-actions">
           <div className="buscar-wrapper">
-            <input type="text" placeholder="Buscar asistente" className="buscar" />
+            <input 
+              type="text" 
+              placeholder="Buscar asistente" 
+              className="buscar"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
           <button className="btn-csv">Exportar en CSV</button>
         </div>
@@ -85,75 +154,71 @@ export default function Pagos({ darkMode }) {
           <div>Acción</div>
         </div>
 
-        {data.map((item, idx) => {
-          const porcentaje = (item.pagado / item.total) * 100;
-          return (
-            <div key={idx} className="pagos-fila rounded-lg">
-              <div className="col flex items-center" data-label="Asistente">
-                <span className="nombre">{item.nombre}</span>
-              </div>
+        {deudasFiltradas.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400">
+              {searchTerm ? "No se encontraron resultados" : "No hay deudas registradas"}
+            </p>
+          </div>
+        ) : (
+          deudasFiltradas.map((deuda) => {
+            const porcentaje = deuda.progreso.porcentaje;
+            return (
+              <div 
+                key={deuda.deuda_id} 
+                className="pagos-fila rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                onClick={() => abrirModal(deuda)}
+              >
+                <div className="col flex items-center" data-label="Asistente">
+                  <span className="nombre">{deuda.asistente.nombre_completo}</span>
+                </div>
 
-              <div className="col flex items-center" data-label="Progreso">
-                <div className="barra-progreso w-4/5">
-                  <div
-                    className="barra-fill "
-                    style={{
-                      width: `${porcentaje}%`,
-                      background: getBarraColor(item.estado),
+                <div className="col flex items-center" data-label="Progreso">
+                  <div className="barra-progreso w-4/5">
+                    <div
+                      className="barra-fill"
+                      style={{
+                        width: `${porcentaje}%`,
+                        background: getBarraColor(deuda.progreso),
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="col flex items-center" data-label="Total pagado">
+                  {deuda.financiero.total_pagado}
+                </div>
+
+                <div className="col flex items-center" data-label="Estado">
+                  {getEstado(deuda.estado.texto)}
+                </div>
+
+                <div className="col flex items-center" data-label="Acción">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      abrirModal(deuda);
                     }}
-                  ></div>
+                    className="btn-accion btn-historial"
+                  >
+                    Ver facturas
+                  </button>
                 </div>
               </div>
-
-              <div className="col flex items-center" data-label="Total pagado">
-                ${item.pagado.toLocaleString("es-MX")}/{item.total.toLocaleString("es-MX")}
-              </div>
-
-              <div className="col flex items-center" data-label="Estado">
-                {getEstado(item.estado)}
-              </div>
-
-              <div className="col flex items-center" data-label="Acción">
-                <button
-                  onClick={() => abrirModal(item)}
-                  className={`btn-accion ${
-                    item.accion.includes("Verificar") ? "btn-verificar" : "btn-historial"
-                  }`}
-                >
-                  {item.accion}
-                </button>
-              </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
-      {/* Modal */}
-      {modalOpen && modalData && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>{modalData.accion}</h3>
-            {modalData.accion.includes("Verificar") ? (
-              <div>
-                <p><strong>Asistente:</strong> {modalData.nombre}</p>
-                <p><strong>Monto pagado:</strong> ${modalData.pagado.toLocaleString("es-MX")}</p>
-                <p><strong>Total:</strong> ${modalData.total.toLocaleString("es-MX")}</p>
-                <button className="btn-confirmar">Confirmar comprobante</button>
-              </div>
-            ) : (
-              <div>
-                <p><strong>Historial de pagos de {modalData.nombre}</strong></p>
-                <ul>
-                  <li>Pago inicial: ${modalData.pagado.toLocaleString("es-MX")}</li>
-                  <li>Total requerido: ${modalData.total.toLocaleString("es-MX")}</li>
-                  <li>Estado actual: {modalData.estado}</li>
-                </ul>
-              </div>
-            )}
-            <button className="btn-cerrar" onClick={() => setModalOpen(false)}>Cerrar</button>
-          </div>
-        </div>
-      )}
+      {/* Modal de Detalle de Facturas */}
+      <DetalleFacturas
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedDeuda(null);
+        }}
+        deuda={selectedDeuda}
+      />
     </div>
   );
 }

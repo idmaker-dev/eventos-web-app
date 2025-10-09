@@ -27,7 +27,7 @@ export default function Comunicacion() {
                 </div>
             </div>
             <div className="">
-                <TabGroup>
+                <TabGroup defaultIndex={2}>
                     <TabList className="flex gap-4">
                         <Tab className={({ selected }) =>
                             clsx(

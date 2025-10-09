@@ -26,19 +26,23 @@ export const useSignalRConnection = () => {
   useEffect(() => {
     const currentUserId = user?.id;
 
+    if (EnvConfig.DEBUG_MODE) {
+      console.log("🔍 [useSignalRConnection] Verificando conexión:", {
+        autoConnectEnabled,
+        isAuthenticated,
+        currentUserId,
+        conectado,
+        lastUserId,
+        userObject: user,
+      });
+    }
+
     // Solo intentar conectar si:
     // 1. Auto-connect está habilitado
     // 2. Usuario está autenticado
     // 3. Hay un userId válido
     // 4. No está conectado
-    // 5. El userId ha cambiado o es la primera vez
-    if (
-      autoConnectEnabled &&
-      isAuthenticated &&
-      currentUserId &&
-      !conectado &&
-      currentUserId !== lastUserId
-    ) {
+    if (autoConnectEnabled && isAuthenticated && currentUserId && !conectado) {
       if (EnvConfig.DEBUG_MODE) {
         console.log("🔄 Auto-conectando SignalR para usuario:", currentUserId);
       }
@@ -53,27 +57,30 @@ export const useSignalRConnection = () => {
       setLastUserId(null);
       desconectarSignalR();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     isAuthenticated,
     user?.id,
     conectado,
     autoConnectEnabled,
-    lastUserId,
     conectarSignalR,
     desconectarSignalR,
+    // Nota: lastUserId se omite intencionalmente para permitir reconexión después de reload
   ]);
 
   // Función para conectar manualmente
   const conectarManualmente = useCallback(async () => {
-    if (!user?.id) {
+    const userId = user?.id;
+
+    if (!userId) {
       if (EnvConfig.DEBUG_MODE) {
-        console.warn("⚠️ No se puede conectar: usuario no válido");
+        console.warn("⚠️ No se puede conectar: usuario no válido", { user });
       }
       return { success: false, error: "Usuario no válido" };
     }
 
-    return await conectarSignalR(user.id);
-  }, [user?.id, conectarSignalR]);
+    return await conectarSignalR(userId);
+  }, [user, conectarSignalR]);
 
   // Función para desconectar manualmente
   const desconectarManualmente = useCallback(async () => {

@@ -148,7 +148,7 @@ export const useEventos = () => {
           instituto: datosEvento.instituto,
           licenciatura: datosEvento.licenciatura,
           nombreEvento: datosEvento.nombreEvento,
-          lugarEvento: datosEvento.lugarEvento,
+          lugar_id: datosEvento.lugar_id,
           fechaHora: datosEvento.fechaHora,
           cantidadAsistentes: parseInt(datosEvento.cantidadAsistentes) || 0,
           responsable: datosEvento.responsable,
@@ -442,13 +442,19 @@ export const useEventos = () => {
 
   // Cargar eventos al montar el componente o cambiar autenticación
   useEffect(() => {
-    if (isAuthenticated) {
-      cargarEventos();
-    } else {
+    if (!isAuthenticated) {
       setEventos([]);
       setEventoActual(null);
+      return;
     }
-  }, [isAuthenticated, cargarEventos]);
+    if (user?.rol !== "admin") {
+      // Usuarios no admin no gestionan lista global de eventos aquí
+      setEventos([]);
+      setEventoActual(null);
+      return;
+    }
+    cargarEventos();
+  }, [isAuthenticated, user?.rol, cargarEventos]);
 
   // Retornar API del hook
   return {
@@ -505,7 +511,7 @@ const validarDatosEvento = (datos) => {
     errores.push("Nombre del evento requerido");
   }
 
-  if (!datos.lugarEvento?.trim()) {
+  if (!datos.lugar_id?.trim()) {
     errores.push("Lugar del evento requerido");
   }
 

@@ -12,9 +12,11 @@ class CuestService {
         invitadoData
       );
 
+      console.log("Response createInvitado:", response);
+
       return {
         success: true,
-        invitado: response,
+        invitado: response.data,
         message: "Invitado creado exitosamente",
       };
     } catch (error) {

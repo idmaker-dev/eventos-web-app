@@ -146,6 +146,28 @@ class EventService {
   }
 
   /**
+   * Obtener estadísticas del dashboard del evento
+   */
+  async getDashboardStats(eventId) {
+    try {
+      const response = await httpService.get(
+        `/dashboard/evento?evento_id=${eventId}`
+      );
+
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage,
+        data: null,
+      };
+    }
+  }
+
+  /**
    * Subir imagen del evento
    */
   async uploadEventImage(eventId, imageFile, onProgress = null) {
@@ -166,6 +188,48 @@ class EventService {
       return {
         success: false,
         error: error.userMessage,
+      };
+    }
+  }
+
+  /**
+   * Obtener deudas del evento
+   */
+  async getEventDebts(eventId) {
+    try {
+      const response = await httpService.get(
+        `/eventos/deudas?evento_id=${eventId}`
+      );
+
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage,
+        data: null,
+      };
+    }
+  }
+
+  /**
+   * Obtener lugares disponibles para select
+   */
+  async getLugares() {
+    try {
+      const response = await httpService.get("/lugares/select/options");
+
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage,
+        data: [],
       };
     }
   }
