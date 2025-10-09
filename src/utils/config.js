@@ -4,7 +4,10 @@
 class EnvConfig {
   // API Configuration
   static get API_URL() {
-    return process.env.REACT_APP_API_URL || "http://localhost:3001/api";
+    return (
+      process.env.REACT_APP_API_URL ||
+      "https://eventosapi-v2.azurewebsites.net/api"
+    );
   }
 
   static get API_VERSION() {
