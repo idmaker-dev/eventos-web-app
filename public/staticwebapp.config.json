@@ -2,10 +2,20 @@
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": [
-      "*.{css,js,png,jpg,jpeg,gif,svg,webp}",
-      "*/favicon.ico",
-      "assets/*",
-      "static/*"
+      "*.css",
+      "*.js",
+      "*.png",
+      "*.jpg",
+      "*.jpeg",
+      "*.gif",
+      "*.svg",
+      "*.webp",
+      "*.ico",
+      "*.json",
+      "*.txt",
+      "/assets/*",
+      "/static/*",
+      "/api/*"
     ]
   },
   "responseOverrides": {
