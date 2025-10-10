@@ -152,7 +152,7 @@ export default function ModalUsuario({
 
         <form onSubmit={handleSubmit} className="space-y-4 relative">
           <div>
-            <label className="block text-sm font-medium mb-1">Nombre *</label>
+            <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Nombre *</label>
             <input
               name="nombre"
               value={form.nombre}
@@ -176,7 +176,7 @@ export default function ModalUsuario({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Email *</label>
+            <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Email *</label>
             <input
               name="email"
               type="email"
@@ -202,7 +202,7 @@ export default function ModalUsuario({
 
           {form.rol !== "lugar" && !esEdicion && (
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
                 Contraseña *
               </label>
               <input
@@ -236,7 +236,7 @@ export default function ModalUsuario({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Rol *</label>
+              <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Rol *</label>
               <div className="relative">
                 <select
                   name="rol"
@@ -267,7 +267,7 @@ export default function ModalUsuario({
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Contacto</label>
+              <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Contacto</label>
               <input
                 name="contacto"
                 value={form.contacto}
@@ -286,7 +286,7 @@ export default function ModalUsuario({
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Dirección</label>
+            <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">Dirección</label>
             <input
               name="direccion"
               value={form.direccion}
@@ -305,7 +305,7 @@ export default function ModalUsuario({
 
           {form.rol === "lugar" && (
             <div className="">
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
                 Lugar asignado *
               </label>
               {cargandoLugares ? (

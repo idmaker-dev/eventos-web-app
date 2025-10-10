@@ -123,7 +123,7 @@ export default function Dashboard() {
     color1,
     color2,
   }) => (
-    <div className="dashboard-metrica">
+    <div className="dashboard-metrica max-w-7xl">
       <p className="text-sm font-semibold mb-3 text-left">{titulo}</p>
       <div className="metric-circle">
         <div className="circle-wrapper">

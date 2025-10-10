@@ -1,39 +1,27 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Outlet, NavLink } from "react-router-dom";
-import {
-  Settings,
-  Bell,
-  ChevronDown,
-  CalendarPlus2,
-  LogOut,
-  Pin,
-  User,
-} from "lucide-react";
-import "../../styles/pages/AdminPage.css";
-import ResumenProgreso from "../../assets/recursos/resumen_progreso.svg";
-import ModuloPagos from "../../assets/recursos/moduloDePagos.svg";
-import ModuloAsignacion from "../../assets/recursos/moduloDeAsignacion.svg";
-import ModuloInvitados from "../../assets/recursos/moduloInvitados.svg";
-import Inicio from "../../assets/recursos/inicio.svg";
+import { Outlet } from "react-router-dom";
+import { Bell, ChevronDown, CalendarPlus2, LogOut, Menu } from "lucide-react";
 import Eventos from "../Modales/Eventos";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
-
 import temaClaro from "../../assets/recursos/temaClaro.svg";
 import temaOscuro from "../../assets/recursos/temaOscuro.svg";
-import { Button } from "@headlessui/react";
 import InlineSpinner from "../ui/InlineSpinner";
 import { useAuth } from "../../hooks/useAuth";
+
+import DesktopSidebar from "./Menu/DesktopSidebar";
+import MobileSidebar from "./Menu/MobilSidebar";
 
 export default function AdminPage() {
   const [darkMode, setDarkMode] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [configMenuOpen, setConfigMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const configMenuRef = useRef(null);
+  const mobileMenuRef = useRef(null);
   const { logout } = useAuth();
 
-  // Cerrar dropdown cuando se hace click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -42,18 +30,23 @@ export default function AdminPage() {
       ) {
         setConfigMenuOpen(false);
       }
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target)
+      ) {
+        setMobileMenuOpen(false);
+      }
     };
 
-    if (configMenuOpen) {
+    if (configMenuOpen || mobileMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [configMenuOpen]);
+  }, [configMenuOpen, mobileMenuOpen]);
 
-  // Cargar preferencia guardada
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
     if (savedMode === "true") {
@@ -61,7 +54,6 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Aplicar clase global al <body> y guardar en localStorage
   useEffect(() => {
     document.body.classList.toggle("dark-mode", darkMode);
     document.body.classList.toggle("dark", darkMode);
@@ -70,9 +62,8 @@ export default function AdminPage() {
 
   const [isOpen, setIsOpen] = useState(false);
   const { eventos, selectEvent, eventoActual } = useSelectedEvent();
-
   const [selectedOption, setSelectedOption] = useState("Selecciona un evento");
-  // Obtener etiqueta usando únicamente la propiedad nombre_evento (el nombre ya viene así)
+
   const getLabel = React.useCallback((evento, index) => {
     if (!evento) return `Evento ${index + 1}`;
     if (
@@ -96,10 +87,8 @@ export default function AdminPage() {
       const first = eventos[0];
       const label = getLabel(first, 0);
       setSelectedOption(label);
-      // opcional: cargar el evento actual en el hook
       const id = first.id || first._id || null;
       if (id) {
-        // usar selectEvent para centralizar la selección
         selectEvent(id);
       }
     } else {
@@ -123,7 +112,6 @@ export default function AdminPage() {
     setIsLoggingOut(true);
     try {
       await logout();
-      // logout redirige y no hace falta resetear estado
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
       setIsLoggingOut(false);
@@ -131,192 +119,170 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="admin-layout">
-      {/* Sidebar */}
-      <aside className="sidebar">
-        {/* Logo P */}
-        <div className="sidebar-logo-top">
-          <img
-            src="/logop.png"
-            alt="Logo P"
-            className="object-contain rounded-full w-14 h-14"
-          />
-        </div>
+    <div className="min-h-screen bg-fondoVs dark:bg-[#1a1a1a]">
+      {/* SIDEBAR DESKTOP */}
+      <DesktopSidebar
+        configMenuOpen={configMenuOpen}
+        setConfigMenuOpen={setConfigMenuOpen}
+        configMenuRef={configMenuRef}
+      />
 
-        {/* Menú navegación */}
-        <nav className="sidebar-top bg-white dark:bg-[#1a1a1a] px-1 py-1 rounded-full">
-          <ul>
-            <li className="tooltip mb-3">
-              <NavLink to="/admin" end>
-                {/* <Home size={22} /> */}
-                <img src={Inicio} alt="Inicio" className="w-6 h-6 " />
-              </NavLink>
-              <span className="tooltip-pill">Inicio</span>
-            </li>
+      {/* MENÚ MÓVIL */}
+      <MobileSidebar
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        mobileMenuRef={mobileMenuRef}
+      />
 
-            <li className="tooltip mb-3">
-              <NavLink to="/admin/modulos">
-                {/* <ClipboardCheck size={22} /> */}
-                <img
-                  src={ResumenProgreso}
-                  alt="Resumen y progreso"
-                  className="w-6 h-6"
-                />
-              </NavLink>
-              <span className="tooltip-pill">Resumen y progreso</span>
-            </li>
+      {/* Contenido principal */}
+      <main className="lg:ml-[130px] min-h-screen">
+        <div className="sticky top-0 z-40 backdrop-blur-sm px-4 lg:px-6 py-4">
+          <div className="flex items-center justify-between gap-3">
+            {/* Botón menú móvil */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200 shadow-sm"
+            >
+              <Menu size={20} />
+            </button>
 
-            <li className="tooltip mb-3">
-              <NavLink to="/admin/pagos">
-                {/* <Coins size={22} /> */}
-                <img
-                  src={ModuloPagos}
-                  alt="Módulo de pagos"
-                  className="w-6 h-6"
-                />
-              </NavLink>
-              <span className="tooltip-pill">Módulo de pagos</span>
-            </li>
+            {/* Títulos */}
+            <div className="hidden lg:block">
+              <p className="text-2xl lg:text-4xl text-[#216b6b] font-bold w-96 lg:w-full line-clamp-2 lg:line-clamp-0 mx-auto">
+                Hola, {eventoActual ? eventoActual.instituto : "Usuario"}!
+              </p>
+              <p className="text-gray-500 dark:text-gray-400 font-medium">
+                Todo tu evento, en orden
+              </p>
+            </div>
 
-            <li className="tooltip mb-3">
-              <NavLink to="/admin/invitados">
-                {/* <Users size={22} /> */}
-                <img
-                  src={ModuloInvitados}
-                  alt="Módulo de invitados"
-                  className="w-6 h-6"
-                />
-              </NavLink>
-              <span className="tooltip-pill">Módulo de asignación</span>
-            </li>
+            {/* Título móvil */}
+            <div className="lg:hidden flex-1 text-center">
+              <p className="text-lg text-[#216b6b] font-bold">
+                {eventoActual ? eventoActual.instituto : "Panel Admin"}
+              </p>
+            </div>
 
-            <li className="tooltip">
-              <NavLink to="/admin/chat">
-                {/* <MessageCircle size={22} /> */}
-                <img
-                  src={ModuloAsignacion}
-                  alt="Módulo de comunicación"
-                  className="w-6 h-6"
-                />
-              </NavLink>
-              <span className="tooltip-pill">Módulo de comunicación</span>
-            </li>
-          </ul>
-        </nav>
-
-        {/* Íconos inferiores */}
-        <div className="sidebar-bottom bg-white dark:bg-[#1a1a1a] px-1 py-1 rounded-full">
-          <div className="relative" ref={configMenuRef}>
-            <div className="tooltip">
+            {/* Menú desplegable central - Solo desktop */}
+            <div className="hidden md:block relative">
               <button
-                onClick={() => setConfigMenuOpen(!configMenuOpen)}
-                className="w-[42px] h-[42px] rounded-full bg-[#f1f4f8] dark:bg-[#3a3a3a] flex items-center justify-center text-[#b0b0b0] dark:text-[#ccc] transition-all duration-300 hover:bg-[#d9e6ed] hover:text-[#206a73] dark:hover:bg-[#007bff] dark:hover:text-white"
+                onClick={() => setIsOpen(!isOpen)}
+                className="md:w-80 lg:w-96 bg-white dark:bg-[#1a1a1a] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#216b6b] focus:ring-offset-2 shadow-md border border-gray-200 dark:border-gray-600"
               >
-                <Settings size={22} />
+                <span className="text-base px-4 py-1 line-clamp-1">
+                  {selectedOption}
+                </span>
+                <div className="bg-[#A1BAC4] px-5 py-1 rounded-full transition-transform duration-200">
+                  <ChevronDown
+                    className={`w-5 h-5 text-white transition-transform duration-200 ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
               </button>
 
-              {!configMenuOpen && (
-                <span className="tooltip-pill">Configuración</span>
+              {isOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl z-10 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                  {eventos && eventos.length > 0 ? (
+                    eventos.map((option, index) => {
+                      const label = getLabel(option, index);
+                      const isSelected = selectedOption === label;
+                      return (
+                        <button
+                          key={option.id || option._id || index}
+                          onClick={() => handleSelect(option)}
+                          className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 ${
+                            isSelected
+                              ? "bg-[#216b6b] text-white font-medium"
+                              : "text-gray-700 dark:text-gray-100"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="w-full px-4 py-3 text-left text-sm text-gray-500 dark:text-gray-400">
+                      No tienes eventos aún
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isOpen && (
+                <div
+                  className="fixed inset-0 z-0"
+                  onClick={() => setIsOpen(false)}
+                />
               )}
             </div>
 
-            {configMenuOpen && (
-              <div className="config-submenu absolute left-16 top-1/2 -translate-y-1/2 z-[120]">
-                <ul className="submenu-panel">
-                  <li>
-                    <NavLink
-                      to="/admin/lugares"
-                      onClick={() => setConfigMenuOpen(false)}
-                      className={({ isActive }) =>
-                        `submenu-link flex justify-normal ${isActive ? "is-active" : "group"}`
-                      }
-                    >
-                      <span className="submenu-icon"><Pin size={16} /></span>
-                      <span className="submenu-text group-hover:text-[#216b6b] group-hover:font-bold">Lugares</span>
-                    </NavLink>
-                  </li>
-                  <li>
-                    <NavLink
-                      to="/admin/usuarios"
-                      onClick={() => setConfigMenuOpen(false)}
-                      className={({ isActive }) =>
-                        `submenu-link ${isActive ? "is-active" : "group"}`
-                      }
-                    >
-                      <span className="submenu-icon">
-                        <User size={16} />
-                      </span>
-                      <span className="submenu-text group-hover:text-[#216b6b] group-hover:font-bold">Usuarios</span>
-                    </NavLink>
-                  </li>
-                  <li>
-                    <NavLink
-                      to="/admin/configuracion"
-                      onClick={() => setConfigMenuOpen(false)}
-                      className={({ isActive }) =>
-                        `submenu-link ${isActive ? "is-active" : "group"}`
-                      }
-                    >
-                      <span className="submenu-icon group-hover:text-[#216b6b] group-hover:font-bold">
-                        <Settings size={16} />
-                      </span>
-                      <span className="submenu-text">Configuración</span>
-                    </NavLink>
-                  </li>
-                </ul>
+            {/* Botones de acción */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setModalOpen(true)}
+                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+              >
+                <CalendarPlus2 size={18} />
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button className="w-9 h-9 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 border border-gray-200 dark:border-gray-600">
+                  <Bell
+                    className="text-gray-600 dark:text-gray-300"
+                    size={16}
+                  />
+                </button>
+
+                <button
+                  onClick={() => setDarkMode(!darkMode)}
+                  className="w-9 h-9 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 border border-gray-200 dark:border-gray-600"
+                >
+                  <img
+                    src={darkMode ? temaClaro : temaOscuro}
+                    alt={darkMode ? "Tema Claro" : "Tema Oscuro"}
+                    className="w-4 h-4"
+                  />
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="w-9 h-9 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 border border-gray-200 dark:border-gray-600"
+                >
+                  {isLoggingOut ? (
+                    <InlineSpinner size="xs" />
+                  ) : (
+                    <LogOut
+                      className="text-gray-600 dark:text-gray-300"
+                      size={16}
+                    />
+                  )}
+                </button>
               </div>
-            )}
-          </div>
-          <NavLink
-            className="mt-3"
-            to="/admin/signalr-test"
-            title="Prueba SignalR"
-          >
-            <Bell size={22} />
-          </NavLink>
-          <NavLink className="mt-3" to="/">
-            <img src={Inicio} alt="Logo inferior" className="w-6 h-6 " />
-          </NavLink>
-        </div>
-      </aside>
-
-      {/* Contenido */}
-      <main className="content">
-        <div className="topbar">
-          <div className="">
-            <p className="text-4xl text-[#216b6b] font-semibold">
-              Hola, {eventoActual ? eventoActual.instituto : "Usuario"}!
-            </p>
-            <p className="text-gray-500 dark:text-gray-100  font-semibold">
-              Todo tu evento, en orden
-            </p>
+            </div>
           </div>
 
-          {/* Menú despegable central */}
-          {/* <div className="topbar-select-center">
-            <select>
-              <option>Graduación de Lic. Derecho 2020 - 2024</option>
-              <option>Graduación de Ing. Sistemas 2021 - 2025</option>
-              <option>Otro evento</option>
-            </select>
-          </div> */}
-          <div className="relative w-full topbar-select-center2">
-            {/* Select Button */}
+          {/* Menú desplegable móvil */}
+          <div className="md:hidden mt-4 relative">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="w-96 bg-white dark:bg-[#1a1a1a] hover:bg-gray-250 transition-colors duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+              className="w-full bg-white dark:bg-[#1a1a1a] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#216b6b] focus:ring-offset-2 shadow-md border border-gray-200 dark:border-gray-600"
             >
-              <span className="text-base px-2 py-1">{selectedOption}</span>
-              <div className="bg-[#A1BAC4] px-2 rounded-full transition-transform duration-200">
+              <span className="text-base px-4 py-1 line-clamp-1">
+                {selectedOption}
+              </span>
+              <div className="bg-[#A1BAC4] px-5 py-1 rounded-full transition-transform duration-200">
                 <ChevronDown
-                  className={`w-8 h-8 text-white ${isOpen ? "rotate-180" : ""}`}
+                  className={`w-5 h-5 text-white transition-transform duration-200 ${
+                    isOpen ? "rotate-180" : ""
+                  }`}
                 />
               </div>
             </button>
 
-            {/* Dropdown Menu */}
             {isOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 overflow-hidden">
+              <div className="absolute top-full left-0 right-0 mt-2 mx-3 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl z-10 overflow-hidden animate-in slide-in-from-top-2 duration-200">
                 {eventos && eventos.length > 0 ? (
                   eventos.map((option, index) => {
                     const label = getLabel(option, index);
@@ -325,10 +291,10 @@ export default function AdminPage() {
                       <button
                         key={option.id || option._id || index}
                         onClick={() => handleSelect(option)}
-                        className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-150 ${
+                        className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 ${
                           isSelected
-                            ? "bg-gray-100 text-gray-900 font-medium"
-                            : "text-gray-700 dark:text-gray-100 "
+                            ? "bg-[#216b6b] text-white font-medium"
+                            : "text-gray-700 dark:text-gray-100"
                         }`}
                       >
                         {label}
@@ -336,14 +302,13 @@ export default function AdminPage() {
                     );
                   })
                 ) : (
-                  <div className="w-full px-4 py-3 text-left text-sm text-gray-500">
+                  <div className="w-full px-4 py-3 text-left text-sm text-gray-500 dark:text-gray-400">
                     No tienes eventos aún
                   </div>
                 )}
               </div>
             )}
 
-            {/* Overlay to close dropdown when clicking outside */}
             {isOpen && (
               <div
                 className="fixed inset-0 z-0"
@@ -351,55 +316,13 @@ export default function AdminPage() {
               />
             )}
           </div>
-          <div>
-            <button
-              onClick={() => setModalOpen(true)}
-              className="topbar-usuario tooltip bg-[#216b6b] text-white px-2 py-2 rounded-full flex items-center gap-2"
-            >
-              <CalendarPlus2 size={22} />
-              <span className="tooltip-pill">Agregar eventos</span>
-            </button>
-          </div>
-
-          {/* Derecha */}
-          <div className="topbar-icons ">
-            <Button className="acciones-distribucion w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center">
-              <Bell className="text-gray-600 dark:text-gray-800" />
-            </Button>
-            {darkMode ? (
-              <Button
-                onClick={() => setDarkMode(false)}
-                className="w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center"
-              >
-                <img src={temaClaro} alt="Tema Claro" className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button
-                onClick={() => setDarkMode(true)}
-                className="w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center"
-              >
-                <img src={temaOscuro} alt="Tema Oscuro" className="w-4 h-4" />
-              </Button>
-            )}
-            <Button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              aria-busy={isLoggingOut}
-              className="acciones-distribucion w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isLoggingOut ? (
-                <InlineSpinner size="xs" />
-              ) : (
-                <LogOut className="text-gray-600 dark:text-gray-800" />
-              )}
-            </Button>
-          </div>
         </div>
 
-        <div className="child-content p-5 bg-[#e9f0f6]">
+        <div className="p-3 lg:p-6 min-h-[calc(100vh-80px)]">
           <Outlet context={{ selectedEvent: selectedOption }} />
         </div>
       </main>
+
       <Eventos open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
