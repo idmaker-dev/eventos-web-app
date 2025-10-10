@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { ChevronDownIcon, X } from "lucide-react";
 // Import original lugarService sólo si se requiere; para el select usaremos el endpoint de eventService
 // porque devuelve directamente las opciones usadas también en creación de eventos.
 // import lugarService from '../../services/lugarService';
-import InlineSpinner from '../ui/InlineSpinner';
+import InlineSpinner from "../ui/InlineSpinner";
+import clsx from "clsx";
 
 /* ModalUsuario
    Props:
@@ -13,23 +14,29 @@ import InlineSpinner from '../ui/InlineSpinner';
    - onGuardar(datos)
    - isLoading (bool)
 */
-export default function ModalUsuario({ open, onClose, usuario = null, onGuardar, isLoading = false }) {
+export default function ModalUsuario({
+  open,
+  onClose,
+  usuario = null,
+  onGuardar,
+  isLoading = false,
+}) {
   const esEdicion = Boolean(usuario?.id);
   const [form, setForm] = useState({
-    nombre: '',
-    email: '',
-    password: '',
-    rol: 'admin',
-    contacto: '',
-    direccion: '',
-    lugar_id: ''
+    nombre: "",
+    email: "",
+    password: "",
+    rol: "admin",
+    contacto: "",
+    direccion: "",
+    lugar_id: "",
   });
   const [errores, setErrores] = useState({});
   const [lugares, setLugares] = useState([]);
   const [cargandoLugares, setCargandoLugares] = useState(false);
 
   useEffect(() => {
-    if (open && form.rol === 'lugar') {
+    if (open && form.rol === "lugar") {
       cargarLugares();
     }
   }, [open, form.rol]);
@@ -37,16 +44,26 @@ export default function ModalUsuario({ open, onClose, usuario = null, onGuardar,
   useEffect(() => {
     if (usuario && open) {
       setForm({
-        nombre: usuario.nombre || '',
-        email: usuario.email || '',
-        password: '', // no se muestra en edición
-        rol: Array.isArray(usuario.rol) ? usuario.rol[0] : (usuario.rol || 'admin'),
-        contacto: usuario.contacto || '',
-        direccion: usuario.direccion || '',
-        lugar_id: usuario.lugar_id || usuario.lugar?.id || ''
+        nombre: usuario.nombre || "",
+        email: usuario.email || "",
+        password: "", // no se muestra en edición
+        rol: Array.isArray(usuario.rol)
+          ? usuario.rol[0]
+          : usuario.rol || "admin",
+        contacto: usuario.contacto || "",
+        direccion: usuario.direccion || "",
+        lugar_id: usuario.lugar_id || usuario.lugar?.id || "",
       });
     } else if (open) {
-      setForm({ nombre: '', email: '', password: '', rol: 'admin', contacto: '', direccion: '', lugar_id: '' });
+      setForm({
+        nombre: "",
+        email: "",
+        password: "",
+        rol: "admin",
+        contacto: "",
+        direccion: "",
+        lugar_id: "",
+      });
       setErrores({});
     }
   }, [usuario, open]);
@@ -55,13 +72,16 @@ export default function ModalUsuario({ open, onClose, usuario = null, onGuardar,
     try {
       setCargandoLugares(true);
       // Carga dinámica para no incrementar el bundle inicial
-      const eventService = (await import('../../services/eventService')).default;
+      const eventService = (await import("../../services/eventService"))
+        .default;
       const res = await eventService.getLugares();
       if (res.success) {
         // res.data puede ser: [ ... ]  ó  { lugares: [...] }
         const lista = Array.isArray(res.data)
           ? res.data
-          : (Array.isArray(res.data?.lugares) ? res.data.lugares : []);
+          : Array.isArray(res.data?.lugares)
+          ? res.data.lugares
+          : [];
         setLugares(lista);
       } else {
         setLugares([]);
@@ -75,19 +95,22 @@ export default function ModalUsuario({ open, onClose, usuario = null, onGuardar,
 
   const validar = () => {
     const e = {};
-    if (!form.nombre.trim()) e.nombre = 'Nombre requerido';
-    if (!form.email.trim()) e.email = 'Email requerido';
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) e.email = 'Email inválido';
-    if (!esEdicion && form.rol !== 'lugar' && !form.password.trim()) e.password = 'Contraseña requerida';
-    if (form.rol === 'lugar' && !form.lugar_id) e.lugar_id = 'Selecciona un lugar';
-    if (!form.rol) e.rol = 'Rol requerido';
+    if (!form.nombre.trim()) e.nombre = "Nombre requerido";
+    if (!form.email.trim()) e.email = "Email requerido";
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email))
+      e.email = "Email inválido";
+    if (!esEdicion && form.rol !== "lugar" && !form.password.trim())
+      e.password = "Contraseña requerida";
+    if (form.rol === "lugar" && !form.lugar_id)
+      e.lugar_id = "Selecciona un lugar";
+    if (!form.rol) e.rol = "Rol requerido";
     setErrores(e);
     return Object.keys(e).length === 0;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -99,8 +122,10 @@ export default function ModalUsuario({ open, onClose, usuario = null, onGuardar,
       rol: form.rol, // aunque API espera array, adaptamos en página si es necesario
       contacto: form.contacto.trim(),
       direccion: form.direccion.trim(),
-      ...(form.rol === 'lugar' ? { lugar_id: form.lugar_id } : {}),
-      ...(!esEdicion && form.rol !== 'lugar' ? { password: form.password } : {})
+      ...(form.rol === "lugar" ? { lugar_id: form.lugar_id } : {}),
+      ...(!esEdicion && form.rol !== "lugar"
+        ? { password: form.password }
+        : {}),
     };
     onGuardar(payload);
   };
@@ -117,87 +142,233 @@ export default function ModalUsuario({ open, onClose, usuario = null, onGuardar,
           <X size={20} />
         </button>
         <h2 className="text-xl font-semibold mb-1 text-gray-800 dark:text-gray-100">
-          {esEdicion ? 'Editar Usuario' : 'Nuevo Usuario'}
+          {esEdicion ? "Editar Usuario" : "Nuevo Usuario"}
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          {esEdicion ? 'Actualiza los datos necesarios.' : 'Completa la información para registrar un usuario.'}
+          {esEdicion
+            ? "Actualiza los datos necesarios."
+            : "Completa la información para registrar un usuario."}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4 relative">
-
           <div>
             <label className="block text-sm font-medium mb-1">Nombre *</label>
-            <input name="nombre" value={form.nombre} onChange={handleChange} disabled={isLoading}
-              className={`w-full px-3 py-2 rounded-lg border ${errores.nombre ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-[#262626] text-sm`} />
-            {errores.nombre && <p className="text-xs text-red-500 mt-1">{errores.nombre}</p>}
+            <input
+              name="nombre"
+              value={form.nombre}
+              onChange={handleChange}
+              disabled={isLoading}
+              placeholder="Ejemplo: Juan Pérez"
+              className={clsx(
+                "block w-full rounded-lg border-2 bg-white/5 px-3 py-2 text-sm dark:text-white text-gray-700",
+                "placeholder:italic placeholder:text-gray-400",
+                "focus:outline-none focus:ring-2 focus:ring-[#246370] focus:border-transparent",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "dark:bg-[#262626] dark:border-gray-600",
+                errores.nombre
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              )}
+            />
+            {errores.nombre && (
+              <p className="text-xs text-red-500 mt-1">{errores.nombre}</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">Email *</label>
-            <input name="email" type="email" value={form.email} onChange={handleChange} disabled={isLoading || esEdicion}
-              className={`w-full px-3 py-2 rounded-lg border ${errores.email ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-[#262626] text-sm`} />
-            {errores.email && <p className="text-xs text-red-500 mt-1">{errores.email}</p>}
+            <input
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              disabled={isLoading || esEdicion}
+              placeholder="ejemplo@correo.com"
+              className={clsx(
+                "block w-full rounded-lg border-2 bg-white/5 px-3 py-2 text-sm dark:text-white text-gray-700",
+                "placeholder:italic placeholder:text-gray-400",
+                "focus:outline-none focus:ring-2 focus:ring-[#246370] focus:border-transparent",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "dark:bg-[#262626] dark:border-gray-600",
+                errores.email
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              )}
+            />
+            {errores.email && (
+              <p className="text-xs text-red-500 mt-1">{errores.email}</p>
+            )}
           </div>
 
-          {form.rol !== 'lugar' && !esEdicion && (
+          {form.rol !== "lugar" && !esEdicion && (
             <div>
-              <label className="block text-sm font-medium mb-1">Contraseña *</label>
-              <input name="password" type="password" value={form.password} onChange={handleChange} disabled={isLoading}
-                className={`w-full px-3 py-2 rounded-lg border ${errores.password ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-[#262626] text-sm`} />
-              {errores.password && <p className="text-xs text-red-500 mt-1">{errores.password}</p>}
-              {form.rol === 'lugar' && <p className="text-[11px] text-gray-500 mt-1">La contraseña se generará automáticamente.</p>}
+              <label className="block text-sm font-medium mb-1">
+                Contraseña *
+              </label>
+              <input
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={handleChange}
+                disabled={isLoading}
+                placeholder="Mínimo 6 caracteres"
+                className={clsx(
+                  "block w-full rounded-lg border-2 bg-white/5 px-3 py-2 text-sm dark:text-white text-gray-700",
+                  "placeholder:italic placeholder:text-gray-400",
+                  "focus:outline-none focus:ring-2 focus:ring-[#246370] focus:border-transparent",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  "dark:bg-[#262626] dark:border-gray-600",
+                  errores.password
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                )}
+              />
+              {errores.password && (
+                <p className="text-xs text-red-500 mt-1">{errores.password}</p>
+              )}
+              {form.rol === "lugar" && (
+                <p className="text-[11px] text-gray-500 mt-1">
+                  La contraseña se generará automáticamente.
+                </p>
+              )}
             </div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Rol *</label>
-              <select name="rol" value={form.rol} onChange={handleChange} disabled={isLoading}
-                className={`w-full px-3 py-2 rounded-lg border ${errores.rol ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-[#262626] text-sm`}>
-                <option value="admin">Administrador</option>
-                <option value="operador">Operador</option>
-                <option value="lugar">Lugar</option>
-              </select>
-              {errores.rol && <p className="text-xs text-red-500 mt-1">{errores.rol}</p>}
+              <div className="relative">
+                <select
+                  name="rol"
+                  value={form.rol}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  className={clsx(
+                    "block w-full appearance-none rounded-lg border-2 bg-white/5 px-3 py-2 text-sm dark:text-white text-gray-700",
+                    "focus:outline-none focus:ring-2 focus:ring-[#246370] focus:border-transparent",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    "dark:bg-[#262626] dark:border-gray-600",
+                    errores.rol
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-600"
+                  )}
+                >
+                  <option value="admin">Administrador</option>
+                  <option value="operador">Operador</option>
+                  <option value="lugar">Lugar</option>
+                </select>
+                <ChevronDownIcon
+                  className="group pointer-events-none absolute top-3 right-2.5 size-4 fill-white/60"
+                  aria-hidden="true"
+                />
+              </div>
+              {errores.rol && (
+                <p className="text-xs text-red-500 mt-1">{errores.rol}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Contacto</label>
-              <input name="contacto" value={form.contacto} onChange={handleChange} disabled={isLoading}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262626] text-sm" />
+              <input
+                name="contacto"
+                value={form.contacto}
+                onChange={handleChange}
+                disabled={isLoading}
+                placeholder="Teléfono o celular"
+                className={clsx(
+                  "block w-full rounded-lg border-2 bg-white/5 px-3 py-2 text-sm dark:text-white text-gray-700",
+                  "placeholder:italic placeholder:text-gray-400",
+                  "focus:outline-none focus:ring-2 focus:ring-[#246370] focus:border-transparent",
+                  "disabled:opacity-50 disabled:cursor-not-allowed",
+                  "dark:bg-[#262626] dark:border-gray-600 border-gray-300"
+                )}
+              />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium mb-1">Dirección</label>
-            <input name="direccion" value={form.direccion} onChange={handleChange} disabled={isLoading}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#262626] text-sm" />
+            <input
+              name="direccion"
+              value={form.direccion}
+              onChange={handleChange}
+              disabled={isLoading}
+              placeholder="Dirección completa"
+              className={clsx(
+                "block w-full rounded-lg border-2 bg-white/5 px-3 py-2 text-sm dark:text-white text-gray-700",
+                "placeholder:italic placeholder:text-gray-400",
+                "focus:outline-none focus:ring-2 focus:ring-[#246370] focus:border-transparent",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "dark:bg-[#262626] dark:border-gray-600 border-gray-300"
+              )}
+            />
           </div>
 
-          {form.rol === 'lugar' && (
-            <div>
-              <label className="block text-sm font-medium mb-1">Lugar asignado *</label>
+          {form.rol === "lugar" && (
+            <div className="">
+              <label className="block text-sm font-medium mb-1">
+                Lugar asignado *
+              </label>
               {cargandoLugares ? (
                 <div className="text-sm text-gray-500">Cargando lugares...</div>
               ) : (
-                <select name="lugar_id" value={form.lugar_id} onChange={handleChange} disabled={isLoading}
-                  className={`w-full px-3 py-2 rounded-lg border ${errores.lugar_id ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-[#262626] text-sm`}>
-                  <option value="">Seleccione un lugar</option>
-                  {Array.isArray(lugares) && lugares.map(l => (
-                    <option key={l.id} value={l.id}>{l.nombre}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    name="lugar_id"
+                    value={form.lugar_id}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    className={clsx(
+                      "block w-full appearance-none rounded-lg border-2 bg-white/5 px-3 py-2 text-sm dark:text-white text-gray-700",
+                      "focus:outline-none focus:ring-2 focus:ring-[#246370] focus:border-transparent",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                      "dark:bg-[#262626] dark:border-gray-600",
+                      errores.lugar_id
+                        ? "border-red-500"
+                        : "border-gray-300 dark:border-gray-600"
+                    )}
+                  >
+                    <option value="">Seleccione un lugar</option>
+                    {Array.isArray(lugares) &&
+                      lugares.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.nombre}
+                        </option>
+                      ))}
+                  </select>
+                  <ChevronDownIcon
+                    className="group pointer-events-none absolute top-3 right-2.5 size-4 fill-white/60"
+                    aria-hidden="true"
+                  />
+                </div>
               )}
-              {errores.lugar_id && <p className="text-xs text-red-500 mt-1">{errores.lugar_id}</p>}
+              {errores.lugar_id && (
+                <p className="text-xs text-red-500 mt-1">{errores.lugar_id}</p>
+              )}
             </div>
           )}
 
           <div className="pt-2 flex justify-end gap-3">
-            <button type="button" onClick={onClose} disabled={isLoading}
-              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2d2d2d] transition">Cancelar</button>
-            <button type="submit" disabled={isLoading}
-              className="px-5 py-2.5 rounded-lg bg-[#206a73] text-white text-sm font-semibold hover:bg-[#155059] disabled:opacity-60 transition flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2d2d2d] transition"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-5 py-2.5 rounded-lg bg-[#206a73] text-white text-sm font-semibold hover:bg-[#155059] disabled:opacity-60 transition flex items-center gap-2"
+            >
               {isLoading && <InlineSpinner size="sm" />}
-              {isLoading ? (esEdicion ? 'Guardando...' : 'Creando...') : (esEdicion ? 'Guardar Cambios' : 'Crear Usuario')}
+              {isLoading
+                ? esEdicion
+                  ? "Guardando..."
+                  : "Creando..."
+                : esEdicion
+                ? "Guardar Cambios"
+                : "Crear Usuario"}
             </button>
           </div>
         </form>

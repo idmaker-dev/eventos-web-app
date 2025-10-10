@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState, useEffect, useRef } from "react";
 import { Outlet, NavLink } from "react-router-dom";
@@ -7,7 +7,9 @@ import {
   Bell,
   ChevronDown,
   CalendarPlus2,
-  LogOut
+  LogOut,
+  Pin,
+  User,
 } from "lucide-react";
 import "../../styles/pages/AdminPage.css";
 import ResumenProgreso from "../../assets/recursos/resumen_progreso.svg";
@@ -16,7 +18,7 @@ import ModuloAsignacion from "../../assets/recursos/moduloDeAsignacion.svg";
 import ModuloInvitados from "../../assets/recursos/moduloInvitados.svg";
 import Inicio from "../../assets/recursos/inicio.svg";
 import Eventos from "../Modales/Eventos";
-import { useSelectedEvent } from '../../contexts/SelectedEventContext';
+import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 
 import temaClaro from "../../assets/recursos/temaClaro.svg";
 import temaOscuro from "../../assets/recursos/temaOscuro.svg";
@@ -24,29 +26,30 @@ import { Button } from "@headlessui/react";
 import InlineSpinner from "../ui/InlineSpinner";
 import { useAuth } from "../../hooks/useAuth";
 
-
-
 export default function AdminPage() {
   const [darkMode, setDarkMode] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false); 
+  const [modalOpen, setModalOpen] = useState(false);
   const [configMenuOpen, setConfigMenuOpen] = useState(false);
   const configMenuRef = useRef(null);
-  const { logout } = useAuth(); 
-  
+  const { logout } = useAuth();
+
   // Cerrar dropdown cuando se hace click fuera
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (configMenuRef.current && !configMenuRef.current.contains(event.target)) {
+      if (
+        configMenuRef.current &&
+        !configMenuRef.current.contains(event.target)
+      ) {
         setConfigMenuOpen(false);
       }
     };
 
     if (configMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [configMenuOpen]);
 
@@ -65,21 +68,30 @@ export default function AdminPage() {
     localStorage.setItem("darkMode", darkMode);
   }, [darkMode]);
 
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
   const { eventos, selectEvent, eventoActual } = useSelectedEvent();
 
-  const [selectedOption, setSelectedOption] = useState("Selecciona un evento")
+  const [selectedOption, setSelectedOption] = useState("Selecciona un evento");
   // Obtener etiqueta usando únicamente la propiedad nombre_evento (el nombre ya viene así)
   const getLabel = React.useCallback((evento, index) => {
     if (!evento) return `Evento ${index + 1}`;
-    if (evento.nombre_evento && typeof evento.nombre_evento === "string" && evento.nombre_evento.trim().length > 0) {
+    if (
+      evento.nombre_evento &&
+      typeof evento.nombre_evento === "string" &&
+      evento.nombre_evento.trim().length > 0
+    ) {
       return evento.nombre_evento;
     }
     return `Evento ${index + 1}`;
   }, []);
 
   useEffect(() => {
-    console.debug("[AdminPage] eventos.count=", eventos?.length, "first=", eventos?.[0]);
+    console.debug(
+      "[AdminPage] eventos.count=",
+      eventos?.length,
+      "first=",
+      eventos?.[0]
+    );
     if (eventos && eventos.length > 0) {
       const first = eventos[0];
       const label = getLabel(first, 0);
@@ -103,7 +115,7 @@ export default function AdminPage() {
     if (id) {
       selectEvent(id);
     }
-  }
+  };
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const handleLogout = async () => {
@@ -113,10 +125,10 @@ export default function AdminPage() {
       await logout();
       // logout redirige y no hace falta resetear estado
     } catch (error) {
-      console.error('Error al cerrar sesión:', error);
+      console.error("Error al cerrar sesión:", error);
       setIsLoggingOut(false);
     }
-  }
+  };
 
   return (
     <div className="admin-layout">
@@ -194,16 +206,20 @@ export default function AdminPage() {
 
         {/* Íconos inferiores */}
         <div className="sidebar-bottom bg-white dark:bg-[#1a1a1a] px-1 py-1 rounded-full">
-          <div className="relative tooltip" ref={configMenuRef}>
-            <button 
-              onClick={() => setConfigMenuOpen(!configMenuOpen)}
-              className="w-[42px] h-[42px] rounded-full bg-[#f1f4f8] dark:bg-[#3a3a3a] flex items-center justify-center text-[#b0b0b0] dark:text-[#ccc] transition-all duration-300 hover:bg-[#d9e6ed] hover:text-[#206a73] dark:hover:bg-[#007bff] dark:hover:text-white"
-            >
-              <Settings size={22} />
-            </button>
-            <span className="tooltip-pill">Configuración</span>
-            
-            {/* Dropdown menu */}
+          <div className="relative" ref={configMenuRef}>
+            <div className="tooltip">
+              <button
+                onClick={() => setConfigMenuOpen(!configMenuOpen)}
+                className="w-[42px] h-[42px] rounded-full bg-[#f1f4f8] dark:bg-[#3a3a3a] flex items-center justify-center text-[#b0b0b0] dark:text-[#ccc] transition-all duration-300 hover:bg-[#d9e6ed] hover:text-[#206a73] dark:hover:bg-[#007bff] dark:hover:text-white"
+              >
+                <Settings size={22} />
+              </button>
+
+              {!configMenuOpen && (
+                <span className="tooltip-pill">Configuración</span>
+              )}
+            </div>
+
             {configMenuOpen && (
               <div className="config-submenu absolute left-16 top-1/2 -translate-y-1/2 z-[120]">
                 <ul className="submenu-panel">
@@ -212,11 +228,11 @@ export default function AdminPage() {
                       to="/admin/lugares"
                       onClick={() => setConfigMenuOpen(false)}
                       className={({ isActive }) =>
-                        `submenu-link ${isActive ? 'is-active' : ''}`
+                        `submenu-link flex justify-normal ${isActive ? "is-active" : "group"}`
                       }
                     >
-                      <span className="submenu-icon">📍</span>
-                      <span className="submenu-text">Lugares</span>
+                      <span className="submenu-icon"><Pin size={16} /></span>
+                      <span className="submenu-text group-hover:text-[#216b6b] group-hover:font-bold">Lugares</span>
                     </NavLink>
                   </li>
                   <li>
@@ -224,11 +240,13 @@ export default function AdminPage() {
                       to="/admin/usuarios"
                       onClick={() => setConfigMenuOpen(false)}
                       className={({ isActive }) =>
-                        `submenu-link ${isActive ? 'is-active' : ''}`
+                        `submenu-link ${isActive ? "is-active" : "group"}`
                       }
                     >
-                      <span className="submenu-icon">👤</span>
-                      <span className="submenu-text">Usuarios</span>
+                      <span className="submenu-icon">
+                        <User size={16} />
+                      </span>
+                      <span className="submenu-text group-hover:text-[#216b6b] group-hover:font-bold">Usuarios</span>
                     </NavLink>
                   </li>
                   <li>
@@ -236,10 +254,10 @@ export default function AdminPage() {
                       to="/admin/configuracion"
                       onClick={() => setConfigMenuOpen(false)}
                       className={({ isActive }) =>
-                        `submenu-link ${isActive ? 'is-active' : ''}`
+                        `submenu-link ${isActive ? "is-active" : "group"}`
                       }
                     >
-                      <span className="submenu-icon">
+                      <span className="submenu-icon group-hover:text-[#216b6b] group-hover:font-bold">
                         <Settings size={16} />
                       </span>
                       <span className="submenu-text">Configuración</span>
@@ -249,11 +267,15 @@ export default function AdminPage() {
               </div>
             )}
           </div>
-          <NavLink className="mt-3" to="/admin/signalr-test" title="Prueba SignalR">
+          <NavLink
+            className="mt-3"
+            to="/admin/signalr-test"
+            title="Prueba SignalR"
+          >
             <Bell size={22} />
           </NavLink>
           <NavLink className="mt-3" to="/">
-            <img src={Inicio} alt="Logo inferior" className="w-6 h-6 "/>
+            <img src={Inicio} alt="Logo inferior" className="w-6 h-6 " />
           </NavLink>
         </div>
       </aside>
@@ -287,12 +309,9 @@ export default function AdminPage() {
               <span className="text-base px-2 py-1">{selectedOption}</span>
               <div className="bg-[#A1BAC4] px-2 rounded-full transition-transform duration-200">
                 <ChevronDown
-                  className={`w-8 h-8 text-white ${
-                    isOpen ? "rotate-180" : ""
-                  }`}
+                  className={`w-8 h-8 text-white ${isOpen ? "rotate-180" : ""}`}
                 />
               </div>
-              
             </button>
 
             {/* Dropdown Menu */}
@@ -317,7 +336,9 @@ export default function AdminPage() {
                     );
                   })
                 ) : (
-                  <div className="w-full px-4 py-3 text-left text-sm text-gray-500">No tienes eventos aún</div>
+                  <div className="w-full px-4 py-3 text-left text-sm text-gray-500">
+                    No tienes eventos aún
+                  </div>
                 )}
               </div>
             )}
@@ -331,7 +352,10 @@ export default function AdminPage() {
             )}
           </div>
           <div>
-            <button onClick={() => setModalOpen(true)} className="topbar-usuario tooltip bg-[#216b6b] text-white px-2 py-2 rounded-full flex items-center gap-2">
+            <button
+              onClick={() => setModalOpen(true)}
+              className="topbar-usuario tooltip bg-[#216b6b] text-white px-2 py-2 rounded-full flex items-center gap-2"
+            >
               <CalendarPlus2 size={22} />
               <span className="tooltip-pill">Agregar eventos</span>
             </button>
@@ -343,17 +367,31 @@ export default function AdminPage() {
               <Bell className="text-gray-600 dark:text-gray-800" />
             </Button>
             {darkMode ? (
-              <Button  onClick={() => setDarkMode(false)} className="w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center">
-                  <img src={temaClaro} alt="Tema Claro" className="w-4 h-4" />
-                </Button>
+              <Button
+                onClick={() => setDarkMode(false)}
+                className="w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center"
+              >
+                <img src={temaClaro} alt="Tema Claro" className="w-4 h-4" />
+              </Button>
             ) : (
-              
-              <Button  onClick={() => setDarkMode(true)} className="w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center">
-                  <img src={temaOscuro} alt="Tema Oscuro" className="w-4 h-4" />
-                </Button>
+              <Button
+                onClick={() => setDarkMode(true)}
+                className="w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center"
+              >
+                <img src={temaOscuro} alt="Tema Oscuro" className="w-4 h-4" />
+              </Button>
             )}
-            <Button onClick={handleLogout} disabled={isLoggingOut} aria-busy={isLoggingOut} className="acciones-distribucion w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center disabled:opacity-60 disabled:cursor-not-allowed">
-              {isLoggingOut ? <InlineSpinner size="xs" /> : <LogOut className="text-gray-600 dark:text-gray-800" />}
+            <Button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              aria-busy={isLoggingOut}
+              className="acciones-distribucion w-8 h-8 bg-white dark:bg-gray-200 rounded-full flex items-center cursor-pointer justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isLoggingOut ? (
+                <InlineSpinner size="xs" />
+              ) : (
+                <LogOut className="text-gray-600 dark:text-gray-800" />
+              )}
             </Button>
           </div>
         </div>

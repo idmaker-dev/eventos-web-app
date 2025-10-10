@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Phone, MapPin } from "lucide-react";
 import lugarService from "../services/lugarService";
 import ModalLugar from "../components/Modales/ModalLugar";
 import ConfirmDialog from "../components/Modales/ConfirmDialog";
 import { useNotifications } from "../contexts/NotificationContext";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
+import { Tooltip } from "../components/ui/Tooltip";
 
 export default function Lugares() {
   const [lugares, setLugares] = useState([]);
@@ -58,7 +59,9 @@ export default function Lugares() {
         (lugar) =>
           lugar.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           lugar.direccion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lugar.numero_contacto?.toLowerCase().includes(searchTerm.toLowerCase())
+          lugar.numero_contacto
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase())
       );
       setFilteredLugares(filtered);
     }
@@ -142,39 +145,42 @@ export default function Lugares() {
 
   return (
     <div className="relative p-6 bg-white dark:bg-[#1e1e1e] rounded-3xl shadow-md">
-      {isLoading && (
-        <LoadingSpinner overlay size="medium" />
-      )}
+      {isLoading && <LoadingSpinner overlay size="medium" />}
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
+          <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
             Catálogo de Lugares
           </h1>
           <p className="text-gray-500 dark:text-gray-400">
             Gestiona los lugares disponibles para tus eventos
           </p>
         </div>
-        <button
-          onClick={handleCrear}
-          className="mt-4 md:mt-0 inline-flex items-center gap-2 px-4 py-2 bg-[#72B7A4] text-white font-semibold rounded-lg hover:bg-[#5fa090] transition"
-        >
-          <Plus className="w-5 h-5" />
-          Nuevo Lugar
-        </button>
-      </div>
+        <div className="flex items-center gap-4 mt-4 md:mt-0">
+          <Tooltip content="Crear nuevo lugar">
+            
+          <button
+            onClick={handleCrear}
+            className="md:mt-0 inline-flex items-center gap-2 px-1.5 py-1.5 bg-casal text-white font-semibold rounded-full hover:bg-[#5fa090] transition"
+          >
+            <Plus className="w-6 h-6" />
+            
+          </button>
+          </Tooltip>
 
-      {/* Barra de búsqueda */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, dirección o contacto..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-[#23272e] text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#246370] focus:border-transparent"
-          />
+          {/* Barra de búsqueda */}
+          <div className="">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por nombre, dirección o contacto..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full md:w-96 pl-10 pr-4 py-1.5 border-2 border-gray-200 dark:border-gray-700 rounded-full bg-white dark:bg-[#23272e] text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-[#246370] focus:border-transparent"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -187,71 +193,79 @@ export default function Lugares() {
               : "No hay lugares registrados. Crea uno nuevo para comenzar."}
           </p>
         </div>
-      ) : !isLoading && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-[#23272e]">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Nombre
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Dirección
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Contacto
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-[#1e1e1e] divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredLugares.map((lugar) => (
-                <tr
-                  key={lugar.id}
-                  className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {lugar.nombre}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
-                      {lugar.direccion}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {lugar.numero_contacto}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => handleEditar(lugar)}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
-                        title="Editar"
-                      >
-                        <Pencil className="w-4 h-4" />
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => solicitarEliminar(lugar)}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
+      ) : (
+        !isLoading && (
+          <div className="overflow-x-auto rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider">
+                    Nombre
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider">
+                    Dirección
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider">
+                    Contacto
+                  </th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider">
+                    Acciones
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white dark:bg-[#1e1e1e] divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredLugares.map((lugar, index) => (
+                  <tr
+                    key={lugar.id}
+                    className={`transition ${
+                      index % 2 === 0 
+                        ? 'bg-fondoVs dark:bg-[#1e1e1e] rounded-3xl' 
+                        : 'bg-transparent dark:bg-slate-800/30'
+                    } hover:bg-casal/20 dark:hover:bg-casal/50`}
+                  >
+                    <td className="px-6 py-2 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {lugar.nombre}
+                      </div>
+                    </td>
+                    <td className="px-6 py-2">
+                      <div className="text-sm text-gray-700 dark:text-gray-400 max-w-md flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-gray-600" />
+                        {lugar.direccion}
+                      </div>
+                    </td>
+                    <td className="px-6 py-2 whitespace-nowrap">
+                      <div className="text-sm text-gray-700 dark:text-gray-400 flex gap-2 items-center">
+                        <Phone className="w-4 h-4 text-gray-600" />
+                        {lugar.numero_contacto}
+                      </div>
+                    </td>
+                    <td className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end gap-2">
+                        <Tooltip content="Editar lugar" position="top">
+                          <button
+                            onClick={() => handleEditar(lugar)}
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-casal text-white rounded-full hover:bg-casal/80 transition"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                        <Tooltip content="Eliminar lugar" position="top">
+                          <button
+                            onClick={() => solicitarEliminar(lugar)}
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
 
       {/* Resumen */}
@@ -270,12 +284,23 @@ export default function Lugares() {
       <ConfirmDialog
         open={confirmOpen}
         title="Eliminar lugar"
-        message={<span>¿Seguro que deseas eliminar el lugar <strong>{lugarAEliminar?.nombre}</strong>? Esta acción lo desactivará para nuevos eventos.</span>}
+        message={
+          <span>
+            ¿Seguro que deseas eliminar el lugar{" "}
+            <strong>{lugarAEliminar?.nombre}</strong>? Esta acción lo
+            desactivará para nuevos eventos.
+          </span>
+        }
         confirmLabel="Sí, eliminar"
         cancelLabel="Cancelar"
         variant="danger"
         loading={isDeleting}
-        onClose={() => { if (!isDeleting) { setConfirmOpen(false); setLugarAEliminar(null);} }}
+        onClose={() => {
+          if (!isDeleting) {
+            setConfirmOpen(false);
+            setLugarAEliminar(null);
+          }
+        }}
         onConfirm={confirmarEliminar}
       />
     </div>
