@@ -164,64 +164,72 @@ export default function AdminPage() {
             </div>
 
             {/* Menú desplegable central - Solo desktop */}
-            <div className="hidden md:block relative">
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="md:w-80 lg:w-96 bg-white dark:bg-[#1a1a1a] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#216b6b] focus:ring-offset-2 shadow-md border border-gray-200 dark:border-gray-600"
-              >
-                <span className="text-base px-4 py-1 line-clamp-1">
-                  {selectedOption}
-                </span>
-                <div className="bg-[#A1BAC4] px-5 py-1 rounded-full transition-transform duration-200">
-                  <ChevronDown
-                    className={`w-5 h-5 text-white transition-transform duration-200 ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
+            <div className="flex-1 md:flex justify-center items-center hidden relative gap-3">
+              <div className="relative">
+                <button
+                  onClick={() => setIsOpen(!isOpen)}
+                  className="md:w-80 lg:w-96 bg-white dark:bg-[#1a1a1a] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#216b6b] focus:ring-offset-2 shadow-md border border-gray-200 dark:border-gray-600"
+                >
+                  <span className="text-base px-4 py-1 line-clamp-1">
+                    {selectedOption}
+                  </span>
+                  <div className="bg-[#A1BAC4] px-5 py-1 rounded-full transition-transform duration-200">
+                    <ChevronDown
+                      className={`w-5 h-5 text-white transition-transform duration-200 ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl z-10 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                    {eventos && eventos.length > 0 ? (
+                      eventos.map((option, index) => {
+                        const label = getLabel(option, index);
+                        const isSelected = selectedOption === label;
+                        return (
+                          <button
+                            key={option.id || option._id || index}
+                            onClick={() => handleSelect(option)}
+                            className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 ${
+                              isSelected
+                                ? "bg-[#216b6b] text-white font-medium"
+                                : "text-gray-700 dark:text-gray-100"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="w-full px-4 py-3 text-left text-sm text-gray-500 dark:text-gray-400">
+                        No tienes eventos aún
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {isOpen && (
+                  <div
+                    className="fixed inset-0 z-0"
+                    onClick={() => setIsOpen(false)}
                   />
-                </div>
+                )}
+              </div>
+              <button
+                onClick={() => setModalOpen(true)}
+                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+              >
+                <CalendarPlus2 size={18} />
               </button>
-
-              {isOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl z-10 overflow-hidden animate-in slide-in-from-top-2 duration-200">
-                  {eventos && eventos.length > 0 ? (
-                    eventos.map((option, index) => {
-                      const label = getLabel(option, index);
-                      const isSelected = selectedOption === label;
-                      return (
-                        <button
-                          key={option.id || option._id || index}
-                          onClick={() => handleSelect(option)}
-                          className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 ${
-                            isSelected
-                              ? "bg-[#216b6b] text-white font-medium"
-                              : "text-gray-700 dark:text-gray-100"
-                          }`}
-                        >
-                          {label}
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="w-full px-4 py-3 text-left text-sm text-gray-500 dark:text-gray-400">
-                      No tienes eventos aún
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {isOpen && (
-                <div
-                  className="fixed inset-0 z-0"
-                  onClick={() => setIsOpen(false)}
-                />
-              )}
             </div>
 
             {/* Botones de acción */}
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setModalOpen(true)}
-                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                className="bg-[#216b6b] text-white p-2.5  md:hidden rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
               >
                 <CalendarPlus2 size={18} />
               </button>
