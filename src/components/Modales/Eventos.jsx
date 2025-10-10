@@ -256,35 +256,21 @@ export default function Eventos({ open, onClose }) {
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
                           Cantidad estimada de asistentes
                         </label>
-                        <div className="relative">
-                          <Select
-                            value={formData.cantidadAsistentes}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "cantidadAsistentes",
-                                e.target.value
-                              )
-                            }
-                            className={clsx(
-                              "mt-2 block w-full appearance-none rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
-                              "placeholder:italic",
-                              "focus:not-data-focus:outline-none data-focus:outline-2 data-focus:-outline-offset-2 data-focus:outline-white/25",
-                              "*:text-black"
-                            )}
-                          >
-                            <option value="">Seleccionar cantidad</option>
-                            <option value="50">50 Asistentes</option>
-                            <option value="100">100 Asistentes</option>
-                            <option value="200">200 Asistentes</option>
-                            <option value="300">300 Asistentes</option>
-                            <option value="500">500 Asistentes</option>
-                            <option value="1000">1000+ Asistentes</option>
-                          </Select>
-                          <ChevronDown
-                            className="group pointer-events-none absolute top-2.5 right-2.5 size-4 fill-white/60"
-                            aria-hidden="true"
-                          />
-                        </div>
+                        <Input
+                          type="number"
+                          value={formData.cantidadAsistentes}
+                          onChange={(e) =>
+                            handleInputChange("cantidadAsistentes", e.target.value)
+                          }
+                          placeholder="Ejemplo: 150, 300, 500..."
+                          min="1"
+                          max="10000"
+                          className={clsx(
+                            "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                            "placeholder:italic",
+                            "focus:not-data-focus:outline-none data-focus:outline-2 data-focus:-outline-offset-2 data-focus:outline-white/25"
+                          )}
+                        />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
