@@ -8,9 +8,11 @@ import SolicitudCodigo from "../../assets/recursos/solicitudCodigo.svg";
 import CuestionarioCreado from "../../assets/recursos/CUESTIONARIO_CREADO.svg";
 import { Button, Field, Input, Label } from "@headlessui/react";
 import clsx from "clsx";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus, RotateCcw, AlertCircle } from "lucide-react";
 import { useCuestionario } from "../../hooks/useCuestionario";
 import eventService from "../../services/eventService";
+import { whatsappService, codigoVerificacionService } from "../../services";
+import { useNotifications } from "../../contexts/NotificationContext";
 import EnvConfig from "../../utils/config";
 
 // Función para formatear fecha
@@ -52,6 +54,9 @@ const formatearHora = (fechaString) => {
 
 export default function Cuestionario() {
   const { eventId } = useParams();
+  const { crearInvitado } = useCuestionario();
+  const { showSuccess, showError } = useNotifications();
+  
   const [event, setEvent] = useState(null);
   const [code, setCode] = useState("");
   const [restricciones, setRestricciones] = useState({
@@ -62,7 +67,6 @@ export default function Cuestionario() {
   });
   const [otra, setOtra] = useState("");
   const [pasoActual, setPasoActual] = useState(0);
-  const { crearInvitado } = useCuestionario();
   const [nombre, setNombre]= useState("");
   const [carrera, setCarrera] = useState("");
   const [escuela, setEscuela] = useState("");
@@ -73,6 +77,14 @@ export default function Cuestionario() {
   const [apellidoPaternoTutor, setApellidoPaternoTutor] = useState("");
   const [apellidoMaternoTutor, setApellidoMaternoTutor] = useState("");
   const [customerId, setCustomerId] = useState("");
+
+  // Estados adicionales para WhatsApp
+  const [isGenerandoCodigo, setIsGenerandoCodigo] = useState(false);
+  const [isVerificandoCodigo, setIsVerificandoCodigo] = useState(false);
+  const [isReenviandoCodigo, setIsReenviandoCodigo] = useState(false);
+  const [codigoGenerado, setCodigoGenerado] = useState(null);
+  const [tiempoExpiracion, setTiempoExpiracion] = useState(null);
+  const [intentosRestantes, setIntentosRestantes] = useState(3);
 
   useEffect(() => {
     if (eventId) {
@@ -86,17 +98,129 @@ export default function Cuestionario() {
     }
   }, [eventId]);
 
-  const handleChange = (key, delta) => {
-    setRestricciones((prev) => ({
-      ...prev,
-      [key]: Math.max(0, prev[key] + delta),
-    }));
+  // Función para generar código WhatsApp
+  const handleGenerarCodigoWhatsApp = async () => {
+    if (!telefono.trim()) {
+      showError('Por favor ingresa tu número de teléfono');
+      return;
+    }
+
+    setIsGenerandoCodigo(true);
+    try {
+      const response = await whatsappService.generarCodigo(telefono);
+      
+      if (response.status === 'ok') {
+        setCodigoGenerado(response.codigo);
+        setTiempoExpiracion(response.expira);
+        showSuccess('Código enviado por WhatsApp. Revisa tu teléfono.');
+        
+        // Avanzar al paso de verificación
+        setPasoActual(2);
+      } else {
+        showError('Error al generar el código de verificación');
+      }
+    } catch (error) {
+      console.error('Error al generar código WhatsApp:', error);
+      showError('Error al enviar el código por WhatsApp. Intenta nuevamente.');
+    } finally {
+      setIsGenerandoCodigo(false);
+    }
   };
-  const [isConfirming, setIsConfirming] = useState(false);
-  const handleConfirmar = async () => {
-    if (isConfirming) return;
-    setIsConfirming(true);
-    // Bypassed code validation for now - always proceed to submit form data
+
+  // Función para reenviar código
+  const handleReenviarCodigo = async () => {
+    setIsReenviandoCodigo(true);
+    try {
+      const response = await whatsappService.reenviarCodigo(telefono);
+      
+      if (response.status === 'ok') {
+        setCodigoGenerado(response.codigo);
+        setTiempoExpiracion(response.expira);
+        setIntentosRestantes(3); // Resetear intentos
+        showSuccess('Nuevo código enviado por WhatsApp');
+      } else {
+        showError('Error al reenviar el código');
+      }
+    } catch (error) {
+      console.error('Error al reenviar código:', error);
+      showError('Error al reenviar el código. Intenta nuevamente.');
+    } finally {
+      setIsReenviandoCodigo(false);
+    }
+  };
+
+  // Función para verificar código
+  const handleVerificarCodigo = async () => {
+    if (!code.trim()) {
+      showError('Por favor ingresa el código de verificación');
+      return;
+    }
+
+    setIsVerificandoCodigo(true);
+    try {
+      const response = await codigoVerificacionService.verificarCodigo(telefono, code);
+      
+      if (response.success) {
+        showSuccess('Teléfono verificado correctamente');
+        
+        // Ahora que el código está verificado, proceder a crear el invitado
+        await handleConfirmarConCodigoVerificado();
+      }
+    } catch (error) {
+      console.error('Error al verificar código:', error);
+      
+      // Manejar errores específicos
+      if (error.message.includes('máximo de intentos')) {
+        setIntentosRestantes(0);
+        showError('Has alcanzado el máximo de intentos. Solicita un nuevo código.');
+      } else if (error.message.includes('expirado')) {
+        showError('El código ha expirado. Solicita un nuevo código.');
+      } else if (error.message.includes('incorrecto')) {
+        setIntentosRestantes(prev => Math.max(0, prev - 1));
+        showError(`Código incorrecto. Te quedan ${intentosRestantes - 1} intentos.`);
+      } else {
+        showError(error.message);
+      }
+      
+      // Limpiar código si es incorrecto
+      setCode('');
+    } finally {
+      setIsVerificandoCodigo(false);
+    }
+  };
+
+  // Función para validar campos obligatorios
+  const validarCampos = () => {
+    const errores = [];
+
+    // Validar campos básicos
+    if (!nombre.trim()) errores.push('Nombre completo');
+    if (!telefono.trim()) errores.push('Número de teléfono');
+    if (!carrera.trim()) errores.push('Licenciatura');
+    if (!escuela.trim()) errores.push('Instituto/Escuela');
+    if (!boletos || parseInt(boletos) <= 0) errores.push('Cantidad de boletos');
+    if (!contactoEmergencia.trim()) errores.push('Contacto de emergencia');
+
+    // Validar datos del tutor
+    if (!nombreTutor.trim()) errores.push('Nombre del tutor');
+    if (!apellidoPaternoTutor.trim()) errores.push('Apellido paterno del tutor');
+    if (!apellidoMaternoTutor.trim()) errores.push('Apellido materno del tutor');
+
+    if (errores.length > 0) {
+      const mensaje = `Los siguientes campos son obligatorios: ${errores.join(', ')}`;
+      showError(mensaje);
+      return false;
+    }
+
+    return true;
+  };
+
+  // Nueva función para crear el invitado después de verificar el código
+  const handleConfirmarConCodigoVerificado = async () => {
+    // Validar campos obligatorios antes de enviar
+    if (!validarCampos()) {
+      return;
+    }
 
     const payload = {
       id_evento: eventId,
@@ -127,13 +251,24 @@ export default function Cuestionario() {
       if (res.success) {
         setCustomerId(res.invitado.id || "");
         setPasoActual(3);
+        showSuccess('¡Registro completado exitosamente!');
       } else {
         console.error('Error al guardar:', res.error);
+        showError('Error al completar el registro. Intenta nuevamente.');
       }
-    } finally {
-      setIsConfirming(false);
+    } catch (error) {
+      console.error('Error al crear invitado:', error);
+      showError('Error al completar el registro. Intenta nuevamente.');
     }
   };
+
+  const handleChange = (key, delta) => {
+    setRestricciones((prev) => ({
+      ...prev,
+      [key]: Math.max(0, prev[key] + delta),
+    }));
+  };
+
 
   const handleIrAPortalPagos = async () => {
     //navegar en una nueva pestaña al portal de pagos
@@ -430,10 +565,18 @@ export default function Cuestionario() {
                     </div>
                     <div className="my-5 flex justify-center">
                       <Button
-                        onClick={() => setPasoActual(2)}
-                        className="bg-casal text-xl text-white w-[70%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition"
+                        onClick={handleGenerarCodigoWhatsApp}
+                        disabled={isGenerandoCodigo || !telefono.trim()}
+                        className="bg-green-600 text-xl text-white w-[70%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
                       >
-                        Confirmar
+                        {isGenerandoCodigo ? (
+                          <>
+                            <InlineSpinner size="sm" />
+                            Enviando código...
+                          </>
+                        ) : (
+                          'Enviar código por WhatsApp'
+                        )}
                       </Button>
                     </div>
                   </Field>
@@ -471,15 +614,63 @@ export default function Cuestionario() {
                     </div>
                     <div className="my-5 flex justify-center">
                       <Button
-                        onClick={handleConfirmar}
-                        disabled={isConfirming}
-                        aria-busy={isConfirming}
+                        onClick={handleVerificarCodigo}
+                        disabled={isVerificandoCodigo || !code.trim() || intentosRestantes === 0}
+                        aria-busy={isVerificandoCodigo}
                         className="bg-casal text-xl text-white w-[70%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        {isConfirming && <InlineSpinner size="sm" />}
-                        {isConfirming ? 'Enviando...' : 'Verificar y confirmar'}
+                        {isVerificandoCodigo && <InlineSpinner size="sm" />}
+                        {isVerificandoCodigo ? 'Verificando...' : 'Verificar código'}
                       </Button>
                     </div>
+                    
+                    {/* Botón para reenviar código */}
+                    <div className="my-3 flex justify-center">
+                      <Button
+                        onClick={handleReenviarCodigo}
+                        disabled={isReenviandoCodigo}
+                        className="bg-gray-100 text-gray-700 w-[70%] lg:w-2/5 mx-auto py-2 font-medium rounded-3xl hover:bg-gray-200 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {isReenviandoCodigo ? (
+                          <>
+                            <InlineSpinner size="sm" />
+                            Reenviando...
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw className="w-4 h-4" />
+                            Reenviar código
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Mostrar información de intentos */}
+                    {intentosRestantes < 3 && intentosRestantes > 0 && (
+                      <div className="text-center mt-3">
+                        <p className="text-yellow-600 text-sm">
+                          <AlertCircle className="w-4 h-4 inline mr-1" />
+                          Te quedan {intentosRestantes} intentos
+                        </p>
+                      </div>
+                    )}
+                    {intentosRestantes === 0 && (
+                      <div className="text-center mt-3">
+                        <p className="text-red-600 text-sm">
+                          <AlertCircle className="w-4 h-4 inline mr-1" />
+                          Sin intentos restantes. Solicita un nuevo código.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Mostrar información de expiración */}
+                    {tiempoExpiracion && (
+                      <div className="text-center mt-3">
+                        <p className="text-gray-600 text-sm">
+                          El código expira el {new Date(tiempoExpiracion).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
                   </Field>
                 </div>
               </div>
