@@ -18,16 +18,16 @@ import EnvConfig from "../../utils/config";
 // Función para formatear fecha
 const formatearFecha = (fechaString) => {
   if (!fechaString) return "25 de junio de 2025";
-  
+
   try {
     const fecha = new Date(fechaString);
-    const opciones = { 
-      year: 'numeric', 
-      month: 'long', 
+    const opciones = {
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
       timeZone: 'America/Mexico_City'
     };
-    
+
     return fecha.toLocaleDateString('es-MX', opciones);
   } catch (error) {
     return fechaString; // Retorna la fecha original si hay error
@@ -37,15 +37,15 @@ const formatearFecha = (fechaString) => {
 // Función para formatear hora
 const formatearHora = (fechaString) => {
   if (!fechaString) return "17:00 hrs";
-  
+
   try {
     const fecha = new Date(fechaString);
-    const opciones = { 
-      hour: '2-digit', 
+    const opciones = {
+      hour: '2-digit',
       minute: '2-digit',
       timeZone: 'America/Mexico_City'
     };
-    
+
     return fecha.toLocaleTimeString('es-MX', opciones) + " hrs";
   } catch (error) {
     return fechaString; // Retorna la fecha original si hay error
@@ -56,7 +56,7 @@ export default function Cuestionario() {
   const { eventId } = useParams();
   const { crearInvitado } = useCuestionario();
   const { showSuccess, showError } = useNotifications();
-  
+
   const [event, setEvent] = useState(null);
   const [code, setCode] = useState("");
   const [restricciones, setRestricciones] = useState({
@@ -67,7 +67,7 @@ export default function Cuestionario() {
   });
   const [otra, setOtra] = useState("");
   const [pasoActual, setPasoActual] = useState(0);
-  const [nombre, setNombre]= useState("");
+  const [nombre, setNombre] = useState("");
   const [carrera, setCarrera] = useState("");
   const [escuela, setEscuela] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -77,6 +77,9 @@ export default function Cuestionario() {
   const [apellidoPaternoTutor, setApellidoPaternoTutor] = useState("");
   const [apellidoMaternoTutor, setApellidoMaternoTutor] = useState("");
   const [customerId, setCustomerId] = useState("");
+
+  // Estados para errores de validación
+  const [errores, setErrores] = useState({});
 
   // Estados adicionales para WhatsApp
   const [isGenerandoCodigo, setIsGenerandoCodigo] = useState(false);
@@ -108,12 +111,12 @@ export default function Cuestionario() {
     setIsGenerandoCodigo(true);
     try {
       const response = await whatsappService.generarCodigo(telefono);
-      
+
       if (response.status === 'ok') {
         setCodigoGenerado(response.codigo);
         setTiempoExpiracion(response.expira);
         showSuccess('Código enviado por WhatsApp. Revisa tu teléfono.');
-        
+
         // Avanzar al paso de verificación
         setPasoActual(2);
       } else {
@@ -132,7 +135,7 @@ export default function Cuestionario() {
     setIsReenviandoCodigo(true);
     try {
       const response = await whatsappService.reenviarCodigo(telefono);
-      
+
       if (response.status === 'ok') {
         setCodigoGenerado(response.codigo);
         setTiempoExpiracion(response.expira);
@@ -159,16 +162,16 @@ export default function Cuestionario() {
     setIsVerificandoCodigo(true);
     try {
       const response = await codigoVerificacionService.verificarCodigo(telefono, code);
-      
+
       if (response.success) {
         showSuccess('Teléfono verificado correctamente');
-        
+
         // Ahora que el código está verificado, proceder a crear el invitado
         await handleConfirmarConCodigoVerificado();
       }
     } catch (error) {
       console.error('Error al verificar código:', error);
-      
+
       // Manejar errores específicos
       if (error.message.includes('máximo de intentos')) {
         setIntentosRestantes(0);
@@ -181,7 +184,7 @@ export default function Cuestionario() {
       } else {
         showError(error.message);
       }
-      
+
       // Limpiar código si es incorrecto
       setCode('');
     } finally {
@@ -189,30 +192,35 @@ export default function Cuestionario() {
     }
   };
 
+  // Función para limpiar error de un campo específico
+  const limpiarError = (campo) => {
+    if (errores[campo]) {
+      setErrores(prev => {
+        const nuevosErrores = { ...prev };
+        delete nuevosErrores[campo];
+        return nuevosErrores;
+      });
+    }
+  };
+
   // Función para validar campos obligatorios
   const validarCampos = () => {
-    const errores = [];
+    const nuevosErrores = {};
 
-    // Validar campos básicos
-    if (!nombre.trim()) errores.push('Nombre completo');
-    if (!telefono.trim()) errores.push('Número de teléfono');
-    if (!carrera.trim()) errores.push('Licenciatura');
-    if (!escuela.trim()) errores.push('Instituto/Escuela');
-    if (!boletos || parseInt(boletos) <= 0) errores.push('Cantidad de boletos');
-    if (!contactoEmergencia.trim()) errores.push('Contacto de emergencia');
+    // Validar campos básicos (excluyendo teléfono como solicitaste)
+    if (!nombre.trim()) nuevosErrores.nombre = 'El nombre completo es obligatorio';
+    if (!carrera.trim()) nuevosErrores.carrera = 'La carrera es obligatoria';
+    if (!escuela.trim()) nuevosErrores.escuela = 'La escuela o institución es obligatoria';
+    if (!boletos || parseInt(boletos) <= 0) nuevosErrores.boletos = 'La cantidad de boletos es obligatoria';
+    if (!contactoEmergencia.trim()) nuevosErrores.contactoEmergencia = 'El contacto de emergencia es obligatorio';
 
     // Validar datos del tutor
-    if (!nombreTutor.trim()) errores.push('Nombre del tutor');
-    if (!apellidoPaternoTutor.trim()) errores.push('Apellido paterno del tutor');
-    if (!apellidoMaternoTutor.trim()) errores.push('Apellido materno del tutor');
+    if (!nombreTutor.trim()) nuevosErrores.nombreTutor = 'El nombre del tutor es obligatorio';
+    if (!apellidoPaternoTutor.trim()) nuevosErrores.apellidoPaternoTutor = 'El apellido paterno del tutor es obligatorio';
+    if (!apellidoMaternoTutor.trim()) nuevosErrores.apellidoMaternoTutor = 'El apellido materno del tutor es obligatorio';
 
-    if (errores.length > 0) {
-      const mensaje = `Los siguientes campos son obligatorios: ${errores.join(', ')}`;
-      showError(mensaje);
-      return false;
-    }
-
-    return true;
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
   };
 
   // Nueva función para crear el invitado después de verificar el código
@@ -250,6 +258,16 @@ export default function Cuestionario() {
       const res = await crearInvitado(payload);
       if (res.success) {
         setCustomerId(res.invitado.id || "");
+        
+        // Enviar confirmación de registro exitoso por WhatsApp
+        try {
+          await whatsappService.confirmarRegistro(telefono);
+          console.log('Mensaje de confirmación enviado por WhatsApp');
+        } catch (whatsappError) {
+          console.error('Error al enviar confirmación por WhatsApp:', whatsappError);
+          // No mostramos error al usuario ya que el registro fue exitoso
+        }
+        
         setPasoActual(3);
         showSuccess('¡Registro completado exitosamente!');
       } else {
@@ -324,14 +342,21 @@ export default function Cuestionario() {
                       <Input
                         type="text"
                         value={nombre}
-                        onChange={(e) => setNombre(e.target.value)}
+                        onChange={(e) => {
+                          setNombre(e.target.value);
+                          limpiarError('nombre');
+                        }}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.nombre ? "border-red-500" : ""
                         )}
                         placeholder="Tu Respuesta"
                       />
+                      {errores.nombre && (
+                        <p className="text-red-500 text-sm mt-1">{errores.nombre}</p>
+                      )}
                     </div>
                     <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
@@ -340,14 +365,21 @@ export default function Cuestionario() {
                       <Input
                         type="text"
                         value={carrera}
-                        onChange={(e) => setCarrera(e.target.value)}
+                        onChange={(e) => {
+                          setCarrera(e.target.value);
+                          limpiarError('carrera');
+                        }}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.carrera ? "border-red-500" : ""
                         )}
                         placeholder="Tu Respuesta"
                       />
+                      {errores.carrera && (
+                        <p className="text-red-500 text-sm mt-1">{errores.carrera}</p>
+                      )}
                     </div>
                     <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
@@ -356,14 +388,21 @@ export default function Cuestionario() {
                       <Input
                         type="text"
                         value={escuela}
-                        onChange={(e) => setEscuela(e.target.value)}
+                        onChange={(e) => {
+                          setEscuela(e.target.value);
+                          limpiarError('escuela');
+                        }}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.escuela ? "border-red-500" : ""
                         )}
                         placeholder="Tu Respuesta"
                       />
+                      {errores.escuela && (
+                        <p className="text-red-500 text-sm mt-1">{errores.escuela}</p>
+                      )}
                     </div>
                     <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
@@ -372,16 +411,23 @@ export default function Cuestionario() {
                       <Input
                         type="number"
                         value={boletos}
-                        onChange={(e) => setBoletos(e.target.value)}
+                        onChange={(e) => {
+                          setBoletos(e.target.value);
+                          limpiarError('boletos');
+                        }}
                         min={1}
                         max={8}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.boletos ? "border-red-500" : ""
                         )}
                         placeholder="Tu Respuesta"
                       />
+                      {errores.boletos && (
+                        <p className="text-red-500 text-sm mt-1">{errores.boletos}</p>
+                      )}
                     </div>
                     <div className="mb-3">
                       <Label className="text-sm/6">
@@ -452,14 +498,21 @@ export default function Cuestionario() {
                       <Input
                         type="text"
                         value={contactoEmergencia}
-                        onChange={(e) => setContactoEmergencia(e.target.value)}
+                        onChange={(e) => {
+                          setContactoEmergencia(e.target.value);
+                          limpiarError('contactoEmergencia');
+                        }}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.contactoEmergencia ? "border-red-500" : ""
                         )}
                         placeholder="Tu Respuesta"
                       />
+                      {errores.contactoEmergencia && (
+                        <p className="text-red-500 text-sm mt-1">{errores.contactoEmergencia}</p>
+                      )}
                     </div>
                     <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
@@ -473,14 +526,21 @@ export default function Cuestionario() {
                           <Input
                             type="text"
                             value={nombreTutor}
-                            onChange={(e) => setNombreTutor(e.target.value)}
+                            onChange={(e) => {
+                              setNombreTutor(e.target.value);
+                              limpiarError('nombreTutor');
+                            }}
                             className={clsx(
                               "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6  text-gray-700",
                               "placeholder:italic",
-                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                              errores.nombreTutor ? "border-red-500" : ""
                             )}
                             placeholder="Nombre(s) de la persona responsable"
                           />
+                          {errores.nombreTutor && (
+                            <p className="text-red-500 text-sm mt-1">{errores.nombreTutor}</p>
+                          )}
                         </div>
                         <div className="mb-3">
                           <Label className="text-sm/6 font-semibold text-casal">
@@ -488,16 +548,22 @@ export default function Cuestionario() {
                           </Label>
                           <Input
                             value={apellidoPaternoTutor}
-                            onChange={(e) => setApellidoPaternoTutor(e.target.value)
-                            }
+                            onChange={(e) => {
+                              setApellidoPaternoTutor(e.target.value);
+                              limpiarError('apellidoPaternoTutor');
+                            }}
                             type="text"
                             className={clsx(
                               "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700",
                               "placeholder:italic",
-                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                              errores.apellidoPaternoTutor ? "border-red-500" : ""
                             )}
                             placeholder="Apellido paterno de la persona responsable"
                           />
+                          {errores.apellidoPaternoTutor && (
+                            <p className="text-red-500 text-sm mt-1">{errores.apellidoPaternoTutor}</p>
+                          )}
                         </div>
                         <div className="mb-3">
                           <Label className="text-sm/6 font-semibold text-casal">
@@ -506,20 +572,31 @@ export default function Cuestionario() {
                           <Input
                             type="text"
                             value={apellidoMaternoTutor}
-                            onChange={(e) => setApellidoMaternoTutor(e.target.value)}
+                            onChange={(e) => {
+                              setApellidoMaternoTutor(e.target.value);
+                              limpiarError('apellidoMaternoTutor');
+                            }}
                             className={clsx(
                               "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700",
                               "placeholder:italic",
-                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                              errores.apellidoMaternoTutor ? "border-red-500" : ""
                             )}
                             placeholder="Apellido materno de la persona responsable"
                           />
+                          {errores.apellidoMaternoTutor && (
+                            <p className="text-red-500 text-sm mt-1">{errores.apellidoMaternoTutor}</p>
+                          )}
                         </div>
                       </div>
                     </div>
                     <div className="my-5 flex justify-center">
                       <Button
-                        onClick={() => setPasoActual(1)}
+                        onClick={() => {
+                          if (validarCampos()) {
+                            setPasoActual(1);
+                          }
+                        }}
                         className="bg-casal text-xl text-white w-[70%] mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition"
                       >
                         Enviar
@@ -623,7 +700,7 @@ export default function Cuestionario() {
                         {isVerificandoCodigo ? 'Verificando...' : 'Verificar código'}
                       </Button>
                     </div>
-                    
+
                     {/* Botón para reenviar código */}
                     <div className="my-3 flex justify-center">
                       <Button
@@ -699,9 +776,9 @@ export default function Cuestionario() {
                 <div>
                   <Field>
                     <div className="my-5 flex justify-center">
-                      <Button 
+                      <Button
                         onClick={handleIrAPortalPagos}
-                      className="bg-casal text-xl text-white w-[90%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition">
+                        className="bg-casal text-xl text-white w-[90%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition">
                         Realizar pago · Abonar ahora
                       </Button>
                     </div>

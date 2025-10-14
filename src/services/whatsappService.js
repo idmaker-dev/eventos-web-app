@@ -57,6 +57,33 @@ export const whatsappService = {
       throw error;
     }
   },
+
+  /**
+   * Confirma el registro exitoso y envía mensaje de confirmación por WhatsApp
+   * @param {string} telefono - Número de teléfono
+   * @returns {Promise<Object>} Respuesta de confirmación
+   */
+  async confirmarRegistro(telefono) {
+    try {
+      const response = await fetch(`${WHATSAPP_API_BASE}/rsvp/confirmar`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ telefono }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("Error al confirmar registro:", error);
+      throw error;
+    }
+  },
 };
 
 export default whatsappService;
