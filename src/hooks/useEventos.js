@@ -156,7 +156,7 @@ export const useEventos = () => {
           usuarioId: user?.id,
           fechaCreacion: new Date().toISOString(),
           estado: "activo",
-          costos: datosEvento.costos || "",
+          costo: datosEvento.costo || "",
           fechas: datosEvento.fechas || [],
         };
 
