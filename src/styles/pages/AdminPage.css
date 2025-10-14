@@ -413,6 +413,7 @@ body.dark .config-submenu .submenu-panel,
   font-size: 13px;
   display: flex;
   align-items: center;
+  justify-content: left;
   gap: 10px;
   padding: 8px 14px;
   font-weight: 500;
@@ -476,4 +477,20 @@ body.dark .config-submenu .submenu-icon,
 body.dark .config-submenu .submenu-separator,
 .dark-mode .config-submenu .submenu-separator {
   background: #444;
+}
+
+/* ================= FIN SUBMENÚ CONFIG ================= */
+.config-submenu:hover ~ .tooltip .tooltip-pill,
+.config-submenu + .tooltip .tooltip-pill {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Asegurar que el submenu no active el tooltip del padre */
+.config-submenu {
+  pointer-events: auto;
+}
+
+.config-submenu * {
+  pointer-events: auto;
 }
