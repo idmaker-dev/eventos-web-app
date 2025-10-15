@@ -27,6 +27,7 @@ const DetalleFacturas = ({ isOpen, onClose, deuda }) => {
 
   const formatearFecha = (fecha) => {
     if (!fecha) return "";
+    fecha = fecha.includes("T") ? fecha.split("T")[0] : fecha;
     const [year, month, day] = fecha.split("-");
     return `${day}/${month}/${year}`;
   };
