@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { Button, Checkbox } from "@headlessui/react";
 import { ProductDetailsModal } from "./ProductDetailsModal.jsx";
+import MetodoPagoModal from "./MetodoPagoModal.jsx";
 import { CheckIcon } from "lucide-react";
-import { Link } from "react-router-dom";
 
 const truncateText = (text, maxLength = 30) => {
   if (text.length <= maxLength) return text;
@@ -36,6 +36,7 @@ const mapearEstado = (cuota) => {
 export function InstallmentsTable({ cuotas = [], resumen, invitadoId }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [open, setOpen] = useState(false);
+  const [metodoPagoOpen, setMetodoPagoOpen] = useState(false);
 
   // Inicializar con cuotas seleccionables
   useEffect(() => {
@@ -216,25 +217,25 @@ export function InstallmentsTable({ cuotas = [], resumen, invitadoId }) {
             <div className="text-xl md:text-2xl font-semibold text-gray-900">
               ${totalAmount.toLocaleString("es-MX", { minimumFractionDigits: 2 })}
             </div>
-            <Link 
-              to={`/checkout/${invitadoId}`} 
-              state={{ 
-                selectedIds: Array.from(selectedIds),
-                total: totalAmount
-              }}
+            <Button
+              onClick={() => setMetodoPagoOpen(true)}
+              className="w-full md:w-auto bg-casal text-white px-4 py-2 rounded-lg hover:bg-casal/80 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+              disabled={selectedIds.size === 0}
             >
-              <Button
-                className="w-full md:w-auto bg-casal text-white px-4 py-2 rounded-lg hover:bg-casal/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={selectedIds.size === 0}
-              >
-                Obtener CLABE para transferencia
-              </Button>
-            </Link>
+              Continuar con el pago
+            </Button>
           </div>
         </div>
       </div>
 
       <ProductDetailsModal isOpen={open} onClose={() => setOpen(false)} />
+      <MetodoPagoModal 
+        isOpen={metodoPagoOpen} 
+        onClose={() => setMetodoPagoOpen(false)}
+        invitadoId={invitadoId}
+        selectedIds={selectedIds}
+        total={totalAmount}
+      />
     </div>
   );
 }

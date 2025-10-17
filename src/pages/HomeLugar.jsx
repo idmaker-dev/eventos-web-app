@@ -105,36 +105,116 @@ export default function HomeLugar() {
       </header>
 
       {/* KPIs */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
         <KpiCard icon={<Calendar className="w-6 h-6" />} label="Eventos totales" value={totales.eventos} />
-        <KpiCard icon={<Users className="w-6 h-6" />} label="Asistentes acumulados" value={totales.asistentes} />
+        <KpiCard icon={<Users className="w-6 h-6" />} label="Alumnos" value={totales.asistentesAlumnos} />
+        <KpiCard icon={<Users className="w-6 h-6" />} label="Con boletos" value={totales.asistentes} />
         <KpiCard icon={<TrendingUp className="w-6 h-6" />} label="Ocupación promedio" value={totales.ocupacionPromedio + '%'} />
         <KpiCard icon={<BarChart2 className="w-6 h-6" />} label="Ingresos estimados" value={'$' + totales.ingresosEstimados.toLocaleString()} />
+      </section>
+
+      {/* KPIs de Boletos */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
+        <KpiCard 
+          icon={<Users className="w-6 h-6" />} 
+          label="Boletos apartados" 
+          value={totales.boletosApartados.toLocaleString()}
+          subtitle={'$' + totales.boletosApartadosDinero.toLocaleString()}
+        />
+        <KpiCard 
+          icon={<TrendingUp className="w-6 h-6" />} 
+          label="Boletos pagados" 
+          value={totales.boletosPagados.toLocaleString()}
+          subtitle={'$' + totales.boletosPagadosDinero.toLocaleString() + ' (' + totales.porcentajePagados + '%)'}
+          highlight="success"
+        />
+        <KpiCard 
+          icon={<BarChart2 className="w-6 h-6" />} 
+          label="Abono realizado" 
+          value={'$' + totales.abonoRealizado.toLocaleString()}
+          subtitle={totales.porcentajeAbonado + '% del total abonado'}
+          highlight="info"
+        />
+        <KpiCard 
+          icon={<BarChart2 className="w-6 h-6" />} 
+          label="Boletos por pagar" 
+          value={totales.boletosPorPagar.toLocaleString()}
+          subtitle={'$' + totales.boletosPorPagarDinero.toLocaleString() + ' (' + (100 - totales.porcentajePagados) + '%)'}
+          highlight="warning"
+        />
+        <KpiCard 
+          icon={<TrendingUp className="w-6 h-6" />} 
+          label="Tasa de pago" 
+          value={totales.porcentajePagados + '%'}
+          subtitle={totales.boletosPagados + ' de ' + totales.boletosApartados + ' pagados'}
+        />
       </section>
 
       {/* Próximos eventos */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Próximos eventos</h2>
-        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
             <thead className="bg-gray-50 dark:bg-[#23272e]">
               <tr>
                 <Th>Fecha</Th>
                 <Th>Nombre</Th>
                 <Th>Tipo</Th>
-                <Th>Invitados</Th>
+                <Th>Alumnos</Th>
+                <Th>Con boletos</Th>
+                <Th>Apartados</Th>
+                <Th>Pagados</Th>
+                <Th>Abonado</Th>
+                <Th>Por Pagar</Th>
+                <Th>% Pagado</Th>
+                <Th>% Abonado</Th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-[#1e1e1e] divide-y divide-gray-100 dark:divide-gray-800">
               {proximosEventos.length === 0 && (
-                <tr><td colSpan={4} className="p-4 text-center text-gray-500">No hay eventos próximos</td></tr>
+                <tr><td colSpan={11} className="p-4 text-center text-gray-500">No hay eventos próximos</td></tr>
               )}
               {proximosEventos.map(ev => (
                 <tr key={ev.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
                   <Td>{formatDate(ev.fecha)}</Td>
                   <Td className="font-medium">{ev.nombre}</Td>
                   <Td>{ev.tipo}</Td>
+                  <Td>{ev.asistentesAlumnos || '-'}</Td>
                   <Td>{ev.invitados}</Td>
+                  <Td>
+                    <div>{ev.boletosApartados}</div>
+                    <div className="text-xs text-gray-500">${ev.boletosApartadosDinero.toLocaleString()}</div>
+                  </Td>
+                  <Td>
+                    <div className="text-green-600 dark:text-green-400 font-medium">{ev.boletosPagados}</div>
+                    <div className="text-xs text-gray-500">${ev.boletosPagadosDinero.toLocaleString()}</div>
+                  </Td>
+                  <Td>
+                    <div className="text-blue-600 dark:text-blue-400 font-medium">${ev.abonoRealizado.toLocaleString()}</div>
+                    <div className="text-xs text-gray-500">Abono adicional</div>
+                  </Td>
+                  <Td>
+                    <div className="text-amber-600 dark:text-amber-400 font-medium">{ev.boletosPorPagar}</div>
+                    <div className="text-xs text-gray-500">${ev.boletosPorPagarDinero.toLocaleString()}</div>
+                  </Td>
+                  <Td>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      ev.porcentajePagados >= 50 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                    }`}>
+                      {ev.porcentajePagados}%
+                    </span>
+                  </Td>
+                  <Td>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      ev.porcentajeAbonado >= 20 
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    }`}>
+                      {ev.porcentajeAbonado}%
+                    </span>
+                  </Td>
                 </tr>
               ))}
             </tbody>
@@ -146,28 +226,70 @@ export default function HomeLugar() {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Eventos recientes</h2>
-          <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
               <thead className="bg-gray-50 dark:bg-[#23272e]">
                 <tr>
                   <Th>Fecha</Th>
                   <Th>Nombre</Th>
                   <Th>Tipo</Th>
-                  <Th>Asistentes</Th>
+                  <Th>Alumnos</Th>
+                  <Th>Con boletos</Th>
                   <Th>Ocupación</Th>
+                  <Th>Apartados</Th>
+                  <Th>Pagados</Th>
+                  <Th>Abonado</Th>
+                  <Th>Por Pagar</Th>
+                  <Th>% Pagado</Th>
+                  <Th>% Abonado</Th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-[#1e1e1e] divide-y divide-gray-100 dark:divide-gray-800">
                 {eventosRecientes.length === 0 && (
-                  <tr><td colSpan={5} className="p-4 text-center text-gray-500">No hay eventos registrados</td></tr>
+                  <tr><td colSpan={12} className="p-4 text-center text-gray-500">No hay eventos registrados</td></tr>
                 )}
                 {eventosRecientes.map(ev => (
                   <tr key={ev.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
                     <Td>{formatDate(ev.fecha)}</Td>
                     <Td className="font-medium">{ev.nombre}</Td>
                     <Td>{ev.tipo}</Td>
+                    <Td>{ev.asistentesAlumnos || '-'}</Td>
                     <Td>{ev.asistentes}</Td>
                     <Td>{ev.ocupacion}%</Td>
+                    <Td>
+                      <div>{ev.boletosApartados}</div>
+                      <div className="text-xs text-gray-500">${ev.boletosApartadosDinero.toLocaleString()}</div>
+                    </Td>
+                    <Td>
+                      <div className="text-green-600 dark:text-green-400 font-medium">{ev.boletosPagados}</div>
+                      <div className="text-xs text-gray-500">${ev.boletosPagadosDinero.toLocaleString()}</div>
+                    </Td>
+                    <Td>
+                      <div className="text-blue-600 dark:text-blue-400 font-medium">${ev.abonoRealizado.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">Abono adicional</div>
+                    </Td>
+                    <Td>
+                      <div className="text-amber-600 dark:text-amber-400 font-medium">{ev.boletosPorPagar}</div>
+                      <div className="text-xs text-gray-500">${ev.boletosPorPagarDinero.toLocaleString()}</div>
+                    </Td>
+                    <Td>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        ev.porcentajePagados >= 50 
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                      }`}>
+                        {ev.porcentajePagados}%
+                      </span>
+                    </Td>
+                    <Td>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        ev.porcentajeAbonado >= 20 
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                          : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                      }`}>
+                        {ev.porcentajeAbonado}%
+                      </span>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
@@ -195,11 +317,23 @@ export default function HomeLugar() {
   );
 }
 
-function KpiCard({ icon, label, value }) {
+function KpiCard({ icon, label, value, subtitle, highlight }) {
+  const highlightColors = {
+    success: 'text-green-600 dark:text-green-400',
+    warning: 'text-amber-600 dark:text-amber-400',
+    danger: 'text-red-600 dark:text-red-400',
+    info: 'text-blue-600 dark:text-blue-400',
+  };
+
+  const iconColor = highlight ? highlightColors[highlight] : 'text-[#206a73]';
+
   return (
     <div className="bg-white dark:bg-[#1e1e1e] rounded-xl p-5 border border-gray-200 dark:border-gray-700 flex flex-col gap-2">
-      <div className="flex items-center gap-3 text-[#206a73]">{icon}<span className="text-sm font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</span></div>
+      <div className={`flex items-center gap-3 ${iconColor}`}>{icon}<span className="text-sm font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{label}</span></div>
       <div className="text-2xl font-semibold text-gray-800 dark:text-gray-100">{value}</div>
+      {subtitle && (
+        <div className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</div>
+      )}
     </div>
   );
 }
