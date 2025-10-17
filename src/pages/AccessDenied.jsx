@@ -11,7 +11,7 @@ const AccessDenied = () => {
   };
 
   const goHome = () => {
-    navigate('/');
+    navigate('/login');
   };
 
   return (

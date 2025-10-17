@@ -8,24 +8,26 @@ import SolicitudCodigo from "../../assets/recursos/solicitudCodigo.svg";
 import CuestionarioCreado from "../../assets/recursos/CUESTIONARIO_CREADO.svg";
 import { Button, Field, Input, Label } from "@headlessui/react";
 import clsx from "clsx";
-import { Minus, Plus } from "lucide-react";
+import { RotateCcw, AlertCircle } from "lucide-react";
 import { useCuestionario } from "../../hooks/useCuestionario";
 import eventService from "../../services/eventService";
+import { whatsappService, codigoVerificacionService } from "../../services";
+import { useNotifications } from "../../contexts/NotificationContext";
 import EnvConfig from "../../utils/config";
 
 // Función para formatear fecha
 const formatearFecha = (fechaString) => {
   if (!fechaString) return "25 de junio de 2025";
-  
+
   try {
     const fecha = new Date(fechaString);
-    const opciones = { 
-      year: 'numeric', 
-      month: 'long', 
+    const opciones = {
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
       timeZone: 'America/Mexico_City'
     };
-    
+
     return fecha.toLocaleDateString('es-MX', opciones);
   } catch (error) {
     return fechaString; // Retorna la fecha original si hay error
@@ -35,15 +37,15 @@ const formatearFecha = (fechaString) => {
 // Función para formatear hora
 const formatearHora = (fechaString) => {
   if (!fechaString) return "17:00 hrs";
-  
+
   try {
     const fecha = new Date(fechaString);
-    const opciones = { 
-      hour: '2-digit', 
+    const opciones = {
+      hour: '2-digit',
       minute: '2-digit',
       timeZone: 'America/Mexico_City'
     };
-    
+
     return fecha.toLocaleTimeString('es-MX', opciones) + " hrs";
   } catch (error) {
     return fechaString; // Retorna la fecha original si hay error
@@ -52,18 +54,20 @@ const formatearHora = (fechaString) => {
 
 export default function Cuestionario() {
   const { eventId } = useParams();
+  const { crearInvitado } = useCuestionario();
+  const { showSuccess, showError } = useNotifications();
+
   const [event, setEvent] = useState(null);
   const [code, setCode] = useState("");
-  const [restricciones, setRestricciones] = useState({
-    vegetariano: 0,
-    vegano: 0,
-    sinGluten: 0,
-    alergiaMarisco: 0,
-  });
-  const [otra, setOtra] = useState("");
+  // const [restricciones, setRestricciones] = useState({
+  //   vegetariano: 0,
+  //   vegano: 0,
+  //   sinGluten: 0,
+  //   alergiaMarisco: 0,
+  // });
+  // const [otra, setOtra] = useState("");
   const [pasoActual, setPasoActual] = useState(0);
-  const { crearInvitado } = useCuestionario();
-  const [nombre, setNombre]= useState("");
+  const [nombre, setNombre] = useState("");
   const [carrera, setCarrera] = useState("");
   const [escuela, setEscuela] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -72,7 +76,23 @@ export default function Cuestionario() {
   const [nombreTutor, setNombreTutor] = useState("");
   const [apellidoPaternoTutor, setApellidoPaternoTutor] = useState("");
   const [apellidoMaternoTutor, setApellidoMaternoTutor] = useState("");
+  const [correoTutor, setCorreoTutor] = useState("");
   const [customerId, setCustomerId] = useState("");
+  const [fechaNacimiento, setFechaNacimiento] = useState("");
+  const [esMayorDeEdad, setEsMayorDeEdad] = useState(false);
+  const [aceptaResponsabilidadTutor, setAceptaResponsabilidadTutor] = useState(false);
+  const [aceptaTerminos, setAceptaTerminos] = useState(false);
+
+  // Estados para errores de validación
+  const [errores, setErrores] = useState({});
+
+  // Estados adicionales para WhatsApp
+  const [isGenerandoCodigo, setIsGenerandoCodigo] = useState(false);
+  const [isVerificandoCodigo, setIsVerificandoCodigo] = useState(false);
+  const [isReenviandoCodigo, setIsReenviandoCodigo] = useState(false);
+  const [codigoGenerado, setCodigoGenerado] = useState(null);
+  const [tiempoExpiracion, setTiempoExpiracion] = useState(null);
+  const [intentosRestantes, setIntentosRestantes] = useState(3);
 
   useEffect(() => {
     if (eventId) {
@@ -86,17 +106,181 @@ export default function Cuestionario() {
     }
   }, [eventId]);
 
-  const handleChange = (key, delta) => {
-    setRestricciones((prev) => ({
-      ...prev,
-      [key]: Math.max(0, prev[key] + delta),
-    }));
+  // Función para calcular la edad y verificar mayoría de edad
+  const calcularEdad = (fechaNac) => {
+    if (!fechaNac) return 0;
+    
+    const hoy = new Date();
+    const nacimiento = new Date(fechaNac);
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const mes = hoy.getMonth() - nacimiento.getMonth();
+    
+    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edad--;
+    }
+    
+    return edad;
   };
-  const [isConfirming, setIsConfirming] = useState(false);
-  const handleConfirmar = async () => {
-    if (isConfirming) return;
-    setIsConfirming(true);
-    // Bypassed code validation for now - always proceed to submit form data
+
+  // Efecto para verificar mayoría de edad cuando cambia la fecha de nacimiento
+  useEffect(() => {
+    if (fechaNacimiento) {
+      const edad = calcularEdad(fechaNacimiento);
+      setEsMayorDeEdad(edad >= 18);
+      
+      // Si es mayor de edad, resetear el checkbox de responsabilidad del tutor
+      if (edad >= 18) {
+        setAceptaResponsabilidadTutor(false);
+      }
+    } else {
+      setEsMayorDeEdad(false);
+      setAceptaResponsabilidadTutor(false);
+    }
+  }, [fechaNacimiento]);
+
+  // Función para generar código WhatsApp
+  const handleGenerarCodigoWhatsApp = async () => {
+    if (!telefono.trim()) {
+      showError('Por favor ingresa tu número de teléfono');
+      return;
+    }
+
+    setIsGenerandoCodigo(true);
+    try {
+      const response = await whatsappService.generarCodigo(telefono);
+
+      if (response.status === 'ok') {
+        setCodigoGenerado(response.codigo);
+        setTiempoExpiracion(response.expira);
+        showSuccess('Código enviado por WhatsApp. Revisa tu teléfono.');
+
+        // Avanzar al paso de verificación
+        setPasoActual(2);
+      } else {
+        showError('Error al generar el código de verificación');
+      }
+    } catch (error) {
+      console.error('Error al generar código WhatsApp:', error);
+      showError('Error al enviar el código por WhatsApp. Intenta nuevamente.');
+    } finally {
+      setIsGenerandoCodigo(false);
+    }
+  };
+
+  // Función para reenviar código
+  const handleReenviarCodigo = async () => {
+    setIsReenviandoCodigo(true);
+    try {
+      const response = await whatsappService.reenviarCodigo(telefono);
+
+      if (response.status === 'ok') {
+        setCodigoGenerado(response.codigo);
+        setTiempoExpiracion(response.expira);
+        setIntentosRestantes(3); // Resetear intentos
+        showSuccess('Nuevo código enviado por WhatsApp');
+      } else {
+        showError('Error al reenviar el código');
+      }
+    } catch (error) {
+      console.error('Error al reenviar código:', error);
+      showError('Error al reenviar el código. Intenta nuevamente.');
+    } finally {
+      setIsReenviandoCodigo(false);
+    }
+  };
+
+  // Función para verificar código
+  const handleVerificarCodigo = async () => {
+    if (!code.trim()) {
+      showError('Por favor ingresa el código de verificación');
+      return;
+    }
+
+    setIsVerificandoCodigo(true);
+    try {
+      const response = await codigoVerificacionService.verificarCodigo(telefono, code);
+
+      if (response.success) {
+        showSuccess('Teléfono verificado correctamente');
+
+        // Ahora que el código está verificado, proceder a crear el invitado
+        await handleConfirmarConCodigoVerificado();
+      }
+    } catch (error) {
+      console.error('Error al verificar código:', error);
+
+      // Manejar errores específicos
+      if (error.message.includes('máximo de intentos')) {
+        setIntentosRestantes(0);
+        showError('Has alcanzado el máximo de intentos. Solicita un nuevo código.');
+      } else if (error.message.includes('expirado')) {
+        showError('El código ha expirado. Solicita un nuevo código.');
+      } else if (error.message.includes('incorrecto')) {
+        setIntentosRestantes(prev => Math.max(0, prev - 1));
+        showError(`Código incorrecto. Te quedan ${intentosRestantes - 1} intentos.`);
+      } else {
+        showError(error.message);
+      }
+
+      // Limpiar código si es incorrecto
+      setCode('');
+    } finally {
+      setIsVerificandoCodigo(false);
+    }
+  };
+
+  // Función para limpiar error de un campo específico
+  const limpiarError = (campo) => {
+    if (errores[campo]) {
+      setErrores(prev => {
+        const nuevosErrores = { ...prev };
+        delete nuevosErrores[campo];
+        return nuevosErrores;
+      });
+    }
+  };
+
+  // Función para validar campos obligatorios
+  const validarCampos = () => {
+    const nuevosErrores = {};
+
+    // Validar campos básicos (excluyendo teléfono como solicitaste)
+    if (!nombre.trim()) nuevosErrores.nombre = 'El nombre completo es obligatorio';
+    if (!carrera.trim()) nuevosErrores.carrera = 'La carrera es obligatoria';
+    if (!escuela.trim()) nuevosErrores.escuela = 'La escuela o institución es obligatoria';
+    if (!boletos || parseInt(boletos) <= 0) nuevosErrores.boletos = 'La cantidad de boletos es obligatoria';
+    if (!contactoEmergencia.trim()) nuevosErrores.contactoEmergencia = 'El contacto de emergencia es obligatorio';
+    if (!fechaNacimiento) nuevosErrores.fechaNacimiento = 'La fecha de nacimiento es obligatoria';
+
+    // Validar datos del tutor
+    if (!nombreTutor.trim()) nuevosErrores.nombreTutor = 'El nombre del tutor es obligatorio';
+    if (!apellidoPaternoTutor.trim()) nuevosErrores.apellidoPaternoTutor = 'El apellido paterno del tutor es obligatorio';
+    if (!apellidoMaternoTutor.trim()) nuevosErrores.apellidoMaternoTutor = 'El apellido materno del tutor es obligatorio';
+    if (!correoTutor.trim()) nuevosErrores.correoTutor = 'El correo del tutor es obligatorio';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoTutor)) {
+      nuevosErrores.correoTutor = 'El correo electrónico no es válido';
+    }
+
+    // Validar que si es menor de edad, acepte la responsabilidad del tutor
+    if (!esMayorDeEdad && fechaNacimiento && !aceptaResponsabilidadTutor) {
+      nuevosErrores.aceptaResponsabilidadTutor = 'Debes aceptar que un tutor legal se hará responsable';
+    }
+
+    // Validar términos y condiciones
+    if (!aceptaTerminos) {
+      nuevosErrores.aceptaTerminos = 'Debes aceptar los términos y condiciones';
+    }
+
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  // Nueva función para crear el invitado después de verificar el código
+  const handleConfirmarConCodigoVerificado = async () => {
+    // Validar campos obligatorios antes de enviar
+    if (!validarCampos()) {
+      return;
+    }
 
     const payload = {
       id_evento: eventId,
@@ -106,34 +290,59 @@ export default function Cuestionario() {
       instituto: escuela,
       cantidad_boletos: parseInt(boletos) || 0,
       contacto_emergencias: contactoEmergencia,
+      fecha_nacimiento: fechaNacimiento,
       tutor: {
         nombre: nombreTutor,
         apellidoPaterno: apellidoPaternoTutor,
         apellidoMaterno: apellidoMaternoTutor,
+        correo: correoTutor,
       },
-      restricciones: [
-        {
-          vegetariano: restricciones.vegetariano,
-          vegano: restricciones.vegano,
-          sin_gluten: restricciones.sinGluten,
-          alergias_mariscos: restricciones.alergiaMarisco,
-          otra: otra ? 1 : 0,
-        }
-      ]
+      // Restricciones comentadas temporalmente
+      // restricciones: [
+      //   {
+      //     vegetariano: restricciones.vegetariano,
+      //     vegano: restricciones.vegano,
+      //     sin_gluten: restricciones.sinGluten,
+      //     alergias_mariscos: restricciones.alergiaMarisco,
+      //     otra: otra ? 1 : 0,
+      //   }
+      // ]
     };
 
     try {
       const res = await crearInvitado(payload);
       if (res.success) {
         setCustomerId(res.invitado.id || "");
+        
+        // Enviar confirmación de registro exitoso por WhatsApp
+        try {
+          await whatsappService.confirmarRegistro(telefono);
+          console.log('Mensaje de confirmación enviado por WhatsApp');
+        } catch (whatsappError) {
+          console.error('Error al enviar confirmación por WhatsApp:', whatsappError);
+          // No mostramos error al usuario ya que el registro fue exitoso
+        }
+        
         setPasoActual(3);
+        showSuccess('¡Registro completado exitosamente!');
       } else {
         console.error('Error al guardar:', res.error);
+        showError('Error al completar el registro. Intenta nuevamente.');
       }
-    } finally {
-      setIsConfirming(false);
+    } catch (error) {
+      console.error('Error al crear invitado:', error);
+      showError('Error al completar el registro. Intenta nuevamente.');
     }
   };
+
+  // Función comentada temporalmente - para restricciones alimenticias
+  // const handleChange = (key, delta) => {
+  //   setRestricciones((prev) => ({
+  //     ...prev,
+  //     [key]: Math.max(0, prev[key] + delta),
+  //   }));
+  // };
+
 
   const handleIrAPortalPagos = async () => {
     //navegar en una nueva pestaña al portal de pagos
@@ -189,14 +398,65 @@ export default function Cuestionario() {
                       <Input
                         type="text"
                         value={nombre}
-                        onChange={(e) => setNombre(e.target.value)}
+                        onChange={(e) => {
+                          setNombre(e.target.value);
+                          limpiarError('nombre');
+                        }}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.nombre ? "border-red-500" : ""
                         )}
                         placeholder="Tu Respuesta"
                       />
+                      {errores.nombre && (
+                        <p className="text-red-500 text-sm mt-1">{errores.nombre}</p>
+                      )}
+                    </div>
+                    <div className="mb-3">
+                      <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                        Fecha de nacimiento
+                      </Label>
+                      <Input
+                        type="date"
+                        value={fechaNacimiento}
+                        onChange={(e) => {
+                          setFechaNacimiento(e.target.value);
+                          limpiarError('fechaNacimiento');
+                        }}
+                        className={clsx(
+                          "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.fechaNacimiento ? "border-red-500" : ""
+                        )}
+                      />
+                      {errores.fechaNacimiento && (
+                        <p className="text-red-500 text-sm mt-1">{errores.fechaNacimiento}</p>
+                      )}
+                      
+                      {/* Checkbox para menor de edad */}
+                      {fechaNacimiento && !esMayorDeEdad && (
+                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={aceptaResponsabilidadTutor}
+                              onChange={(e) => {
+                                setAceptaResponsabilidadTutor(e.target.checked);
+                                limpiarError('aceptaResponsabilidadTutor');
+                              }}
+                              className="mt-1 w-4 h-4 text-casal border-gray-300 rounded focus:ring-casal"
+                            />
+                            <span className="text-sm text-gray-700">
+                              Confirmo que un tutor legal se hará responsable
+                            </span>
+                          </label>
+                          {errores.aceptaResponsabilidadTutor && (
+                            <p className="text-red-500 text-sm mt-1 ml-6">{errores.aceptaResponsabilidadTutor}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
@@ -205,14 +465,21 @@ export default function Cuestionario() {
                       <Input
                         type="text"
                         value={carrera}
-                        onChange={(e) => setCarrera(e.target.value)}
+                        onChange={(e) => {
+                          setCarrera(e.target.value);
+                          limpiarError('carrera');
+                        }}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.carrera ? "border-red-500" : ""
                         )}
                         placeholder="Tu Respuesta"
                       />
+                      {errores.carrera && (
+                        <p className="text-red-500 text-sm mt-1">{errores.carrera}</p>
+                      )}
                     </div>
                     <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
@@ -221,14 +488,21 @@ export default function Cuestionario() {
                       <Input
                         type="text"
                         value={escuela}
-                        onChange={(e) => setEscuela(e.target.value)}
+                        onChange={(e) => {
+                          setEscuela(e.target.value);
+                          limpiarError('escuela');
+                        }}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.escuela ? "border-red-500" : ""
                         )}
                         placeholder="Tu Respuesta"
                       />
+                      {errores.escuela && (
+                        <p className="text-red-500 text-sm mt-1">{errores.escuela}</p>
+                      )}
                     </div>
                     <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
@@ -237,18 +511,26 @@ export default function Cuestionario() {
                       <Input
                         type="number"
                         value={boletos}
-                        onChange={(e) => setBoletos(e.target.value)}
+                        onChange={(e) => {
+                          setBoletos(e.target.value);
+                          limpiarError('boletos');
+                        }}
                         min={1}
                         max={8}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.boletos ? "border-red-500" : ""
                         )}
                         placeholder="Tu Respuesta"
                       />
+                      {errores.boletos && (
+                        <p className="text-red-500 text-sm mt-1">{errores.boletos}</p>
+                      )}
                     </div>
-                    <div className="mb-3">
+                    {/* RESTRICCIONES ALIMENTICIAS - COMENTADO TEMPORALMENTE */}
+                    {/* <div className="mb-3">
                       <Label className="text-sm/6">
                         <span className="text-casal font-semibold dark:text-towerGray">
                           Restricciones alimenticias
@@ -309,7 +591,7 @@ export default function Cuestionario() {
                           )}
                         />
                       </div>
-                    </div>
+                    </div> */}
                     <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
                         Contacto de emergencia
@@ -317,14 +599,21 @@ export default function Cuestionario() {
                       <Input
                         type="text"
                         value={contactoEmergencia}
-                        onChange={(e) => setContactoEmergencia(e.target.value)}
+                        onChange={(e) => {
+                          setContactoEmergencia(e.target.value);
+                          limpiarError('contactoEmergencia');
+                        }}
                         className={clsx(
                           "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                          errores.contactoEmergencia ? "border-red-500" : ""
                         )}
                         placeholder="Tu Respuesta"
                       />
+                      {errores.contactoEmergencia && (
+                        <p className="text-red-500 text-sm mt-1">{errores.contactoEmergencia}</p>
+                      )}
                     </div>
                     <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
@@ -338,14 +627,21 @@ export default function Cuestionario() {
                           <Input
                             type="text"
                             value={nombreTutor}
-                            onChange={(e) => setNombreTutor(e.target.value)}
+                            onChange={(e) => {
+                              setNombreTutor(e.target.value);
+                              limpiarError('nombreTutor');
+                            }}
                             className={clsx(
                               "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6  text-gray-700",
                               "placeholder:italic",
-                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                              errores.nombreTutor ? "border-red-500" : ""
                             )}
                             placeholder="Nombre(s) de la persona responsable"
                           />
+                          {errores.nombreTutor && (
+                            <p className="text-red-500 text-sm mt-1">{errores.nombreTutor}</p>
+                          )}
                         </div>
                         <div className="mb-3">
                           <Label className="text-sm/6 font-semibold text-casal">
@@ -353,16 +649,22 @@ export default function Cuestionario() {
                           </Label>
                           <Input
                             value={apellidoPaternoTutor}
-                            onChange={(e) => setApellidoPaternoTutor(e.target.value)
-                            }
+                            onChange={(e) => {
+                              setApellidoPaternoTutor(e.target.value);
+                              limpiarError('apellidoPaternoTutor');
+                            }}
                             type="text"
                             className={clsx(
                               "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700",
                               "placeholder:italic",
-                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                              errores.apellidoPaternoTutor ? "border-red-500" : ""
                             )}
                             placeholder="Apellido paterno de la persona responsable"
                           />
+                          {errores.apellidoPaternoTutor && (
+                            <p className="text-red-500 text-sm mt-1">{errores.apellidoPaternoTutor}</p>
+                          )}
                         </div>
                         <div className="mb-3">
                           <Label className="text-sm/6 font-semibold text-casal">
@@ -371,20 +673,85 @@ export default function Cuestionario() {
                           <Input
                             type="text"
                             value={apellidoMaternoTutor}
-                            onChange={(e) => setApellidoMaternoTutor(e.target.value)}
+                            onChange={(e) => {
+                              setApellidoMaternoTutor(e.target.value);
+                              limpiarError('apellidoMaternoTutor');
+                            }}
                             className={clsx(
                               "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700",
                               "placeholder:italic",
-                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                              errores.apellidoMaternoTutor ? "border-red-500" : ""
                             )}
                             placeholder="Apellido materno de la persona responsable"
                           />
+                          {errores.apellidoMaternoTutor && (
+                            <p className="text-red-500 text-sm mt-1">{errores.apellidoMaternoTutor}</p>
+                          )}
                         </div>
+                        <div className="mb-3 lg:col-span-3">
+                          <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                            Correo electrónico del tutor
+                          </Label>
+                          <Input
+                            type="email"
+                            value={correoTutor}
+                            onChange={(e) => {
+                              setCorreoTutor(e.target.value);
+                              limpiarError('correoTutor');
+                            }}
+                            className={clsx(
+                              "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6  text-gray-700",
+                              "placeholder:italic",
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                              errores.correoTutor ? "border-red-500" : ""
+                            )}
+                            placeholder="correo@ejemplo.com"
+                          />
+                          {errores.correoTutor && (
+                            <p className="text-red-500 text-sm mt-1">{errores.correoTutor}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <div className="p-4 border-2 rounded-2xl bg-white border-[#bcd6e4]">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={aceptaTerminos}
+                            onChange={(e) => {
+                              setAceptaTerminos(e.target.checked);
+                              limpiarError('aceptaTerminos');
+                            }}
+                            className="mt-1 w-5 h-5 text-casal border-gray-300 rounded focus:ring-casal"
+                          />
+                          <span className="text-sm text-gray-700">
+                            Acepto los{" "}
+                            <button
+                              type="button"
+                              className="text-casal underline font-semibold hover:text-Acapulco"
+                              onClick={() => {
+                                // Aquí puedes abrir un modal o redirigir a la página de términos
+                                console.log("Abrir términos y condiciones");
+                              }}
+                            >
+                              términos y condiciones
+                            </button>
+                          </span>
+                        </label>
+                        {errores.aceptaTerminos && (
+                          <p className="text-red-500 text-sm mt-2 ml-8">{errores.aceptaTerminos}</p>
+                        )}
                       </div>
                     </div>
                     <div className="my-5 flex justify-center">
                       <Button
-                        onClick={() => setPasoActual(1)}
+                        onClick={() => {
+                          if (validarCampos()) {
+                            setPasoActual(1);
+                          }
+                        }}
                         className="bg-casal text-xl text-white w-[70%] mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition"
                       >
                         Enviar
@@ -430,10 +797,18 @@ export default function Cuestionario() {
                     </div>
                     <div className="my-5 flex justify-center">
                       <Button
-                        onClick={() => setPasoActual(2)}
-                        className="bg-casal text-xl text-white w-[70%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition"
+                        onClick={handleGenerarCodigoWhatsApp}
+                        disabled={isGenerandoCodigo || !telefono.trim()}
+                        className="bg-green-600 text-xl text-white w-[70%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
                       >
-                        Confirmar
+                        {isGenerandoCodigo ? (
+                          <>
+                            <InlineSpinner size="sm" />
+                            Enviando código...
+                          </>
+                        ) : (
+                          'Enviar código por WhatsApp'
+                        )}
                       </Button>
                     </div>
                   </Field>
@@ -471,15 +846,63 @@ export default function Cuestionario() {
                     </div>
                     <div className="my-5 flex justify-center">
                       <Button
-                        onClick={handleConfirmar}
-                        disabled={isConfirming}
-                        aria-busy={isConfirming}
+                        onClick={handleVerificarCodigo}
+                        disabled={isVerificandoCodigo || !code.trim() || intentosRestantes === 0}
+                        aria-busy={isVerificandoCodigo}
                         className="bg-casal text-xl text-white w-[70%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        {isConfirming && <InlineSpinner size="sm" />}
-                        {isConfirming ? 'Enviando...' : 'Verificar y confirmar'}
+                        {isVerificandoCodigo && <InlineSpinner size="sm" />}
+                        {isVerificandoCodigo ? 'Verificando...' : 'Verificar código'}
                       </Button>
                     </div>
+
+                    {/* Botón para reenviar código */}
+                    <div className="my-3 flex justify-center">
+                      <Button
+                        onClick={handleReenviarCodigo}
+                        disabled={isReenviandoCodigo}
+                        className="bg-gray-100 text-gray-700 w-[70%] lg:w-2/5 mx-auto py-2 font-medium rounded-3xl hover:bg-gray-200 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {isReenviandoCodigo ? (
+                          <>
+                            <InlineSpinner size="sm" />
+                            Reenviando...
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw className="w-4 h-4" />
+                            Reenviar código
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Mostrar información de intentos */}
+                    {intentosRestantes < 3 && intentosRestantes > 0 && (
+                      <div className="text-center mt-3">
+                        <p className="text-yellow-600 text-sm">
+                          <AlertCircle className="w-4 h-4 inline mr-1" />
+                          Te quedan {intentosRestantes} intentos
+                        </p>
+                      </div>
+                    )}
+                    {intentosRestantes === 0 && (
+                      <div className="text-center mt-3">
+                        <p className="text-red-600 text-sm">
+                          <AlertCircle className="w-4 h-4 inline mr-1" />
+                          Sin intentos restantes. Solicita un nuevo código.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Mostrar información de expiración */}
+                    {tiempoExpiracion && (
+                      <div className="text-center mt-3">
+                        <p className="text-gray-600 text-sm">
+                          El código expira el {new Date(tiempoExpiracion).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
                   </Field>
                 </div>
               </div>
@@ -508,9 +931,9 @@ export default function Cuestionario() {
                 <div>
                   <Field>
                     <div className="my-5 flex justify-center">
-                      <Button 
+                      <Button
                         onClick={handleIrAPortalPagos}
-                      className="bg-casal text-xl text-white w-[90%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition">
+                        className="bg-casal text-xl text-white w-[90%] lg:w-2/5 mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition">
                         Realizar pago · Abonar ahora
                       </Button>
                     </div>

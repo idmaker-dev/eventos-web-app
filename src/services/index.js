@@ -4,8 +4,18 @@ import authService from "./authService";
 import eventService from "./eventService";
 import guestService from "./guestService";
 import userService from "./userService";
+import whatsappService from "./whatsappService";
+import codigoVerificacionService from "./codigoVerificacionService";
 
-export { httpService, authService, eventService, guestService, userService };
+export {
+  httpService,
+  authService,
+  eventService,
+  guestService,
+  userService,
+  whatsappService,
+  codigoVerificacionService,
+};
 
 // También exportar como un objeto por conveniencia
 export const services = {
@@ -14,6 +24,8 @@ export const services = {
   event: eventService,
   guest: guestService,
   user: userService,
+  whatsapp: whatsappService,
+  codigoVerificacion: codigoVerificacionService,
 };
 
 export default services;

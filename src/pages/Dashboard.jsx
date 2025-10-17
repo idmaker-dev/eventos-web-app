@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useSelectedEvent } from '../contexts/SelectedEventContext';
-import { useSignalRDashboard, useSignalRConnection } from '../hooks/useSignalR';
+import { useSignalRDashboard } from '../hooks/useSignalR';
 
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import "../styles/pages/Dashboard.css";
-import { ChevronLeft, Wifi, WifiOff } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Chat from "../assets/recursos/CHAT.svg";
 import Conflicto from "../assets/recursos/conflictoAsignación.svg";
 import Pago from "../assets/recursos/EstadoPendiente.svg";
@@ -20,9 +20,6 @@ export default function Dashboard() {
 
   // Hook de eventos compartido desde el contexto
   const { eventoActual, selectEvent, eventos, cargarEventos } = useSelectedEvent();
-  
-  // Hook de SignalR para el dashboard
-  const { conectado } = useSignalRConnection();
   
   // Función para cargar estadísticas del dashboard
   const cargarEstadisticas = useCallback(async () => {
@@ -63,8 +60,7 @@ export default function Dashboard() {
   
   // Usar el hook de SignalR para dashboard
   const { 
-    ultimaActualizacion: signalRUltimaActualizacion, 
-    notificacionesDashboard 
+    ultimaActualizacion: signalRUltimaActualizacion 
   } = useSignalRDashboard(handleDashboardUpdate);
   
   // Cargar estadísticas cuando cambia el evento actual
@@ -119,6 +115,7 @@ export default function Dashboard() {
     valor,
     titulo,
     subtitulo,
+    subtitulo2,
     gradienteId,
     color1,
     color2,
@@ -143,6 +140,9 @@ export default function Dashboard() {
         </div>
       </div>
       <p className="metric-subtext text-right">{subtitulo}</p>
+      {subtitulo2 && (
+        <p className="metric-subtext text-right text-xs text-gray-500 dark:text-gray-400 mt-1">{subtitulo2}</p>
+      )}
 
       <svg style={{ height: 0 }}>
         <defs>
@@ -163,11 +163,12 @@ export default function Dashboard() {
     const porcentajePagos = dashboardStats?.pagos?.porcentaje_pagos_completados || 0;
     const deudasPagadas = dashboardStats?.pagos?.deudas_completamente_pagadas || 0;
     const totalDeudas = dashboardStats?.pagos?.total_deudas || 0;
+    const montoPagado = dashboardStats?.pagos?.monto_total_pagado || 0;
+    const montoTotal = dashboardStats?.pagos?.monto_total_adeudado || 0;
     
     // Datos de boletos desde el API
     const boletosEmitidos = dashboardStats?.boletos?.boletos_emitidos || 0;
     const porcentajeBoletos = dashboardStats?.boletos?.porcentaje_ocupacion || 0;
-    const invitadosRegistrados = dashboardStats?.boletos?.invitados_registrados || 0;
     // const capacidadMaxima = dashboardStats?.evento?.capacidad_maxima || 0;
     
     // Asientos asignados (pendiente - valor estático por ahora)
@@ -176,12 +177,22 @@ export default function Dashboard() {
       ? Math.round((asientosAsignadosStatic / capacidadMaxima) * 100) 
       : 0;
 
+    // Formatear dinero
+    const formatMoney = (amount) => {
+      return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+        minimumFractionDigits: 2,
+      }).format(amount);
+    };
+
     return (
       <>
         <Metrica
           valor={Math.round(porcentajePagos)}
           titulo="% de pagos completados"
           subtitulo={`${deudasPagadas} / ${totalDeudas} pagos`}
+          subtitulo2={`${formatMoney(montoPagado)} / ${formatMoney(montoTotal)}`}
           gradienteId="gradPagos"
           color1="#0d3b66"
           color2="#2a9d8f"

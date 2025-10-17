@@ -11,6 +11,7 @@ import Comunicacion from "../../pages/Comunicacion"
 import Cuestionario from "../../pages/Cuestionario"
 import PortalPagos from "../../pages/PortalPagos"
 import Checkout from "../../pages/checkout"
+import PagoTarjeta from "../../pages/PagoTarjeta"
 import SignalRTest from "../../pages/SignalRTest"
 import HomeLugar from "../../pages/HomeLugar" // nueva vista para rol lugar
 
@@ -46,9 +47,9 @@ export default function AppRoutes() {
       
       {/* Ruta Home - Requiere autenticación */}
       <Route path="/" element={
-        <AuthenticatedRoute>
+        <AdminRoute>
           <Home />
-        </AuthenticatedRoute>
+        </AdminRoute>
       }>
         {/* Sub-rutas que se cargan en el Outlet de Home - Todas requieren autenticación */}
         <Route index element={<Navigate to="Catalogo" replace />} />
@@ -85,6 +86,7 @@ export default function AppRoutes() {
       <Route path="/Cuestionario/:eventId" element={<Cuestionario />} />
       <Route path="/PortalPagos/:invitadoId" element={<PortalPagos />} />
       <Route path="/Checkout/:invitadoId" element={<Checkout />} />
+      <Route path="/pago-tarjeta/:invitadoId" element={<PagoTarjeta />} />
     </Routes>
   )
 }

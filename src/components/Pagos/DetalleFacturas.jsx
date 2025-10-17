@@ -1,12 +1,33 @@
 import React from "react";
 import { Dialog } from "@headlessui/react";
-import { X, Calendar, DollarSign, FileText, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { X, Calendar, DollarSign, FileText, CheckCircle2, Clock, AlertTriangle, Copy, Link } from "lucide-react";
+import EnvConfig from "../../utils/config";
+import { useNotifications } from "../../contexts/NotificationContext";
 
 const DetalleFacturas = ({ isOpen, onClose, deuda }) => {
+  const { showSuccess, showError } = useNotifications();
+
   if (!deuda) return null;
+
+  const copiarLinkPortalPagos = async () => {
+    try {
+      const linkPortalPagos = `${EnvConfig.BASE_URL}/PortalPagos/${deuda.invitado_id}`;
+      
+      await navigator.clipboard.writeText(linkPortalPagos);
+      
+      showSuccess(
+        `Link del portal de pagos copiado al portapapeles`,
+        { duration: 3000 }
+      );
+    } catch (error) {
+      console.error('Error al copiar el link:', error);
+      showError('Error al copiar el link del portal de pagos');
+    }
+  };
 
   const formatearFecha = (fecha) => {
     if (!fecha) return "";
+    fecha = fecha.includes("T") ? fecha.split("T")[0] : fecha;
     const [year, month, day] = fecha.split("-");
     return `${day}/${month}/${year}`;
   };
@@ -196,11 +217,21 @@ const DetalleFacturas = ({ isOpen, onClose, deuda }) => {
 
           {/* Footer */}
           <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              <p>
-                <span className="font-medium">Próximo vencimiento:</span>{" "}
-                {formatearFecha(deuda.fechas.proxima_fecha_vencimiento)}
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                <p>
+                  <span className="font-medium">Próximo vencimiento:</span>{" "}
+                  {formatearFecha(deuda.fechas.proxima_fecha_vencimiento)}
+                </p>
+              </div>
+              <button
+                onClick={copiarLinkPortalPagos}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors font-medium text-sm"
+                title="Copiar link del portal de pagos"
+              >
+                <Link className="w-4 h-4" />
+                Copiar link portal
+              </button>
             </div>
             <button
               onClick={onClose}
