@@ -20,6 +20,7 @@ import Dashboard from "../../pages/Dashboard"
 import Pagos from "../../pages/Pagos"
 import Lugares from "../../pages/Lugares"
 import Usuarios from "../../pages/Usuarios"
+import Asignacion from "../../pages/Asignacion"
 // import Comunicacion from "../../pages/Comunicacion"
 
 /* Componentes de protección de rutas */
@@ -77,6 +78,7 @@ export default function AppRoutes() {
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="chat" element={<Comunicacion />} />
         <Route path="signalr-test" element={<SignalRTest />} />
+        <Route path="asignacion" element={<Asignacion />} />
         
       </Route>
       {/* Ruta pública - Accesible sin autenticación */}

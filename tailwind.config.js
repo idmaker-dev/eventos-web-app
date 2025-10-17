@@ -16,6 +16,8 @@ module.exports = {
         fondoGris: '#f6f6f6',
         cafe: '#C28F4E',
         fondoVs: '#e9f0f6',
+        verde2: '#7FB069',
+        rojop: '#F46E81',
       },
     },
   },

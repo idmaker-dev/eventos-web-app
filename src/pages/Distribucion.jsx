@@ -1,168 +1,177 @@
-import React, { useState } from "react";
-import DistribuccionAdmin from "../components/Distribuccion/DistribuccionAdmin.jsx";
+import React, { useState, useEffect } from "react";
 import DistribuccionNovios from "../components/Distribuccion/DistribuccionNovios.jsx";
 
 export default function Distribucion() {
-  // Estado para controlar qué vista mostrar
-  const [vistaActual, setVistaActual] = useState('admin'); // 'admin' o 'novios'
-  
-  // Estado para controlar si el diseño está guardado
-  const [layoutGuardado, setLayoutGuardado] = useState(false);
+  // Estado de invitados que los novios pueden gestionar
+ const [invitados, setInvitados] = useState([
+  { id: 1, nombre: "Familia García", cantidad: 4, necesidadEspecial: false },
+  { id: 2, nombre: "María López", cantidad: 1, necesidadEspecial: false },
+  { id: 3, nombre: "Familia Rodríguez", cantidad: 3, necesidadEspecial: true }, // Con necesidad especial
+  { id: 4, nombre: "Carlos Mendez", cantidad: 1, necesidadEspecial: false },
+  { id: 5, nombre: "Compañeros trabajo", cantidad: 4, necesidadEspecial: false },
+  { id: 6, nombre: "Ana Sofi", cantidad: 1, necesidadEspecial: true }, // Con necesidad especial
+  { id: 7, nombre: "Compañeros Padel", cantidad: 2, necesidadEspecial: false },
+  { id: 8, nombre: "Familia Lara", cantidad: 7, necesidadEspecial: false },
+  { id: 9, nombre: "Abuela Carmen", cantidad: 1, necesidadEspecial: true }, // Con necesidad especial
+  { id: 10, nombre: "Tío Roberto (silla ruedas)", cantidad: 1, necesidadEspecial: true }, // Con necesidad especial
+]);
+
+  // Estados del layout del admin
   const [layoutFinal, setLayoutFinal] = useState(null);
-  
-  // Contadores para IDs únicos
-  const [contadores, setContadores] = useState({
-    mesa: 8,
-    mesaRectangular: 0,
-    barra: 1,
-    buffet: 1,
-    escenario: 1,
-    entrada: 1
-  });
+  const [layoutDisponible, setLayoutDisponible] = useState(false);
+  const [allElements, setAllElements] = useState([]);
 
-  // Estado con posiciones absolutas para cada elemento
-  const [allElements, setAllElements] = useState([
-    // Mesas con posiciones iniciales
-    { id: 'mesa-1', type: 'mesa', numero: 1, invitados: 5, capacidad: 8, position: { x: 50, y: 50 } },
-    { id: 'mesa-2', type: 'mesa', numero: 2, invitados: 3, capacidad: 8, position: { x: 50, y: 150 } },
-    { id: 'mesa-3', type: 'mesa', numero: 3, invitados: 6, capacidad: 8, position: { x: 50, y: 250 } },
-    { id: 'mesa-4', type: 'mesa', numero: 4, invitados: 8, capacidad: 8, position: { x: 50, y: 350 } },
-    { id: 'mesa-5', type: 'mesa', numero: 5, invitados: 2, capacidad: 8, position: { x: 650, y: 50 } },
-    { id: 'mesa-6', type: 'mesa', numero: 6, invitados: 5, capacidad: 8, position: { x: 650, y: 150 } },
-    { id: 'mesa-7', type: 'mesa', numero: 7, invitados: 0, capacidad: 8, position: { x: 650, y: 250 } },
-    { id: 'mesa-8', type: 'mesa', numero: 8, invitados: 4, capacidad: 8, position: { x: 650, y: 350 } },
-    
-    // Elementos del layout con posiciones iniciales
-    { id: 'entrada-1', type: 'entrada', position: { x: 20, y: 200 } },
-    { id: 'barra-1', type: 'barra', position: { x: 20, y: 300 } },
-    { id: 'mesa-principal', type: 'mesa-principal', position: { x: 350, y: 50 } },
-    { id: 'pista-baile', type: 'pista-baile', position: { x: 300, y: 200 } },
-    { id: 'escenario-1', type: 'escenario', position: { x: 800, y: 200 } },
-    { id: 'buffet-1', type: 'buffet', position: { x: 800, y: 300 } },
-  ]);
+  // Cargar layout del admin al iniciar
+  useEffect(() => {
+    const layoutGuardado = localStorage.getItem('layoutSalon');
+    if (layoutGuardado) {
+      try {
+        const layout = JSON.parse(layoutGuardado);
+        setLayoutFinal(layout);
+        setAllElements(layout.elementos || []);
+        setLayoutDisponible(true);
+      } catch (error) {
+        console.error('Error al cargar layout:', error);
+        setLayoutDisponible(false);
+      }
+    } else {
+      setLayoutDisponible(false);
+    }
+  }, []);
 
-  // ¡ASEGÚRATE DE QUE ESTE ESTADO ESTÉ DEFINIDO!
-  const [invitados, setInvitados] = useState([
-    { id: 1, nombre: "Familia García", cantidad: 4 },
-    { id: 2, nombre: "María López", cantidad: 1 },
-    { id: 3, nombre: "Familia Rodríguez", cantidad: 3 },
-    { id: 4, nombre: "Carlos Mendez", cantidad: 1 },
-    { id: 5, nombre: "Compañeros trabajo", cantidad: 4 },
-    { id: 6, nombre: "Ana Sofi", cantidad: 1 },
-    { id: 7, nombre: "Compañeros Padel", cantidad: 2 },
-    { id: 8, nombre: "Familia Lara", cantidad: 7 },
-  ]);
-
-  // Función para cambiar entre vistas
-  const cambiarVista = (vista) => {
-    setVistaActual(vista);
-  };
-
-  // Función para guardar el layout final
-  const guardarDistribucion = () => {
-    const layoutConDatos = {
-      elementos: [...allElements],
-      contadores: { ...contadores },
-      fechaCreacion: new Date().toISOString(),
-      totalMesas: allElements.filter(el => el.type === 'mesa' || el.type === 'mesaRectangular').length,
+  // Función para guardar asignaciones de los novios
+  const guardarAsignaciones = () => {
+    const asignaciones = {
+      invitados: invitados,
+      fechaAsignacion: new Date().toISOString(),
       estadisticas: {
-        mesasRedondas: allElements.filter(el => el.type === 'mesa').length,
-        mesasRectangulares: allElements.filter(el => el.type === 'mesaRectangular').length,
-        barras: allElements.filter(el => el.type === 'barra').length,
-        buffets: allElements.filter(el => el.type === 'buffet').length,
-        escenarios: allElements.filter(el => el.type === 'escenario').length,
-        entradas: allElements.filter(el => el.type === 'entrada').length,
+        totalInvitados: invitados.reduce((total, inv) => total + inv.cantidad, 0),
+        invitadosAsignados: invitados.filter(inv => inv.mesaAsignada).reduce((total, inv) => total + inv.cantidad, 0),
+        invitadosSinAsignar: invitados.filter(inv => !inv.mesaAsignada).reduce((total, inv) => total + inv.cantidad, 0),
+        mesasOcupadas: new Set(invitados.filter(inv => inv.mesaAsignada).map(inv => inv.mesaAsignada)).size
       }
     };
-    
-    setLayoutFinal(layoutConDatos);
-    setLayoutGuardado(true);
-    
-    localStorage.setItem('layoutSalon', JSON.stringify(layoutConDatos));
-    
-    alert('¡Layout guardado exitosamente! Ahora está disponible para los novios.');
+
+    localStorage.setItem('asignacionesNovios', JSON.stringify(asignaciones));
+    alert('¡Asignaciones guardadas exitosamente!');
   };
 
-  // Función para editar el layout (volver al modo de diseño)
-  const editarLayout = () => {
-    setLayoutGuardado(false);
-  };
+  // Cargar asignaciones previas
+  useEffect(() => {
+    const asignacionesGuardadas = localStorage.getItem('asignacionesNovios');
+    if (asignacionesGuardadas) {
+      try {
+        const asignaciones = JSON.parse(asignacionesGuardadas);
+        setInvitados(asignaciones.invitados || invitados);
+      } catch (error) {
+        console.error('Error al cargar asignaciones:', error);
+      }
+    }
+  }, []);
+
+  if (!layoutDisponible) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#1a1a1a] flex items-center justify-center">
+        <div className="max-w-md mx-auto text-center p-8">
+          <div className="bg-white dark:bg-[#1e1e1e] rounded-xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
+            <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              Layout No Disponible
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              El administrador aún no ha configurado el layout del salón. Por favor, espera a que el layout esté disponible para poder asignar a tus invitados.
+            </p>
+            
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              Verificar Nuevamente
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen">
-      {/* Selector de Vista */}
-      <div className=" border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex justify-center">
-            <div className="flex bg-gray-100 p-1 rounded-lg">
-              <button
-                onClick={() => cambiarVista('admin')}
-                className={`px-6 py-2 rounded-md font-medium transition-all ${
-                  vistaActual === 'admin'
-                    ? 'bg-purple-600 text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
+    <div className="min-h-screen bg-gray-50 dark:bg-[#1a1a1a]">
+      {/* Header de Novios */}
+      <div className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Distribución de Invitados
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                Asigna a tus invitados en las mesas disponibles
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Layout creado: {new Date(layoutFinal.fechaCreacion).toLocaleDateString()}
+              </div>
+              
+              <button 
+                onClick={guardarAsignaciones}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors shadow-lg"
               >
-                Vista Admin
-              </button>
-              <button
-                onClick={() => cambiarVista('novios')}
-                className={`px-6 py-2 rounded-md font-medium transition-all ${
-                  vistaActual === 'novios'
-                    ? 'bg-blue-500  text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Vista Novios
+                Guardar Asignaciones
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Estado del Layout */}
-      {layoutGuardado && vistaActual === 'admin' && (
-        <div className="bg-green-50 border-b border-green-200 px-4 py-3">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-semibold text-green-800">Layout Guardado Exitosamente</h4>
-                <p className="text-sm text-green-700">
-                  Guardado: {new Date(layoutFinal.fechaCreacion).toLocaleString()} | 
-                  Elementos: {layoutFinal.elementos.length}
-                </p>
+      {/* Estadísticas de Invitados */}
+      <div className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div className="text-sm">
+              <div className="font-semibold text-gray-900 dark:text-white">
+                {invitados.reduce((total, inv) => total + inv.cantidad, 0)}
               </div>
-              <button 
-                onClick={editarLayout}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors"
-              >
-                Editar Layout
-              </button>
+              <div className="text-gray-600 dark:text-gray-400">Total Invitados</div>
+            </div>
+            <div className="text-sm">
+              <div className="font-semibold text-green-600 dark:text-green-400">
+                {invitados.filter(inv => inv.mesaAsignada).reduce((total, inv) => total + inv.cantidad, 0)}
+              </div>
+              <div className="text-gray-600 dark:text-gray-400">Asignados</div>
+            </div>
+            <div className="text-sm">
+              <div className="font-semibold text-orange-600 dark:text-orange-400">
+                {invitados.filter(inv => !inv.mesaAsignada).reduce((total, inv) => total + inv.cantidad, 0)}
+              </div>
+              <div className="text-gray-600 dark:text-gray-400">Sin Asignar</div>
+            </div>
+            <div className="text-sm">
+              <div className="font-semibold text-blue-600 dark:text-blue-400">
+                {new Set(invitados.filter(inv => inv.mesaAsignada).map(inv => inv.mesaAsignada)).size}
+              </div>
+              <div className="text-gray-600 dark:text-gray-400">Mesas Ocupadas</div>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Renderizar Vista Seleccionada */}
-      {vistaActual === 'admin' ? (
-        <DistribuccionAdmin
-          allElements={allElements}
-          setAllElements={setAllElements}
-          contadores={contadores}
-          setContadores={setContadores}
-          onGuardarDistribucion={guardarDistribucion}
-          layoutGuardado={layoutGuardado}
-          onEditarLayout={editarLayout}
-        />
-      ) : (
-        <DistribuccionNovios
-          allElements={allElements}
-          setAllElements={setAllElements}
-          invitados={invitados} 
-          layoutGuardado={layoutGuardado}
-          layoutFinal={layoutFinal}
-        />
-      )}
+      {/* Componente de Novios */}
+      <DistribuccionNovios
+        allElements={allElements}
+        setAllElements={setAllElements}
+        invitados={invitados}
+        setInvitados={setInvitados}
+        layoutDisponible={layoutDisponible}
+        layoutFinal={layoutFinal}
+        onGuardarAsignaciones={guardarAsignaciones}
+      />
     </div>
   );
 }

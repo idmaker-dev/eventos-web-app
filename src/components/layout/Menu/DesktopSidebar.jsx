@@ -90,7 +90,7 @@ export default function DesktopSidebar({
           <li className="group">
             <Tooltip content="Módulo de asignación" position="right">
               <NavLink
-                to="/admin/invitados"
+                to="/admin/asignacion"
                 className={({ isActive }) =>
                   `w-[42px] h-[42px] rounded-full flex items-center justify-center transition-all duration-300 ${
                     isActive

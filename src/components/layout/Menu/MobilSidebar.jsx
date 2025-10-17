@@ -102,7 +102,7 @@ export default function MobileSidebar({
 
               <li>
                 <NavLink
-                  to="/admin/invitados"
+                  to="/admin/Asignacion"
                   onClick={() => setMobileMenuOpen(false)}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${

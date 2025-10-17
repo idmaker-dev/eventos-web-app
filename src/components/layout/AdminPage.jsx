@@ -168,7 +168,7 @@ export default function AdminPage() {
               <div className="relative">
                 <button
                   onClick={() => setIsOpen(!isOpen)}
-                  className="md:w-80 lg:w-96 bg-white dark:bg-[#1a1a1a] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#216b6b] focus:ring-offset-2 shadow-md border border-gray-200 dark:border-gray-600"
+                  className="md:w-80 lg:w-96 bg-white dark:bg-[#1a1a1a] hover:bg-gray-50  dark:hover:bg-gray-800 transition-all duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#216b6b] focus:ring-offset-2 shadow-md border border-gray-200 dark:border-gray-600"
                 >
                   <span className="text-base px-4 py-1 line-clamp-1">
                     {selectedOption}
@@ -194,7 +194,7 @@ export default function AdminPage() {
                             onClick={() => handleSelect(option)}
                             className={`w-full px-4 py-3 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150 ${
                               isSelected
-                                ? "bg-[#216b6b] text-white font-medium"
+                                ? "bg-[#216b6b] text-white font-medium hover:text-gray-600 hover:bg-casal/80"
                                 : "text-gray-700 dark:text-gray-100"
                             }`}
                           >

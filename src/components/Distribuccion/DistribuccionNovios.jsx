@@ -1,60 +1,115 @@
-import React from 'react';
+import React from "react";
 import Mesa from "./Mesa.jsx";
 import MesaRectangular from "./MesaRectangular.jsx";
-import { TriangleAlert, Save } from 'lucide-react';
-import { Button } from '@headlessui/react';
+import { TriangleAlert, Save, Accessibility } from "lucide-react";
+import { Button } from "@headlessui/react";
 
-export default function DistribuccionNovios({ 
-  allElements = [], 
-  setAllElements, 
-  invitados = [], 
-  layoutGuardado, 
-  layoutFinal 
+export default function DistribuccionNovios({
+  allElements = [],
+  setAllElements,
+  invitados = [],
+  layoutGuardado,
+  layoutFinal,
 }) {
-  
   const [activeInvitado, setActiveInvitado] = React.useState(null);
-  const [invitadosSinAsignar, setInvitadosSinAsignar] = React.useState(invitados);
+  const [invitadosSinAsignar, setInvitadosSinAsignar] =
+    React.useState(invitados);
   const [showModal, setShowModal] = React.useState(false);
   const [modalData, setModalData] = React.useState(null);
-  
+
   // NUEVOS ESTADOS para las funcionalidades
   const [autoAsignando, setAutoAsignando] = React.useState(false);
   const [guardando, setGuardando] = React.useState(false);
-  const [distribucionesGuardadas, setDistribucionesGuardadas] = React.useState([]);
+  const [distribucionesGuardadas, setDistribucionesGuardadas] = React.useState(
+    []
+  );
 
   // Cargar distribuciones guardadas del localStorage al inicio
   React.useEffect(() => {
-    const distribucionesLS = localStorage.getItem('distribucionesGuardadas');
+    const distribucionesLS = localStorage.getItem("distribucionesGuardadas");
     if (distribucionesLS) {
       setDistribucionesGuardadas(JSON.parse(distribucionesLS));
     }
   }, []);
 
-  // FUNCIÓN DE AUTO-ASIGNACIÓN INTELIGENTE
+  // Actualizar la función autoAsignarInvitados para priorizar necesidades especiales
   const autoAsignarInvitados = async () => {
     if (invitadosSinAsignar.length === 0) {
-      mostrarNotificacion('No hay invitados sin asignar', 'info');
+      mostrarNotificacion("No hay invitados sin asignar", "info");
       return;
     }
 
     setAutoAsignando(true);
-    mostrarNotificacion('Iniciando asignación automática inteligente...', 'info');
+    mostrarNotificacion(
+      "Iniciando asignación automática inteligente...",
+      "info"
+    );
 
-    // Crear una copia de los elementos para trabajar
     let elementosTemp = [...allElements];
     let invitadosTemp = [...invitadosSinAsignar];
     let asignacionesRealizadas = [];
 
-    // Algoritmo de asignación inteligente
-    for (let i = 0; i < invitadosTemp.length; i++) {
-      const invitado = invitadosTemp[i];
-      
-      // Buscar la mesa más adecuada (con espacio exacto o cercano)
-      const mesasDisponibles = elementosTemp
-        .filter(el => (el.type === 'mesa' || el.type === 'mesaRectangular'))
-        .filter(el => el.capacidad - el.invitados >= invitado.cantidad)
+    // PASO 1: Priorizar invitados con necesidades especiales
+    const invitadosEspeciales = invitadosTemp.filter(
+      (inv) => inv.necesidadEspecial
+    );
+    const invitadosRegulares = invitadosTemp.filter(
+      (inv) => !inv.necesidadEspecial
+    );
+
+    // Asignar primero a invitados con necesidades especiales
+    for (let invitado of invitadosEspeciales) {
+      const mesasConSillasEspeciales = elementosTemp
+        .filter((el) => el.type === "mesa" || el.type === "mesaRectangular")
+        .filter(
+          (el) =>
+            el.sillasEspeciales &&
+            el.sillasEspeciales.length > 0 &&
+            (el.invitadosEspeciales || 0) < el.sillasEspeciales.length &&
+            el.capacidad - el.invitados >= invitado.cantidad
+        )
         .sort((a, b) => {
-          // Priorizar mesas con espacio más cercano a la cantidad necesaria
+          const espacioA = a.capacidad - a.invitados;
+          const espacioB = b.capacidad - b.invitados;
+          const diferenciaA = Math.abs(espacioA - invitado.cantidad);
+          const diferenciaB = Math.abs(espacioB - invitado.cantidad);
+          return diferenciaA - diferenciaB;
+        });
+
+      if (mesasConSillasEspeciales.length > 0) {
+        const mejorMesa = mesasConSillasEspeciales[0];
+
+        elementosTemp = elementosTemp.map((element) =>
+          element.numero === mejorMesa.numero &&
+          (element.type === "mesa" || element.type === "mesaRectangular")
+            ? {
+                ...element,
+                invitados: element.invitados + invitado.cantidad,
+                invitadosEspeciales:
+                  (element.invitadosEspeciales || 0) + invitado.cantidad,
+              }
+            : element
+        );
+
+        asignacionesRealizadas.push({
+          invitado: invitado.nombre,
+          cantidad: invitado.cantidad,
+          mesa: mejorMesa.numero,
+          especial: true,
+        });
+
+        invitadosTemp = invitadosTemp.filter((inv) => inv.id !== invitado.id);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    // PASO 2: Asignar invitados regulares
+    for (let invitado of invitadosRegulares) {
+      const mesasDisponibles = elementosTemp
+        .filter((el) => el.type === "mesa" || el.type === "mesaRectangular")
+        .filter((el) => el.capacidad - el.invitados >= invitado.cantidad)
+        .sort((a, b) => {
           const espacioA = a.capacidad - a.invitados;
           const espacioB = b.capacidad - b.invitados;
           const diferenciaA = Math.abs(espacioA - invitado.cantidad);
@@ -64,10 +119,10 @@ export default function DistribuccionNovios({
 
       if (mesasDisponibles.length > 0) {
         const mejorMesa = mesasDisponibles[0];
-        
-        // Asignar a la mejor mesa encontrada
-        elementosTemp = elementosTemp.map(element => 
-          element.numero === mejorMesa.numero && (element.type === 'mesa' || element.type === 'mesaRectangular')
+
+        elementosTemp = elementosTemp.map((element) =>
+          element.numero === mejorMesa.numero &&
+          (element.type === "mesa" || element.type === "mesaRectangular")
             ? { ...element, invitados: element.invitados + invitado.cantidad }
             : element
         );
@@ -75,15 +130,14 @@ export default function DistribuccionNovios({
         asignacionesRealizadas.push({
           invitado: invitado.nombre,
           cantidad: invitado.cantidad,
-          mesa: mejorMesa.numero
+          mesa: mejorMesa.numero,
+          especial: false,
         });
 
-        // Remover invitado de la lista temporal
-        invitadosTemp = invitadosTemp.filter(inv => inv.id !== invitado.id);
+        invitadosTemp = invitadosTemp.filter((inv) => inv.id !== invitado.id);
       }
 
-      // Simular delay para mostrar progreso
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     // Aplicar los cambios finales
@@ -91,18 +145,29 @@ export default function DistribuccionNovios({
     setInvitadosSinAsignar(invitadosTemp);
     setAutoAsignando(false);
 
-    // Mostrar resultado
+    // Mostrar resultado detallado
     if (asignacionesRealizadas.length > 0) {
-      const totalPersonasAsignadas = asignacionesRealizadas.reduce((total, a) => total + a.cantidad, 0);
+      const totalPersonasAsignadas = asignacionesRealizadas.reduce(
+        (total, a) => total + a.cantidad,
+        0
+      );
+      const asignacionesEspeciales = asignacionesRealizadas.filter(
+        (a) => a.especial
+      ).length;
+
       mostrarNotificacion(
-        `Auto-asignación completada!\n` +
-        `• ${asignacionesRealizadas.length} grupos asignados\n` +
-        `• ${totalPersonasAsignadas} personas ubicadas\n` +
-        `• ${invitadosTemp.length} grupos restantes`,
-        'success'
+        `🎉 Auto-asignación completada!\n\n` +
+          `• ${asignacionesRealizadas.length} grupos asignados\n` +
+          `• ${totalPersonasAsignadas} personas ubicadas\n` +
+          `• ${asignacionesEspeciales} grupos con necesidades especiales 🦽\n` +
+          `• ${invitadosTemp.length} grupos restantes`,
+        "success"
       );
     } else {
-      mostrarNotificacion('No se pudieron asignar más invitados automáticamente', 'warning');
+      mostrarNotificacion(
+        "No se pudieron asignar más invitados automáticamente",
+        "warning"
+      );
     }
   };
 
@@ -114,56 +179,73 @@ export default function DistribuccionNovios({
     const nuevaDistribucion = {
       id: Date.now(),
       fecha: new Date().toISOString(),
-      fechaFormateada: new Date().toLocaleString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+      fechaFormateada: new Date().toLocaleString("es-ES", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       }),
       elementos: [...allElements],
       invitadosSinAsignar: [...invitadosSinAsignar],
       estadisticas: {
         totalInvitadosAsignados: allElements
-          .filter(el => el.type === 'mesa' || el.type === 'mesaRectangular')
+          .filter((el) => el.type === "mesa" || el.type === "mesaRectangular")
           .reduce((total, mesa) => total + (mesa.invitados || 0), 0),
         totalCapacidad: allElements
-          .filter(el => el.type === 'mesa' || el.type === 'mesaRectangular')
+          .filter((el) => el.type === "mesa" || el.type === "mesaRectangular")
           .reduce((total, mesa) => total + (mesa.capacidad || 0), 0),
-        mesasOcupadas: allElements
-          .filter(el => (el.type === 'mesa' || el.type === 'mesaRectangular') && el.invitados > 0)
-          .length,
-        totalMesas: allElements
-          .filter(el => el.type === 'mesa' || el.type === 'mesaRectangular')
-          .length,
-        porcentajeOcupacion: Math.round((
-          allElements
-            .filter(el => el.type === 'mesa' || el.type === 'mesaRectangular')
+        mesasOcupadas: allElements.filter(
+          (el) =>
+            (el.type === "mesa" || el.type === "mesaRectangular") &&
+            el.invitados > 0
+        ).length,
+        totalMesas: allElements.filter(
+          (el) => el.type === "mesa" || el.type === "mesaRectangular"
+        ).length,
+        porcentajeOcupacion: Math.round(
+          (allElements
+            .filter((el) => el.type === "mesa" || el.type === "mesaRectangular")
             .reduce((total, mesa) => total + (mesa.invitados || 0), 0) /
-          Math.max(1, allElements
-            .filter(el => el.type === 'mesa' || el.type === 'mesaRectangular')
-            .reduce((total, mesa) => total + (mesa.capacidad || 0), 0))
-        ) * 100)
+            Math.max(
+              1,
+              allElements
+                .filter(
+                  (el) => el.type === "mesa" || el.type === "mesaRectangular"
+                )
+                .reduce((total, mesa) => total + (mesa.capacidad || 0), 0)
+            )) *
+            100
+        ),
       },
-      nombre: `Distribución ${new Date().toLocaleDateString('es-ES')}`
+      nombre: `Distribución ${new Date().toLocaleDateString("es-ES")}`,
     };
 
     // Guardar en la lista local
-    const nuevasDistribuciones = [...distribucionesGuardadas, nuevaDistribucion];
+    const nuevasDistribuciones = [
+      ...distribucionesGuardadas,
+      nuevaDistribucion,
+    ];
     setDistribucionesGuardadas(nuevasDistribuciones);
 
     // Guardar en localStorage
-    localStorage.setItem('distribucionesGuardadas', JSON.stringify(nuevasDistribuciones));
-    localStorage.setItem('ultimaDistribucion', JSON.stringify(nuevaDistribucion));
+    localStorage.setItem(
+      "distribucionesGuardadas",
+      JSON.stringify(nuevasDistribuciones)
+    );
+    localStorage.setItem(
+      "ultimaDistribucion",
+      JSON.stringify(nuevaDistribucion)
+    );
 
     setTimeout(() => {
       setGuardando(false);
       mostrarNotificacion(
         `Distribución guardada exitosamente!\n` +
-        `• Fecha: ${nuevaDistribucion.fechaFormateada}\n` +
-        `• ${nuevaDistribucion.estadisticas.totalInvitadosAsignados}/${nuevaDistribucion.estadisticas.totalCapacidad} invitados asignados\n` +
-        `• ${nuevaDistribucion.estadisticas.porcentajeOcupacion}% de ocupación`,
-        'success'
+          `• Fecha: ${nuevaDistribucion.fechaFormateada}\n` +
+          `• ${nuevaDistribucion.estadisticas.totalInvitadosAsignados}/${nuevaDistribucion.estadisticas.totalCapacidad} invitados asignados\n` +
+          `• ${nuevaDistribucion.estadisticas.porcentajeOcupacion}% de ocupación`,
+        "success"
       );
     }, 1000);
   };
@@ -171,84 +253,230 @@ export default function DistribuccionNovios({
   // Función para mostrar lista de distribuciones guardadas
   const mostrarDistribucionesGuardadas = () => {
     if (distribucionesGuardadas.length === 0) {
-      mostrarNotificacion('No hay distribuciones guardadas', 'info');
+      mostrarNotificacion("No hay distribuciones guardadas", "info");
       return;
     }
 
     const listaDistribuciones = distribucionesGuardadas
       .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
       .slice(0, 5)
-      .map((dist, index) => 
-        `${index + 1}. ${dist.fechaFormateada} - ${dist.estadisticas.porcentajeOcupacion}% ocupación`
-      ).join('\n');
+      .map(
+        (dist, index) =>
+          `${index + 1}. ${dist.fechaFormateada} - ${
+            dist.estadisticas.porcentajeOcupacion
+          }% ocupación`
+      )
+      .join("\n");
 
     mostrarNotificacion(
       `Últimas 5 distribuciones guardadas:\n\n${listaDistribuciones}`,
-      'info'
+      "info"
     );
   };
 
   // Función para verificar si hay mesa con capacidad disponible
   const encontrarMesaDisponible = (cantidadPersonas) => {
-    return allElements.find(element => 
-      (element.type === 'mesa' || element.type === 'mesaRectangular') &&
-      (element.capacidad - element.invitados) >= cantidadPersonas
+    return allElements.find(
+      (element) =>
+        (element.type === "mesa" || element.type === "mesaRectangular") &&
+        element.capacidad - element.invitados >= cantidadPersonas
     );
   };
 
-  // Función principal para asignar invitados a mesa
+  // Actualizar la función asignarInvitadosMesa en DistribuccionNovios
   const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
-    const mesaSeleccionada = allElements.find(element => 
-      element.numero === numeroMesa && (element.type === 'mesa' || element.type === 'mesaRectangular')
+    const mesaSeleccionada = allElements.find(
+      (element) =>
+        element.numero === numeroMesa &&
+        (element.type === "mesa" || element.type === "mesaRectangular")
     );
 
     if (!mesaSeleccionada) return;
 
-    const espacioDisponible = mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
+    // Validar silla especial si es necesario
+    if (datosInvitado.necesidadEspecial) {
+      const sillasEspecialesDisponibles = mesaSeleccionada.sillasEspeciales
+        ? mesaSeleccionada.sillasEspeciales.length
+        : 0;
+      const personasEspecialesAsignadas =
+        mesaSeleccionada.invitadosEspeciales || 0;
+
+      if (sillasEspecialesDisponibles === 0) {
+        mostrarNotificacion(
+          `❌ La Mesa ${numeroMesa} no tiene sillas especiales.\n\n` +
+            `${datosInvitado.nombre} requiere una silla de accesibilidad.\n` +
+            `Busca una mesa con el ícono 🦽 que indica sillas especiales.`,
+          "error"
+        );
+        return;
+      }
+
+      if (personasEspecialesAsignadas >= sillasEspecialesDisponibles) {
+        mostrarNotificacion(
+          `❌ Las sillas especiales de la Mesa ${numeroMesa} ya están ocupadas.\n\n` +
+            `Sillas especiales: ${sillasEspecialesDisponibles}\n` +
+            `Ya asignadas: ${personasEspecialesAsignadas}`,
+          "error"
+        );
+        return;
+      }
+    }
+
+    const espacioDisponible =
+      mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
     const cantidadInvitados = datosInvitado.cantidad;
 
     // Caso 1: Caben todos perfectamente
     if (espacioDisponible >= cantidadInvitados) {
-      setAllElements(prev => prev.map(element => 
-        element.numero === numeroMesa && (element.type === 'mesa' || element.type === 'mesaRectangular')
-          ? { ...element, invitados: element.invitados + cantidadInvitados }
-          : element
-      ));
+      setAllElements((prev) =>
+        prev.map((element) =>
+          element.numero === numeroMesa &&
+          (element.type === "mesa" || element.type === "mesaRectangular")
+            ? {
+                ...element,
+                invitados: element.invitados + cantidadInvitados,
+                invitadosEspeciales: datosInvitado.necesidadEspecial
+                  ? (element.invitadosEspeciales || 0) + cantidadInvitados
+                  : element.invitadosEspeciales || 0,
+              }
+            : element
+        )
+      );
 
-      setInvitadosSinAsignar(prev => prev.filter(inv => inv.id !== datosInvitado.id));
-      mostrarNotificacion(`${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}`, 'success');
+      setInvitadosSinAsignar((prev) =>
+        prev.filter((inv) => inv.id !== datosInvitado.id)
+      );
+
+      if (datosInvitado.necesidadEspecial) {
+        mostrarNotificacion(
+          `✅ ${datosInvitado.nombre} asignado a la Mesa ${numeroMesa}\n\n` +
+            `🦽 Silla especial reservada para accesibilidad.\n` +
+            `Mesa con ${
+              mesaSeleccionada.sillasEspeciales?.length || 0
+            } silla(s) especial(es).`,
+          "success"
+        );
+      } else {
+        mostrarNotificacion(
+          `✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}`,
+          "success"
+        );
+      }
       return;
     }
 
-    // Caso 2: No caben todos - mostrar modal de confirmación
+    // Para casos de espacio insuficiente, manejar según necesidades especiales
     if (espacioDisponible > 0) {
+      // Si tiene necesidad especial, no dividir el grupo
+      if (datosInvitado.necesidadEspecial) {
+        const mesaAlternativa = allElements.find(
+          (element) =>
+            (element.type === "mesa" || element.type === "mesaRectangular") &&
+            element.numero !== numeroMesa &&
+            element.capacidad - element.invitados >= cantidadInvitados &&
+            element.sillasEspeciales &&
+            element.sillasEspeciales.length > 0 &&
+            (element.invitadosEspeciales || 0) < element.sillasEspeciales.length
+        );
+
+        if (mesaAlternativa) {
+          // Asignar automáticamente a mesa alternativa
+          setAllElements((prev) =>
+            prev.map((element) =>
+              element.numero === mesaAlternativa.numero &&
+              (element.type === "mesa" || element.type === "mesaRectangular")
+                ? {
+                    ...element,
+                    invitados: element.invitados + cantidadInvitados,
+                    invitadosEspeciales:
+                      (element.invitadosEspeciales || 0) + cantidadInvitados,
+                  }
+                : element
+            )
+          );
+
+          setInvitadosSinAsignar((prev) =>
+            prev.filter((inv) => inv.id !== datosInvitado.id)
+          );
+
+          mostrarNotificacion(
+            `✅ Mesa ${numeroMesa} sin espacio suficiente.\n\n` +
+              `${datosInvitado.nombre} asignado automáticamente a Mesa ${mesaAlternativa.numero}\n` +
+              `🦽 Con silla especial disponible.`,
+            "success"
+          );
+        } else {
+          mostrarNotificacion(
+            `❌ No hay mesas disponibles con sillas especiales\n\n` +
+              `${datosInvitado.nombre} requiere ${cantidadInvitados} asientos y silla de accesibilidad.\n` +
+              `Considera reasignar otros invitados para liberar espacio.`,
+            "error"
+          );
+        }
+        return;
+      }
+
+      // Para invitados sin necesidades especiales, usar el modal existente
       setModalData({
         invitado: datosInvitado,
         mesa: mesaSeleccionada,
         espacioDisponible,
         cantidadInvitados,
-        personasSobrantes: cantidadInvitados - espacioDisponible
+        personasSobrantes: cantidadInvitados - espacioDisponible,
       });
       setShowModal(true);
     } else {
-      // Caso 3: Mesa llena - buscar alternativa automáticamente
-      const mesaAlternativa = encontrarMesaDisponible(cantidadInvitados);
-      
+      // Mesa llena - buscar alternativa
+      const mesaAlternativa = datosInvitado.necesidadEspecial
+        ? allElements.find(
+            (element) =>
+              (element.type === "mesa" || element.type === "mesaRectangular") &&
+              element.capacidad - element.invitados >= cantidadInvitados &&
+              element.sillasEspeciales &&
+              element.sillasEspeciales.length > 0 &&
+              (element.invitadosEspeciales || 0) <
+                element.sillasEspeciales.length
+          )
+        : encontrarMesaDisponible(cantidadInvitados);
+
       if (mesaAlternativa) {
-        setAllElements(prev => prev.map(element => 
-          element.numero === mesaAlternativa.numero && (element.type === 'mesa' || element.type === 'mesaRectangular')
-            ? { ...element, invitados: element.invitados + cantidadInvitados }
-            : element
-        ));
-        
-        setInvitadosSinAsignar(prev => prev.filter(inv => inv.id !== datosInvitado.id));
-        
+        setAllElements((prev) =>
+          prev.map((element) =>
+            element.numero === mesaAlternativa.numero &&
+            (element.type === "mesa" || element.type === "mesaRectangular")
+              ? {
+                  ...element,
+                  invitados: element.invitados + cantidadInvitados,
+                  invitadosEspeciales: datosInvitado.necesidadEspecial
+                    ? (element.invitadosEspeciales || 0) + cantidadInvitados
+                    : element.invitadosEspeciales || 0,
+                }
+              : element
+          )
+        );
+
+        setInvitadosSinAsignar((prev) =>
+          prev.filter((inv) => inv.id !== datosInvitado.id)
+        );
+
+        const mensajeEspecial = datosInvitado.necesidadEspecial
+          ? `\n🦽 Con silla especial disponible.`
+          : "";
+
         mostrarNotificacion(
-          `Mesa ${numeroMesa} estaba llena. ${datosInvitado.nombre} asignado automáticamente a Mesa ${mesaAlternativa.numero}`, 
-          'success'
+          `Mesa ${numeroMesa} estaba llena.\n` +
+            `${datosInvitado.nombre} asignado automáticamente a Mesa ${mesaAlternativa.numero}${mensajeEspecial}`,
+          "success"
         );
       } else {
-        mostrarNotificacion(`La Mesa ${numeroMesa} está llena y no hay mesas disponibles para ${cantidadInvitados} personas`, 'error');
+        const mensajeEspecial = datosInvitado.necesidadEspecial
+          ? ` con sillas especiales disponibles`
+          : "";
+
+        mostrarNotificacion(
+          `La Mesa ${numeroMesa} está llena y no hay mesas disponibles${mensajeEspecial} para ${cantidadInvitados} personas`,
+          "error"
+        );
       }
     }
   };
@@ -260,47 +488,59 @@ export default function DistribuccionNovios({
     const { invitado, mesa, espacioDisponible, personasSobrantes } = modalData;
 
     if (aceptar) {
-      setAllElements(prev => prev.map(element => 
-        element.numero === mesa.numero && (element.type === 'mesa' || element.type === 'mesaRectangular')
-          ? { ...element, invitados: element.invitados + espacioDisponible }
-          : element
-      ));
+      setAllElements((prev) =>
+        prev.map((element) =>
+          element.numero === mesa.numero &&
+          (element.type === "mesa" || element.type === "mesaRectangular")
+            ? { ...element, invitados: element.invitados + espacioDisponible }
+            : element
+        )
+      );
 
-      setInvitadosSinAsignar(prev => prev.filter(inv => inv.id !== invitado.id));
+      setInvitadosSinAsignar((prev) =>
+        prev.filter((inv) => inv.id !== invitado.id)
+      );
 
       const personasSobrantes_grupo = {
         ...invitado,
         id: Date.now(),
         nombre: `${invitado.nombre} (${personasSobrantes} restantes)`,
-        cantidad: personasSobrantes
+        cantidad: personasSobrantes,
       };
 
-      const mesaParaSobrantes = allElements.find(element => 
-        (element.type === 'mesa' || element.type === 'mesaRectangular') &&
-        element.numero !== mesa.numero && 
-        (element.capacidad - element.invitados) >= personasSobrantes
+      const mesaParaSobrantes = allElements.find(
+        (element) =>
+          (element.type === "mesa" || element.type === "mesaRectangular") &&
+          element.numero !== mesa.numero &&
+          element.capacidad - element.invitados >= personasSobrantes
       );
-      
+
       if (mesaParaSobrantes) {
-        setAllElements(prev => prev.map(element => 
-          element.numero === mesaParaSobrantes.numero && (element.type === 'mesa' || element.type === 'mesaRectangular')
-            ? { ...element, invitados: element.invitados + personasSobrantes }
-            : element
-        ));
-        
+        setAllElements((prev) =>
+          prev.map((element) =>
+            element.numero === mesaParaSobrantes.numero &&
+            (element.type === "mesa" || element.type === "mesaRectangular")
+              ? { ...element, invitados: element.invitados + personasSobrantes }
+              : element
+          )
+        );
+
         mostrarNotificacion(
-          `Distribución exitosa:\n• ${espacioDisponible} personas → Mesa ${mesa.numero}\n• ${personasSobrantes} personas → Mesa ${mesaParaSobrantes.numero}`, 
-          'success'
+          `Distribución exitosa:\n• ${espacioDisponible} personas → Mesa ${mesa.numero}\n• ${personasSobrantes} personas → Mesa ${mesaParaSobrantes.numero}`,
+          "success"
         );
       } else {
-        setInvitadosSinAsignar(prev => [...prev, personasSobrantes_grupo]);
+        setInvitadosSinAsignar((prev) => [...prev, personasSobrantes_grupo]);
         mostrarNotificacion(
-          `Asignación parcial completada:\n• ${espacioDisponible} personas → Mesa ${mesa.numero}\n• ${personasSobrantes} personas regresaron a la lista (sin mesas disponibles)`, 
-          'warning'
+          `Asignación parcial completada:\n• ${espacioDisponible} personas → Mesa ${mesa.numero}\n• ${personasSobrantes} personas regresaron a la lista (sin mesas disponibles)`,
+          "warning"
         );
       }
     } else {
-      mostrarNotificacion(`${invitado.nombre} permaneció en la lista. Busque una mesa con más capacidad`, 'info');
+      mostrarNotificacion(
+        `${invitado.nombre} permaneció en la lista. Busque una mesa con más capacidad`,
+        "info"
+      );
     }
 
     setShowModal(false);
@@ -310,15 +550,15 @@ export default function DistribuccionNovios({
   // Función para mostrar notificaciones
   const mostrarNotificacion = (mensaje, tipo) => {
     const colores = {
-      success: 'bg-green-100 border-green-400 text-green-700',
-      error: 'bg-red-100 border-red-400 text-red-700',
-      warning: 'bg-yellow-100 border-yellow-400 text-yellow-700',
-      info: 'bg-blue-100 border-blue-400 text-blue-700'
+      success: "bg-green-100 border-green-400 text-green-700",
+      error: "bg-red-100 border-red-400 text-red-700",
+      warning: "bg-yellow-100 border-yellow-400 text-yellow-700",
+      info: "bg-blue-100 border-blue-400 text-blue-700",
     };
 
-    const notification = document.createElement('div');
+    const notification = document.createElement("div");
     notification.className = `fixed top-4 right-4 px-4 py-3 rounded border-l-4 ${colores[tipo]} z-50 max-w-md shadow-lg`;
-    notification.style.whiteSpace = 'pre-line';
+    notification.style.whiteSpace = "pre-line";
     notification.textContent = mensaje;
     document.body.appendChild(notification);
 
@@ -329,20 +569,32 @@ export default function DistribuccionNovios({
     }, 5000);
   };
 
-  // Componente para invitados arrastrable
+  // En DistribuccionNovios.jsx, actualizar el InvitadoDraggable
   const InvitadoDraggable = ({ invitado }) => {
     return (
       <div
         draggable
         onDragStart={(e) => {
-          e.dataTransfer.setData('text/plain', JSON.stringify(invitado));
+          e.dataTransfer.setData("text/plain", JSON.stringify(invitado));
           setActiveInvitado(invitado);
         }}
         onDragEnd={() => setActiveInvitado(null)}
-        className="flex justify-normal gap-3 items-center bg-white p-3 rounded-lg border-2 border-dashed border-gray-200 cursor-move hover:bg-gray-100 transition-colors hover:shadow-md"
+        className="flex justify-between items-center bg-white p-3 rounded-lg border-2 border-dashed border-gray-200 cursor-move hover:bg-gray-100 transition-colors hover:shadow-md"
       >
-        <div className="font-medium text-gray-800">{invitado.nombre}</div>
-        <div className="text-sm text-gray-600">({invitado.cantidad} personas)</div>
+        <div className="flex gap-3 items-center">
+          <div className="font-medium text-gray-800">{invitado.nombre}</div>
+          <div className="text-sm text-gray-600">
+            ({invitado.cantidad} personas)
+          </div>
+        </div>
+
+        {/* Indicador de necesidades especiales */}
+        {invitado.necesidadEspecial && (
+          <div className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
+            <Accessibility className="w-3 h-3" />
+            <span>Silla especial</span>
+          </div>
+        )}
       </div>
     );
   };
@@ -360,27 +612,48 @@ export default function DistribuccionNovios({
             <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <TriangleAlert className="w-6 h-6 text-yellow-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-800">Mesa con Capacidad Limitada</h3>
+            <h3 className="text-lg font-semibold text-gray-800">
+              Mesa con Capacidad Limitada
+            </h3>
           </div>
-          
+
           <div className="text-sm text-gray-600 space-y-2 mb-6">
-            <p><strong>Invitado:</strong> {invitado.nombre}</p>
-            <p><strong>Cantidad a asignar:</strong> {invitado.cantidad} personas</p>
-            <p><strong>Mesa seleccionada:</strong> Mesa {mesa.numero}</p>
-            <p><strong>Capacidad total:</strong> {mesa.capacidad} asientos</p>
-            <p><strong>Ya ocupada:</strong> {mesa.invitados} asientos</p>
-            <p className="text-green-600"><strong>Espacios disponibles:</strong> {espacioDisponible} asientos</p>
-            <p className="text-red-600"><strong>Personas que no caben:</strong> {personasSobrantes}</p>
+            <p>
+              <strong>Invitado:</strong> {invitado.nombre}
+            </p>
+            <p>
+              <strong>Cantidad a asignar:</strong> {invitado.cantidad} personas
+            </p>
+            <p>
+              <strong>Mesa seleccionada:</strong> Mesa {mesa.numero}
+            </p>
+            <p>
+              <strong>Capacidad total:</strong> {mesa.capacidad} asientos
+            </p>
+            <p>
+              <strong>Ya ocupada:</strong> {mesa.invitados} asientos
+            </p>
+            <p className="text-green-600">
+              <strong>Espacios disponibles:</strong> {espacioDisponible}{" "}
+              asientos
+            </p>
+            <p className="text-red-600">
+              <strong>Personas que no caben:</strong> {personasSobrantes}
+            </p>
           </div>
 
           <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-6">
             <p className="text-sm text-yellow-800">
-              <strong>¿Qué deseas hacer?</strong><br/>
-              <br/>
-              <strong>SÍ:</strong> Asignar {espacioDisponible} personas a la Mesa {mesa.numero}. 
-              Las {personasSobrantes} personas restantes buscarán <u>OTRA MESA DIFERENTE</u> automáticamente.<br/>
-              <br/>
-              <strong>NO:</strong> Mantener todo el grupo junto en la lista para buscar otra mesa completa.
+              <strong>¿Qué deseas hacer?</strong>
+              <br />
+              <br />
+              <strong>SÍ:</strong> Asignar {espacioDisponible} personas a la
+              Mesa {mesa.numero}. Las {personasSobrantes} personas restantes
+              buscarán <u>OTRA MESA DIFERENTE</u> automáticamente.
+              <br />
+              <br />
+              <strong>NO:</strong> Mantener todo el grupo junto en la lista para
+              buscar otra mesa completa.
             </p>
           </div>
 
@@ -406,12 +679,14 @@ export default function DistribuccionNovios({
   // Componentes estáticos para mesas
   const MesaEstatica = ({ element }) => (
     <div className="pointer-events-auto">
-      <Mesa
-        numeroMesa={element.numero}
-        invitadosAsignados={element.invitados}
-        capacidadMaxima={element.capacidad}
-        onDrop={asignarInvitadosMesa}
-      />
+    <Mesa
+      numeroMesa={element.numero}
+      invitadosAsignados={element.invitados}
+      capacidadMaxima={element.capacidad}
+      sillasEspeciales={element.sillasEspeciales || []}
+      invitadosEspeciales={element.invitadosEspeciales || 0}
+      onDrop={asignarInvitadosMesa}
+    />
     </div>
   );
 
@@ -421,57 +696,69 @@ export default function DistribuccionNovios({
         numeroMesa={element.numero}
         invitadosAsignados={element.invitados}
         capacidadMaxima={element.capacidad}
+        sillasEspeciales={element.sillasEspeciales || []}
+        invitadosEspeciales={element.invitadosEspeciales || 0}
         onDrop={asignarInvitadosMesa}
       />
     </div>
   );
 
   const renderElementoEstatico = (element) => {
-    if (element.type === 'mesa') {
+    if (element.type === "mesa") {
       return <MesaEstatica element={element} />;
     }
 
-    if (element.type === 'mesaRectangular') {
+    if (element.type === "mesaRectangular") {
       return <MesaRectangularEstatica element={element} />;
     }
 
     switch (element.type) {
-      case 'entrada':
+      case "entrada":
         return (
           <div className="rounded px-6 py-1 rotate-90 border flex items-center justify-center text-gray-600 font-semibold bg-gray-50 whitespace-nowrap pointer-events-none">
             Entrada
           </div>
         );
-      case 'barra':
+      case "barra":
         return (
           <div className="border-2 border-separate border-dashed border-gray-300 w-24 h-24 flex items-center justify-center text-center p-2 rounded-md text-gray-500 font-semibold bg-white shadow pointer-events-none">
-            Barra 
+            Barra
           </div>
         );
-      case 'mesa-principal':
+      case "mesa-principal":
         return (
           <div className="rounded px-6 py-3 w-48 border-separate border-2 border-dashed text-center text-gray-600 font-semibold bg-gray-50 pointer-events-none">
             Mesa principal <br />
             <span className="text-gray-500 text-sm italic">Ana y Juan</span>
           </div>
         );
-      case 'pista-baile':
+      case "pistaBaileRedonda":
         return (
-          <div className="w-48 h-48 text-center border-orange-300 border-2 border-dashed flex items-center justify-center text-gray-600 font-semibold bg-orange-50 rounded-full pointer-events-none">
-            <span className="text-orange-600 text-xl font-bold">Pista de <br /> Baile</span>
+          <div className="w-40 h-40 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 font-semibold bg-cafe/10 rounded-full pointer-events-none">
+            <span className="text-cafe text-lg font-bold">
+              Pista de <br /> Baile
+            </span>
           </div>
         );
-      case 'escenario':
+      case "pistaBaileRectangular":
+        return (
+          <div className="w-64 h-28 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 font-semibold bg-cafe/10 rounded-lg pointer-events-none">
+            <span className="text-cafe text-lg font-bold">
+              Pista de <br /> Baile
+            </span>
+          </div>
+        );
+      case "escenario":
         return (
           <div className="border-2 border-separate border-dashed border-gray-300 w-28 h-28 flex flex-col items-center justify-center text-center p-2 rounded-md text-gray-500 font-semibold bg-white shadow pointer-events-none">
             <p>ESCENARIO</p>
             <p className="text-xs mt-1">DJ Música</p>
           </div>
         );
-      case 'buffet':
+      case "buffet":
         return (
           <div className="border-2 border-separate border-dashed border-gray-300 w-28 h-20 flex items-center justify-center text-center p-2 rounded-md text-gray-500 font-semibold bg-white shadow pointer-events-none">
-            BUFFET 
+            BUFFET
           </div>
         );
       default:
@@ -480,15 +767,27 @@ export default function DistribuccionNovios({
   };
 
   // Calcular estadísticas
-  const totalPersonasSinAsignar = invitadosSinAsignar.reduce((total, inv) => total + inv.cantidad, 0);
-  const mesas = allElements.filter(el => el.type === 'mesa' || el.type === 'mesaRectangular');
-  const totalInvitadosAsignados = mesas.reduce((total, mesa) => total + (mesa.invitados || 0), 0);
-  const totalCapacidad = mesas.reduce((total, mesa) => total + (mesa.capacidad || 0), 0);
-  const mesasOcupadas = mesas.filter(mesa => mesa.invitados > 0).length;
+  const totalPersonasSinAsignar = invitadosSinAsignar.reduce(
+    (total, inv) => total + inv.cantidad,
+    0
+  );
+  const mesas = allElements.filter(
+    (el) => el.type === "mesa" || el.type === "mesaRectangular"
+  );
+  const totalInvitadosAsignados = mesas.reduce(
+    (total, mesa) => total + (mesa.invitados || 0),
+    0
+  );
+  const totalCapacidad = mesas.reduce(
+    (total, mesa) => total + (mesa.capacidad || 0),
+    0
+  );
+  const mesasOcupadas = mesas.filter((mesa) => mesa.invitados > 0).length;
   const totalMesas = mesas.length;
-  const porcentajeCapacidadUtilizada = totalCapacidad > 0 
-    ? Math.round((totalInvitadosAsignados / totalCapacidad) * 100) 
-    : 0;
+  const porcentajeCapacidadUtilizada =
+    totalCapacidad > 0
+      ? Math.round((totalInvitadosAsignados / totalCapacidad) * 100)
+      : 0;
 
   return (
     <div className="min-h-screen">
@@ -496,42 +795,43 @@ export default function DistribuccionNovios({
         {/* BARRA DE HERRAMIENTAS MEJORADA */}
         <div className="mb-6 bg-gray-100 p-4 rounded-full shadow-sm">
           <div className="flex justify-between items-center">
-            <div className='flex items-center gap-3'>
-              <Button 
+            <div className="flex items-center gap-3">
+              <Button
                 onClick={mostrarDistribucionesGuardadas}
                 className="bg-purple-600 text-white px-4 py-2 rounded-full font-medium hover:bg-purple-700 transition-colors flex items-center gap-2"
               >
                 Layout del Salón
               </Button>
-              
-              <Button 
+
+              <Button
                 onClick={autoAsignarInvitados}
                 disabled={autoAsignando || invitadosSinAsignar.length === 0}
                 className={`px-4 py-2 border rounded-full font-medium transition-colors flex items-center gap-2 ${
-                  autoAsignando 
-                    ? 'bg-yellow-100 text-yellow-800 border-yellow-300 cursor-not-allowed'
+                  autoAsignando
+                    ? "bg-yellow-100 text-yellow-800 border-yellow-300 cursor-not-allowed"
                     : invitadosSinAsignar.length === 0
-                    ? 'bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed'
-                    : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'
+                    ? "bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed"
+                    : "bg-white text-gray-800 border-gray-300 hover:bg-gray-50"
                 }`}
               >
-                {autoAsignando ? 'Asignando...' : 'Auto-Asignar'}
+                {autoAsignando ? "Asignando..." : "Auto-Asignar"}
               </Button>
             </div>
-            
+
             <div className="flex items-center gap-3">
-              
-                {/* onClick={guardarDistribucion} */}
-              <Button 
+              {/* onClick={guardarDistribucion} */}
+              <Button
                 disabled={guardando}
                 className={`px-4 py-2 rounded-full font-medium transition-colors flex items-center gap-2 ${
-                  guardando 
-                    ? 'bg-green-400 text-white cursor-not-allowed'
-                    : 'bg-lime-600 text-white hover:bg-lime-700'
+                  guardando
+                    ? "bg-green-400 text-white cursor-not-allowed"
+                    : "bg-lime-600 text-white hover:bg-lime-700"
                 }`}
               >
-                <Save className={`w-4 h-4 ${guardando ? 'animate-pulse' : ''}`} />
-                {guardando ? 'Guardando...' : 'Guardar Distribución'}
+                <Save
+                  className={`w-4 h-4 ${guardando ? "animate-pulse" : ""}`}
+                />
+                {guardando ? "Guardando..." : "Guardar Distribución"}
               </Button>
             </div>
           </div>
@@ -543,13 +843,15 @@ export default function DistribuccionNovios({
             <div className="bg-slate-50 py-6 px-3 rounded-lg shadow-sm">
               <p className="text-xl font-semibold mb-4 text-gray-700 flex items-center justify-between gap-2">
                 Invitados sin Asignar
-                <span className="text-sm text-gray-500 font-normal">({totalPersonasSinAsignar} personas)</span>
+                <span className="text-sm text-gray-500 font-normal">
+                  ({totalPersonasSinAsignar} personas)
+                </span>
               </p>
-              
+
               <div className="max-h-[32rem] overflow-y-auto">
                 {invitadosSinAsignar.length > 0 ? (
                   <ul className="space-y-3">
-                    {invitadosSinAsignar.map(invitado => (
+                    {invitadosSinAsignar.map((invitado) => (
                       <li key={invitado.id}>
                         <InvitadoDraggable invitado={invitado} />
                       </li>
@@ -558,15 +860,18 @@ export default function DistribuccionNovios({
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     <div className="text-4xl mb-2">🎉</div>
-                    <p className="font-medium">¡Todos los invitados asignados!</p>
+                    <p className="font-medium">
+                      ¡Todos los invitados asignados!
+                    </p>
                     <p className="text-sm">Perfecta distribución</p>
                   </div>
                 )}
               </div>
-              
+
               <div className="mt-4 p-3 bg-white border border-gray-200 rounded-lg">
                 <p className="text-sm text-gray-700">
-                  Arrastra los invitados a las mesas del plano para asignar lugares.
+                  Arrastra los invitados a las mesas del plano para asignar
+                  lugares.
                 </p>
               </div>
             </div>
@@ -579,16 +884,15 @@ export default function DistribuccionNovios({
                 <h3 className="text-lg font-semibold text-gray-800">
                   Plano del Salón - "Jardín Romántico"
                 </h3>
-                
               </div>
-              
+
               <div className="overflow-x-auto overflow-y-auto">
-                <div 
-                  className="relative bg-gradient-to-br from-pink-25 to-blue-25" 
-                  style={{ 
-                    height: '600px',
-                    minWidth: '1600px',
-                    width: '1600px'
+                <div
+                  className="relative bg-gradient-to-br from-pink-25 to-blue-25"
+                  style={{
+                    height: "600px",
+                    minWidth: "1600px",
+                    width: "1600px",
                   }}
                 >
                   {allElements.map((element) => (
@@ -598,8 +902,12 @@ export default function DistribuccionNovios({
                       style={{
                         left: `${element.position?.x || 0}px`,
                         top: `${element.position?.y || 0}px`,
-                        cursor: (element.type === 'mesa' || element.type === 'mesaRectangular') ? 'default' : 'default',
-                        userSelect: 'none'
+                        cursor:
+                          element.type === "mesa" ||
+                          element.type === "mesaRectangular"
+                            ? "default"
+                            : "default",
+                        userSelect: "none",
                       }}
                     >
                       {renderElementoEstatico(element)}
@@ -617,33 +925,50 @@ export default function DistribuccionNovios({
                   <span className="ml-2 font-bold text-blue-600">
                     {totalInvitadosAsignados}/{totalCapacidad}
                   </span>
-                  <span className="ml-2 font-medium text-gray-600">Asignados</span>
-                </div>
-                <div className="w-[0.2rem] h-4 bg-gray-300 rounded"></div>
-                <div>
-                  <span className="font-medium text-gray-600">Mesas Ocupadas:</span>
-                  <span className="ml-2 font-bold text-amber-600">
-                    {mesasOcupadas}/{totalMesas}   
+                  <span className="ml-2 font-medium text-gray-600">
+                    Asignados
                   </span>
                 </div>
                 <div className="w-[0.2rem] h-4 bg-gray-300 rounded"></div>
                 <div>
-                  <span className="font-medium text-gray-600">Capacidad utilizada:</span>
-                  <span className={`ml-2 font-bold ${
-                    porcentajeCapacidadUtilizada >= 90 ? 'text-red-600' :
-                    porcentajeCapacidadUtilizada >= 70 ? 'text-orange-600' :
-                    porcentajeCapacidadUtilizada >= 50 ? 'text-yellow-600' :
-                    'text-green-600'
-                  }`}>
+                  <span className="font-medium text-gray-600">
+                    Mesas Ocupadas:
+                  </span>
+                  <span className="ml-2 font-bold text-amber-600">
+                    {mesasOcupadas}/{totalMesas}
+                  </span>
+                </div>
+                <div className="w-[0.2rem] h-4 bg-gray-300 rounded"></div>
+                <div>
+                  <span className="font-medium text-gray-600">
+                    Capacidad utilizada:
+                  </span>
+                  <span
+                    className={`ml-2 font-bold ${
+                      porcentajeCapacidadUtilizada >= 90
+                        ? "text-red-600"
+                        : porcentajeCapacidadUtilizada >= 70
+                        ? "text-orange-600"
+                        : porcentajeCapacidadUtilizada >= 50
+                        ? "text-yellow-600"
+                        : "text-green-600"
+                    }`}
+                  >
                     {porcentajeCapacidadUtilizada}%
                   </span>
                 </div>
                 <div className="w-[0.2rem] h-4 bg-gray-300 rounded"></div>
                 <div>
-                  <span className="font-medium text-gray-600">Sin Asignar:</span>
-                  <span className={`ml-2 font-bold ${
-                    totalPersonasSinAsignar > 0 ? 'text-red-500' : 'text-green-500'
-                  }`}>
+                  <span className="font-medium text-gray-600">
+                    Sin Asignar:
+                  </span>
+                  <span
+                    className={`ml-2 font-bold ${
+                      totalPersonasSinAsignar > 0
+                        ? "text-red-500"
+                        : "text-green-500"
+                    }`}
+                  >
                     {totalPersonasSinAsignar}
                   </span>
                 </div>
