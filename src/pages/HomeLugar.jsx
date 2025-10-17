@@ -108,9 +108,9 @@ export default function HomeLugar() {
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
         <KpiCard icon={<Calendar className="w-6 h-6" />} label="Eventos totales" value={totales.eventos} />
         <KpiCard icon={<Users className="w-6 h-6" />} label="Alumnos" value={totales.asistentesAlumnos} />
-        <KpiCard icon={<Users className="w-6 h-6" />} label="Con boletos" value={totales.asistentes} />
+        {/* <KpiCard icon={<Users className="w-6 h-6" />} label="Con boletos" value={totales.asistentes} /> */}
         <KpiCard icon={<TrendingUp className="w-6 h-6" />} label="Ocupación promedio" value={totales.ocupacionPromedio + '%'} />
-        <KpiCard icon={<BarChart2 className="w-6 h-6" />} label="Ingresos estimados" value={'$' + totales.ingresosEstimados.toLocaleString()} />
+        {/* <KpiCard icon={<BarChart2 className="w-6 h-6" />} label="Ingresos estimados" value={'$' + totales.ingresosEstimados.toLocaleString()} /> */}
       </section>
 
       {/* KPIs de Boletos */}
@@ -161,7 +161,7 @@ export default function HomeLugar() {
                 <Th>Nombre</Th>
                 <Th>Tipo</Th>
                 <Th>Alumnos</Th>
-                <Th>Con boletos</Th>
+                {/* <Th>Con boletos</Th> */}
                 <Th>Apartados</Th>
                 <Th>Pagados</Th>
                 <Th>Abonado</Th>
@@ -180,7 +180,7 @@ export default function HomeLugar() {
                   <Td className="font-medium">{ev.nombre}</Td>
                   <Td>{ev.tipo}</Td>
                   <Td>{ev.asistentesAlumnos || '-'}</Td>
-                  <Td>{ev.invitados}</Td>
+                  {/* <Td>{ev.invitados}</Td> */}
                   <Td>
                     <div>{ev.boletosApartados}</div>
                     <div className="text-xs text-gray-500">${ev.boletosApartadosDinero.toLocaleString()}</div>
