@@ -115,6 +115,7 @@ export default function Dashboard() {
     valor,
     titulo,
     subtitulo,
+    subtitulo2,
     gradienteId,
     color1,
     color2,
@@ -139,6 +140,9 @@ export default function Dashboard() {
         </div>
       </div>
       <p className="metric-subtext text-right">{subtitulo}</p>
+      {subtitulo2 && (
+        <p className="metric-subtext text-right text-xs text-gray-500 dark:text-gray-400 mt-1">{subtitulo2}</p>
+      )}
 
       <svg style={{ height: 0 }}>
         <defs>
@@ -159,6 +163,8 @@ export default function Dashboard() {
     const porcentajePagos = dashboardStats?.pagos?.porcentaje_pagos_completados || 0;
     const deudasPagadas = dashboardStats?.pagos?.deudas_completamente_pagadas || 0;
     const totalDeudas = dashboardStats?.pagos?.total_deudas || 0;
+    const montoPagado = dashboardStats?.pagos?.monto_total_pagado || 0;
+    const montoTotal = dashboardStats?.pagos?.monto_total_adeudado || 0;
     
     // Datos de boletos desde el API
     const boletosEmitidos = dashboardStats?.boletos?.boletos_emitidos || 0;
@@ -171,12 +177,22 @@ export default function Dashboard() {
       ? Math.round((asientosAsignadosStatic / capacidadMaxima) * 100) 
       : 0;
 
+    // Formatear dinero
+    const formatMoney = (amount) => {
+      return new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+        minimumFractionDigits: 2,
+      }).format(amount);
+    };
+
     return (
       <>
         <Metrica
           valor={Math.round(porcentajePagos)}
           titulo="% de pagos completados"
           subtitulo={`${deudasPagadas} / ${totalDeudas} pagos`}
+          subtitulo2={`${formatMoney(montoPagado)} / ${formatMoney(montoTotal)}`}
           gradienteId="gradPagos"
           color1="#0d3b66"
           color2="#2a9d8f"

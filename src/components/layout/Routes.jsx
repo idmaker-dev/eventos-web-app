@@ -46,9 +46,9 @@ export default function AppRoutes() {
       
       {/* Ruta Home - Requiere autenticación */}
       <Route path="/" element={
-        <AuthenticatedRoute>
+        <AdminRoute>
           <Home />
-        </AuthenticatedRoute>
+        </AdminRoute>
       }>
         {/* Sub-rutas que se cargan en el Outlet de Home - Todas requieren autenticación */}
         <Route index element={<Navigate to="Catalogo" replace />} />
