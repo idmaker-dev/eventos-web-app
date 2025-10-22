@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import { 
   CircleX, 
@@ -20,10 +20,32 @@ export default function LectorQR({ open, onClose, evento }) {
   const [scanHistory, setScanHistory] = useState([]);
   const html5QrCodeRef = useRef(null);
   const scannerIdRef = useRef("qr-reader");
+  const lastScanTextRef = useRef(null);
+  const scanTimeoutRef = useRef(null);
 
-  // Función para procesar el código QR escaneado
-  const onScanSuccess = (decodedText, decodedResult) => {
-    console.log('QR Code detected:', decodedText, decodedResult);
+  // Función para procesar el código QR escaneado (useCallback para estabilidad)
+  const onScanSuccess = useCallback((decodedText, decodedResult) => {
+    // Evitar escaneos duplicados - ignorar si es el mismo código en los últimos 2 segundos
+    if (lastScanTextRef.current === decodedText) {
+      console.log('⏭️ Ignorando escaneo duplicado:', decodedText);
+      return;
+    }
+
+    console.log('✅ QR Code detectado y procesado:', decodedText, decodedResult);
+    
+    // Guardar el último código escaneado
+    lastScanTextRef.current = decodedText;
+    
+    // Limpiar timeout anterior si existe
+    if (scanTimeoutRef.current) {
+      clearTimeout(scanTimeoutRef.current);
+    }
+    
+    // Permitir escanear el mismo código después de 2 segundos
+    scanTimeoutRef.current = setTimeout(() => {
+      lastScanTextRef.current = null;
+      console.log('🔄 Listo para escanear nuevamente');
+    }, 2000);
     
     // Procesar el código QR (aquí puedes agregar lógica de validación con API)
     const mockData = {
@@ -37,12 +59,12 @@ export default function LectorQR({ open, onClose, evento }) {
 
     setLastScan(mockData);
     setScanHistory(prev => [mockData, ...prev].slice(0, 10));
-  };
+  }, [evento]);
 
-  const onScanError = (errorMessage) => {
+  const onScanError = useCallback((errorMessage) => {
     // Silenciar errores de escaneo continuo (son normales)
     // console.warn('QR Scan error:', errorMessage);
-  };
+  }, []);
 
   // Iniciar escaneo con html5-qrcode
   const handleStartScan = async () => {
@@ -67,12 +89,21 @@ export default function LectorQR({ open, onClose, evento }) {
       // Crear nueva instancia de Html5Qrcode
       html5QrCodeRef.current = new Html5Qrcode(scannerIdRef.current);
 
-      // Configuración del escáner optimizada
+      // Configuración del escáner optimizada para mejor detección
       const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        disableFlip: false
+        fps: 10, // Frames per second
+        qrbox: { width: 250, height: 250 }, // Área de escaneo
+        aspectRatio: 1.777778, // 16:9
+        disableFlip: false, // Permitir flip horizontal
+        videoConstraints: {
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 }
+        },
+        // Mejoras para detección
+        formatsToSupport: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], // Todos los formatos
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        }
       };
 
       // Intentar con diferentes estrategias de cámara
@@ -81,13 +112,14 @@ export default function LectorQR({ open, onClose, evento }) {
       // Estrategia 1: Intentar con cámara trasera
       if (!scannerStarted) {
         try {
+          console.log('🔄 Intentando iniciar con cámara trasera...');
           await html5QrCodeRef.current.start(
             { facingMode: "environment" },
             config,
             onScanSuccess,
             onScanError
           );
-          console.log('✓ Escáner iniciado con cámara trasera');
+          console.log('✓ Escáner iniciado con cámara trasera - Listo para escanear');
           scannerStarted = true;
         } catch (error) {
           console.log('✗ Cámara trasera no disponible:', error.message);
@@ -97,6 +129,7 @@ export default function LectorQR({ open, onClose, evento }) {
       // Estrategia 2: Intentar con cámara frontal
       if (!scannerStarted) {
         try {
+          console.log('🔄 Intentando iniciar con cámara frontal...');
           // Limpiar instancia y crear una nueva para evitar conflictos de transición
           await html5QrCodeRef.current.clear();
           html5QrCodeRef.current = null;
@@ -108,7 +141,7 @@ export default function LectorQR({ open, onClose, evento }) {
             onScanSuccess,
             onScanError
           );
-          console.log('✓ Escáner iniciado con cámara frontal');
+          console.log('✓ Escáner iniciado con cámara frontal - Listo para escanear');
           scannerStarted = true;
         } catch (error) {
           console.log('✗ Cámara frontal no disponible:', error.message);
@@ -118,6 +151,7 @@ export default function LectorQR({ open, onClose, evento }) {
       // Estrategia 3: Usar la primera cámara disponible por ID
       if (!scannerStarted) {
         try {
+          console.log('🔄 Obteniendo lista de cámaras disponibles...');
           // Limpiar instancia y crear una nueva
           if (html5QrCodeRef.current) {
             await html5QrCodeRef.current.clear();
@@ -125,17 +159,20 @@ export default function LectorQR({ open, onClose, evento }) {
           }
           
           const devices = await Html5Qrcode.getCameras();
+          console.log('📷 Cámaras encontradas:', devices.length, devices);
+          
           if (devices && devices.length > 0) {
             html5QrCodeRef.current = new Html5Qrcode(scannerIdRef.current);
             const cameraId = devices[0].id;
             
+            console.log('🔄 Iniciando con cámara:', devices[0].label || cameraId);
             await html5QrCodeRef.current.start(
               cameraId,
               config,
               onScanSuccess,
               onScanError
             );
-            console.log('✓ Escáner iniciado con dispositivo:', devices[0].label || cameraId);
+            console.log('✓ Escáner iniciado con dispositivo - Listo para escanear:', devices[0].label || cameraId);
             scannerStarted = true;
           } else {
             throw new Error('No se encontraron cámaras disponibles en el dispositivo');
@@ -184,6 +221,13 @@ export default function LectorQR({ open, onClose, evento }) {
 
   const handleStopScan = async () => {
     try {
+      // Limpiar timeout de escaneo
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current);
+        scanTimeoutRef.current = null;
+      }
+      lastScanTextRef.current = null;
+      
       if (html5QrCodeRef.current) {
         // Verificar si el escáner está realmente corriendo
         const state = html5QrCodeRef.current.getState();
@@ -203,22 +247,48 @@ export default function LectorQR({ open, onClose, evento }) {
   // Cleanup al desmontar el componente
   useEffect(() => {
     return () => {
+      // Limpiar timeout de escaneo
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current);
+      }
+      
       // Detener el escáner al desmontar
       if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(err => console.error('Error stopping scanner:', err));
+        try {
+          const state = html5QrCodeRef.current.getState();
+          if (state === 2) { // Solo detener si está escaneando
+            html5QrCodeRef.current.stop().catch(err => console.error('Error stopping scanner:', err));
+          }
+        } catch (err) {
+          console.log('Error en cleanup:', err.message);
+        }
       }
     };
   }, []);
 
   // Cleanup cuando se cierra el modal
   useEffect(() => {
-    if (!open && html5QrCodeRef.current && scanning) {
-      html5QrCodeRef.current.stop()
-        .then(() => setScanning(false))
-        .catch(err => {
-          console.error('Error stopping scanner:', err);
+    if (!open && html5QrCodeRef.current) {
+      try {
+        const state = html5QrCodeRef.current.getState();
+        if (state === 2 && scanning) { // Solo detener si está escaneando
+          html5QrCodeRef.current.stop()
+            .then(() => {
+              console.log('Scanner detenido al cerrar modal');
+              setScanning(false);
+            })
+            .catch(err => {
+              console.error('Error stopping scanner:', err);
+              setScanning(false);
+            });
+        } else if (scanning) {
+          // Si scanning es true pero el escáner no está corriendo, solo actualizar estado
           setScanning(false);
-        });
+        }
+      } catch (err) {
+        console.log('Error verificando estado:', err.message);
+        setScanning(false);
+      }
     }
   }, [open, scanning]);
 
