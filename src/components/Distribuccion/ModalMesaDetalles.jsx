@@ -8,10 +8,10 @@ export default function ModalMesaDetalles({ isOpen, onClose, mesa }) {
   const assigned = mesa.assignedGuests || [];
 
   const restrLabels = {
-    vegetariano: { label: "Vegetariano", icon: "🥦" },
-    vegano: { label: "Vegano", icon: "🌱" },
-    sinGluten: { label: "Sin gluten", icon: "🚫🌾" },
-    alergiaMarisco: { label: "Alergia a mariscos", icon: "🦐" },
+    vegetariano: { label: "Vegetariano" },
+    vegano: { label: "Vegano" },
+    sinGluten: { label: "Sin gluten" },
+    alergiaMarisco: { label: "Alergia a mariscos" },
   };
 
   return (
