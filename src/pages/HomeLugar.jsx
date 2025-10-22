@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import InlineSpinner from '../components/ui/InlineSpinner';
-import { BarChart2, Calendar, Users, TrendingUp, LogOut, RefreshCw } from 'lucide-react';
+import { BarChart2, Calendar, Users, TrendingUp, LogOut, RefreshCw, Download } from 'lucide-react';
 import lugarDashboardService from '../services/lugarDashboardService';
 import { useAuth } from '../hooks/useAuth';
 
@@ -62,6 +62,109 @@ export default function HomeLugar() {
     try { await logout(); } catch (e) { setIsLoggingOut(false); }
   };
 
+  const handleExportToExcel = () => {
+    if (!data) return;
+
+    try {
+      // Importar xlsx de forma dinámica
+      import('xlsx').then((XLSX) => {
+        const workbook = XLSX.utils.book_new();
+        
+        // Hoja 1: Resumen General (KPIs)
+        const resumenData = [
+          ['RESUMEN GENERAL - ' + lugarNombre],
+          [''],
+          ['Métrica', 'Valor'],
+          ['Eventos totales', totales.eventos],
+          ['Alumnos', totales.asistentesAlumnos],
+          ['Ocupación promedio', totales.ocupacionPromedio + '%'],
+          [''],
+          ['BOLETOS Y PAGOS'],
+          ['Boletos apartados', totales.boletosApartados, '$' + totales.boletosApartadosDinero.toLocaleString()],
+          ['Boletos pagados', totales.boletosPagados, '$' + totales.boletosPagadosDinero.toLocaleString() + ' (' + totales.porcentajePagados + '%)'],
+          ['Abono realizado', '', '$' + totales.abonoRealizado.toLocaleString() + ' (' + totales.porcentajeAbonado + '%)'],
+          ['Boletos por pagar', totales.boletosPorPagar, '$' + totales.boletosPorPagarDinero.toLocaleString() + ' (' + (100 - totales.porcentajePagados) + '%)'],
+          ['Tasa de pago', totales.porcentajePagados + '%', totales.boletosPagados + ' de ' + totales.boletosApartados + ' pagados'],
+        ];
+        const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+        XLSX.utils.book_append_sheet(workbook, wsResumen, 'Resumen');
+
+        // Hoja 2: Próximos Eventos
+        if (proximosEventos && proximosEventos.length > 0) {
+          const proximosData = [
+            ['PRÓXIMOS EVENTOS'],
+            [''],
+            ['Fecha', 'Nombre', 'Tipo', 'Alumnos', 'Apartados', 'Apartados $', 'Pagados', 'Pagados $', 'Abonado $', 'Por Pagar', 'Por Pagar $', '% Pagado', '% Abonado']
+          ];
+          
+          proximosEventos.forEach(ev => {
+            proximosData.push([
+              formatDate(ev.fecha),
+              ev.nombre,
+              ev.tipo,
+              ev.asistentesAlumnos || '-',
+              ev.boletosApartados,
+              ev.boletosApartadosDinero,
+              ev.boletosPagados,
+              ev.boletosPagadosDinero,
+              ev.abonoRealizado,
+              ev.boletosPorPagar,
+              ev.boletosPorPagarDinero,
+              ev.porcentajePagados + '%',
+              ev.porcentajeAbonado + '%'
+            ]);
+          });
+
+          const wsProximos = XLSX.utils.aoa_to_sheet(proximosData);
+          XLSX.utils.book_append_sheet(workbook, wsProximos, 'Próximos Eventos');
+        }
+
+        // Hoja 3: Eventos Recientes
+        if (eventosRecientes && eventosRecientes.length > 0) {
+          const recientesData = [
+            ['EVENTOS RECIENTES'],
+            [''],
+            ['Fecha', 'Nombre', 'Tipo', 'Alumnos', 'Con boletos', 'Ocupación', 'Apartados', 'Apartados $', 'Pagados', 'Pagados $', 'Abonado $', 'Por Pagar', 'Por Pagar $', '% Pagado', '% Abonado']
+          ];
+          
+          eventosRecientes.forEach(ev => {
+            recientesData.push([
+              formatDate(ev.fecha),
+              ev.nombre,
+              ev.tipo,
+              ev.asistentesAlumnos || '-',
+              ev.asistentes,
+              ev.ocupacion + '%',
+              ev.boletosApartados,
+              ev.boletosApartadosDinero,
+              ev.boletosPagados,
+              ev.boletosPagadosDinero,
+              ev.abonoRealizado,
+              ev.boletosPorPagar,
+              ev.boletosPorPagarDinero,
+              ev.porcentajePagados + '%',
+              ev.porcentajeAbonado + '%'
+            ]);
+          });
+
+          const wsRecientes = XLSX.utils.aoa_to_sheet(recientesData);
+          XLSX.utils.book_append_sheet(workbook, wsRecientes, 'Eventos Recientes');
+        }
+
+        // Generar archivo
+        const fecha = new Date().toISOString().split('T')[0];
+        const nombreArchivo = `${lugarNombre.replace(/[^a-z0-9]/gi, '_')}_${fecha}.xlsx`;
+        XLSX.writeFile(workbook, nombreArchivo);
+      }).catch(err => {
+        console.error('Error al cargar xlsx:', err);
+        alert('Error al exportar. Por favor, intenta nuevamente.');
+      });
+    } catch (error) {
+      console.error('Error en exportación:', error);
+      alert('Error al exportar a Excel');
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-8 flex items-center gap-3 text-gray-600 dark:text-gray-200">
@@ -93,6 +196,15 @@ export default function HomeLugar() {
           <p className="text-xs text-gray-400 dark:text-gray-500">Última actualización: {lastUpdated ? formatDate(lastUpdated.toISOString()) : '—'}</p>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={handleExportToExcel} 
+            disabled={!data || loading}
+            title="Exportar a Excel"
+            className="px-4 py-2 bg-[#206a73] hover:bg-[#155059] text-white rounded-lg flex items-center gap-2 shadow disabled:opacity-60 disabled:cursor-not-allowed transition"
+          >
+            <Download size={18} />
+            <span className="hidden sm:inline">Exportar</span>
+          </button>
           <button onClick={handleRefresh} disabled={isRefreshing || loading} aria-busy={isRefreshing}
             className="w-10 h-10 bg-white dark:bg-gray-200 rounded-full flex items-center justify-center shadow disabled:opacity-60 disabled:cursor-not-allowed">
             {isRefreshing ? <InlineSpinner size="xs" /> : <RefreshCw className="text-gray-600 dark:text-gray-800" />}

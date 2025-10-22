@@ -87,17 +87,35 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("userEmail", result.user.email);
         localStorage.setItem("userId", result.user.id); // ✅ Guardar ID del usuario
 
+        // Verificar si debe cambiar contraseña
+        const debeCambiarPassword = result.data.debe_cambiar_password || false;
+
+        // Guardar flag de debe_cambiar_password y user data en localStorage
+        if (debeCambiarPassword) {
+          localStorage.setItem("debe_cambiar_password", "true");
+          localStorage.setItem(
+            "pending_user_data",
+            JSON.stringify(result.user)
+          );
+        }
+
         // Actualizar estado
         const userData = {
           ...result.user,
           token: result.token,
         };
-        setUser(userData);
-        setIsAuthenticated(true);
+
+        // Solo establecer como autenticado si NO debe cambiar contraseña
+        if (!debeCambiarPassword) {
+          setUser(userData);
+          setIsAuthenticated(true);
+        }
 
         if (EnvConfig.DEBUG_MODE) {
           console.log("✅ Login successful:", {
             rol: result.user.rol,
+            debe_cambiar_password: debeCambiarPassword,
+            isAuthenticated: !debeCambiarPassword,
             redirectUrl:
               result.user.rol === "admin"
                 ? EnvConfig.ADMIN_URL
@@ -106,7 +124,11 @@ export const AuthProvider = ({ children }) => {
         }
 
         setIsLoading(false);
-        return { success: true, user: userData };
+        return {
+          success: true,
+          user: userData,
+          debe_cambiar_password: debeCambiarPassword,
+        };
       } else {
         setIsLoading(false);
         return { success: false, error: result.error };
@@ -244,6 +266,68 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Función para cambiar contraseña
+  const changePassword = async (currentPassword, newPassword) => {
+    setIsLoading(true);
+
+    try {
+      const result = await authService.changePassword(
+        currentPassword,
+        newPassword
+      );
+
+      if (result.success) {
+        // Limpiar flags de cambio de contraseña obligatorio
+        localStorage.removeItem("debe_cambiar_password");
+        localStorage.removeItem("pending_user_data");
+
+        // Obtener token y datos actualizados del servidor
+        const token = localStorage.getItem("userToken");
+
+        // El servidor nos devuelve los datos actualizados del usuario
+        if (result.data && result.data.data) {
+          const updatedUserData = result.data.data;
+
+          // Actualizar localStorage con los nuevos datos
+          if (updatedUserData.debe_cambiar_password !== undefined) {
+            // Ya no debe cambiar contraseña
+            console.log(
+              "✅ Flag debe_cambiar_password actualizado:",
+              updatedUserData.debe_cambiar_password
+            );
+          }
+
+          // Establecer al usuario como autenticado con los datos del servidor
+          setUser({
+            ...updatedUserData,
+            token: token,
+          });
+          setIsAuthenticated(true);
+
+          if (EnvConfig.DEBUG_MODE) {
+            console.log(
+              "✅ Usuario autenticado después de cambiar contraseña:",
+              updatedUserData
+            );
+          }
+        }
+      }
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("🔒 Change password result:", result);
+      }
+
+      setIsLoading(false);
+      return result;
+    } catch (error) {
+      if (EnvConfig.DEBUG_MODE) {
+        console.error("❌ Change password failed:", error);
+      }
+      setIsLoading(false);
+      return { success: false, error: "Error al cambiar contraseña" };
+    }
+  };
+
   // Función para refrescar el token
   const refreshToken = async () => {
     try {
@@ -280,6 +364,7 @@ export const AuthProvider = ({ children }) => {
     forgotPassword,
     resetPassword,
     updateProfile,
+    changePassword,
     refreshToken,
     hasRole,
     hasAnyRole,
