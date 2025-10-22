@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -7,33 +7,26 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import Mesa from "./Mesa.jsx";
-import MesaRectangular from "./MesaRectangular.jsx";
-import DraggableElement from "./DraggableElement.jsx";
 import {
-  Accessibility,
   BadgeQuestionMark,
   BringToFront,
-  ChevronDown,
-  Circle,
-  CircleDashed,
-  DoorOpen,
+  Minus,
   Plus,
-  RectangleHorizontal,
-  Square,
-  SquareDashed,
-  SquareDashedTopSolid,
-  SquircleDashed,
+  RotateCcw,
+  Scan,
 } from "lucide-react";
 import {
   Button,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuItems,
 } from "@headlessui/react";
+// UI - local components */
 import { Tooltip } from "../ui/Tooltip.jsx";
+import Mesa from "./Mesa.jsx";
+import MesaRectangular from "./MesaRectangular.jsx";
+import DraggableElement from "./DraggableElement.jsx";
+import DesignTools from "./DesignTools.jsx";
+import StatsPanel from "./StatsPanel.jsx";
 import ModalSillasEspeciales from "./ModalSillasEspeciales.jsx";
+
 
 export default function DistribuccionAdmin({
   allElements,
@@ -53,6 +46,31 @@ export default function DistribuccionAdmin({
   const [showModalSillas, setShowModalSillas] = useState(false);
   const [tipoMesaModal, setTipoMesaModal] = useState("");
   const [capacidadMesaModal, setCapacidadMesaModal] = useState(8);
+
+  // ZOOM & FULLSCREEN modal
+  const [zoom, setZoom] = useState(1); // 1 = 100%
+  const [offset, setOffset] = useState({ x: 0, y: 0 }); // opcional para pan futuro
+  const [showDesignModal, setShowDesignModal] = useState(false);
+
+  const containerRef = useRef(null); // scroll area contenedor
+  const canvasRef = useRef(null); // canvas grande (dentro del scroll area)
+  const isPanningRef = useRef(false);
+  const panLastRef = useRef({ x: 0, y: 0 });
+
+  const CANVAS_WIDTH = 4000; 
+  const CANVAS_HEIGHT = 2400;
+
+  const ZOOM_STEP = 0.1;
+  const ZOOM_MIN = 0.1;
+  const ZOOM_MAX = 4;
+
+  const openDesignModal = () => setShowDesignModal(true);
+  const closeDesignModal = () => setShowDesignModal(false);
+
+  const saveFromModal = () => {
+    guardarDistribucion && guardarDistribucion(); // reutiliza la función existente si está definida
+    closeDesignModal();
+  };
 
   const elementosIniciales = [
     {
@@ -146,6 +164,9 @@ export default function DistribuccionAdmin({
     pistaBaileRectangular: 0,
   };
 
+  /* -----------------------
+    Sensors (dnd-kit)
+  ----------------------- */
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -154,6 +175,159 @@ export default function DistribuccionAdmin({
     }),
     useSensor(KeyboardSensor)
   );
+
+  /* -----------------------
+    Implementacion Zoom / Pan handlers para convertir el tipo miro
+  ----------------------- */
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  const zoomIn = () =>
+    setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)));
+  const zoomOut = () =>
+    setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)));
+  const resetZoom = () => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  };
+
+  // Establecer zoom para ajustar al viewport
+
+  // Zoom con rueda (mantén Ctrl o sin Ctrl — aquí uso Ctrl+wheel para evitar scroll accidental)
+  const handleWheel = (e) => {
+    // permitir también Ctrl+wheel o simplemente wheel si prefieres
+    if (!e.ctrlKey && !e.metaKey) return; // quita esta línea si quieres zoom con rueda sin Ctrl
+    e.preventDefault();
+
+    const delta = -e.deltaY;
+    const factor = delta > 0 ? 1.12 : 0.88;
+    const newZoom = clamp(zoom * factor, ZOOM_MIN, ZOOM_MAX);
+
+    const rect = containerRef.current.getBoundingClientRect();
+    // posición del cursor en coordenadas del canvas actual (antes de zoom)
+    const cursorCanvasX = (e.clientX - rect.left) / zoom - offset.x;
+    const cursorCanvasY = (e.clientY - rect.top) / zoom - offset.y;
+
+    // calcular nuevo offset para hacer zoom hacia el cursor
+    const newOffsetX = offset.x - cursorCanvasX * (newZoom / zoom - 1);
+    const newOffsetY = offset.y - cursorCanvasY * (newZoom / zoom - 1);
+
+    setZoom(newZoom);
+    setOffset({ x: newOffsetX, y: newOffsetY });
+  };
+
+  // Inicia pan (barra espacio presionada, Alt o botón medio)
+  const handleMouseDownCanvas = (e) => {
+    // no iniciar pan si estamos arrastrando un elemento
+    if (activeId) return;
+
+    // iniciar pan con botón medio o Alt o Space
+    const startPan =
+      e.button === 1 || e.altKey || e.code === "Space" || e.shiftKey;
+    if (!startPan) return;
+
+    isPanningRef.current = true;
+    panLastRef.current = { x: e.clientX, y: e.clientY };
+    // evitar selección de texto
+    if (containerRef.current) containerRef.current.style.cursor = "grabbing";
+  };
+
+  const handleMouseMoveCanvas = (e) => {
+    if (!isPanningRef.current) return;
+    const dx = (e.clientX - panLastRef.current.x) / zoom;
+    const dy = (e.clientY - panLastRef.current.y) / zoom;
+    panLastRef.current = { x: e.clientX, y: e.clientY };
+    setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+  };
+
+  const handleMouseUpCanvas = () => {
+    if (!isPanningRef.current) return;
+    isPanningRef.current = false;
+    if (containerRef.current) containerRef.current.style.cursor = "default";
+  };
+
+  // Ajusta zoom y offset para encuadrar todo el contenido
+  const fitToView = () => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    if (!allElements || allElements.length === 0) {
+      resetZoom();
+      return;
+    }
+
+    // calcular bounding box de elementos
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+    allElements.forEach((el) => {
+      const x = el.position?.x || 0;
+      const y = el.position?.y || 0;
+      const w = el.width || 100;
+      const h = el.height || 100;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + w);
+      maxY = Math.max(maxY, y + h);
+    });
+
+    const padding = 200;
+    const contentW = Math.max(1, maxX - minX + padding * 2);
+    const contentH = Math.max(1, maxY - minY + padding * 2);
+
+    const scaleX = rect.width / contentW;
+    const scaleY = rect.height / contentH;
+    const newZoom = clamp(Math.min(scaleX, scaleY), ZOOM_MIN, ZOOM_MAX);
+
+    // centrar contenido
+    const contentCenterX = (minX + maxX) / 2;
+    const contentCenterY = (minY + maxY) / 2;
+    const hostCenterX = rect.width / 2 / newZoom;
+    const hostCenterY = rect.height / 2 / newZoom;
+
+    const newOffsetX = hostCenterX - contentCenterX;
+    const newOffsetY = hostCenterY - contentCenterY;
+
+    setZoom(newZoom);
+    setOffset({ x: newOffsetX, y: newOffsetY });
+  };
+
+  // atajos: Esc -> reset zoom, double click centro -> fit
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") resetZoom();
+      if (e.key === "f") fitToView();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoom, offset, allElements]);
+
+  /* -----------------------
+    Element management (add / remove / reindex)
+  ----------------------- */
+
+  // Agregar función para obtener el siguiente número de mesa disponible
+  const obtenerSiguienteNumeroMesa = () => {
+    const mesas = allElements.filter(
+      (el) => el.type === "mesa" || el.type === "mesaRectangular"
+    );
+
+    if (mesas.length === 0) return 1;
+
+    // Obtener todos los números ocupados y ordenarlos
+    const numerosOcupados = mesas
+      .map((mesa) => mesa.numero)
+      .sort((a, b) => a - b);
+
+    // Buscar el primer hueco en la secuencia
+    for (let i = 1; i <= numerosOcupados.length + 1; i++) {
+      if (!numerosOcupados.includes(i)) {
+        return i;
+      }
+    }
+
+    // Si no hay huecos, devolver el siguiente número
+    return numerosOcupados.length + 1;
+  };
 
   const agregarElemento = (tipo) => {
     if (tipo === "mesa" || tipo === "mesaRectangular") {
@@ -243,36 +417,148 @@ export default function DistribuccionAdmin({
     setContadores((prev) => ({ ...prev, [tipo]: nuevoContador }));
   };
 
-  // const eliminarElemento = (id) => {
-  //   setAllElements((prev) => prev.filter((element) => element.id !== id));
-  // };
-
   // Actualizar la función eliminarElemento
-const eliminarElemento = (id) => {
-  const elemento = allElements.find(el => el.id === id);
-  
-  // Si es una mesa, reorganizar números
-  if (elemento && (elemento.type === 'mesa' || elemento.type === 'mesaRectangular')) {
+  const eliminarElemento = (id) => {
+    const elemento = allElements.find((el) => el.id === id);
+
+    // Si es una mesa, reorganizar números
+    if (
+      elemento &&
+      (elemento.type === "mesa" || elemento.type === "mesaRectangular")
+    ) {
       // Validar que la mesa esté vacía
-    if (elemento.invitados > 0) {
-      alert(
-        `❌ No se puede eliminar la Mesa ${elemento.numero}\n\n` +
-        `Esta mesa tiene ${elemento.invitados} invitado(s) asignado(s).\n`
-      );
-      return; // No eliminar la mesa
+      if (elemento.invitados > 0) {
+        alert(
+          `No se puede eliminar la Mesa ${elemento.numero}\n\n` +
+            `Esta mesa tiene ${elemento.invitados} invitado(s) asignado(s).\n`
+        );
+        return; // No eliminar la mesa
+      }
+      reorganizarNumerosMesas(id);
+
+      // Actualizar contador del tipo específico
+      setContadores((prev) => ({
+        ...prev,
+        [elemento.type]: Math.max(0, prev[elemento.type] - 1),
+      }));
+    } else {
+      // Para otros elementos, eliminación normal
+      setAllElements((prev) => prev.filter((element) => element.id !== id));
     }
-    reorganizarNumerosMesas(id);
-    
-    // Actualizar contador del tipo específico
-    setContadores(prev => ({
-      ...prev,
-      [elemento.type]: Math.max(0, prev[elemento.type] - 1)
-    }));
-  } else {
-    // Para otros elementos, eliminación normal
-    setAllElements((prev) => prev.filter((element) => element.id !== id));
-  }
-};
+  };
+
+  /* -----------------------
+    Assignment helpers (sillas especiales + asignar invitados)
+  ----------------------- */
+
+  // Agregar función para validar asignación de silla especial
+  const validarAsignacionSillaEspecial = (mesa, invitado) => {
+    // Si el invitado tiene necesidad especial
+    if (invitado.necesidadEspecial) {
+      // Verificar si la mesa tiene sillas especiales disponibles
+      const sillasEspecialesDisponibles = mesa.sillasEspeciales
+        ? mesa.sillasEspeciales.length
+        : 0;
+
+      if (sillasEspecialesDisponibles === 0) {
+        return {
+          permitido: false,
+          mensaje:
+            `La Mesa ${mesa.numero} no tiene sillas especiales.\n\n` +
+            `${invitado.nombre} requiere una silla de accesibilidad.\n` +
+            `Por favor, selecciona una mesa que tenga sillas especiales disponibles.`,
+        };
+      }
+
+      // Verificar si ya hay personas asignadas a sillas especiales
+      const personasConNecesidadEspecialAsignadas =
+        mesa.invitadosEspeciales || 0;
+
+      if (
+        personasConNecesidadEspecialAsignadas >= sillasEspecialesDisponibles
+      ) {
+        return {
+          permitido: false,
+          mensaje:
+            `Las sillas especiales de la Mesa ${mesa.numero} ya están ocupadas.\n\n` +
+            `Sillas especiales: ${sillasEspecialesDisponibles}\n` +
+            `Ya asignadas: ${personasConNecesidadEspecialAsignadas}\n` +
+            `Busca otra mesa con sillas especiales disponibles.`,
+        };
+      }
+    }
+    return { permitido: true };
+  };
+
+    // Actualizar la función asignarInvitadosMesa
+  const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
+    const mesaSeleccionada = allElements.find(
+      (element) =>
+        element.numero === numeroMesa &&
+        (element.type === "mesa" || element.type === "mesaRectangular")
+    );
+
+    if (!mesaSeleccionada) return;
+
+    // Validar asignación de silla especial
+    const validacion = validarAsignacionSillaEspecial(
+      mesaSeleccionada,
+      datosInvitado
+    );
+
+    if (!validacion.permitido) {
+      alert(validacion.mensaje);
+      return;
+    }
+
+    const espacioDisponible =
+      mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
+    const cantidadInvitados = datosInvitado.cantidad;
+
+    // Verificar si hay espacio suficiente
+    if (espacioDisponible >= cantidadInvitados) {
+      setAllElements((prev) =>
+        prev.map((element) =>
+          element.numero === numeroMesa &&
+          (element.type === "mesa" || element.type === "mesaRectangular")
+            ? {
+                ...element,
+                invitados: element.invitados + cantidadInvitados,
+                // Actualizar contador de personas con necesidades especiales
+                invitadosEspeciales: datosInvitado.necesidadEspecial
+                  ? (element.invitadosEspeciales || 0) + cantidadInvitados
+                  : element.invitadosEspeciales || 0,
+              }
+            : element
+        )
+      );
+
+      // Mostrar confirmación específica para necesidades especiales
+      if (datosInvitado.necesidadEspecial) {
+        alert(
+          `✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}\n\n` +
+            `Silla especial reservada para persona con necesidades de accesibilidad.\n` +
+            `La mesa cuenta con ${
+              mesaSeleccionada.sillasEspeciales?.length || 0
+            } silla(s) especial(es).`
+        );
+      } else {
+        alert(
+          `✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}`
+        );
+      }
+    } else {
+      alert(
+        `No hay suficiente espacio en la Mesa ${numeroMesa}\n\n` +
+          `Espacio disponible: ${espacioDisponible} asientos\n` +
+          `Personas a asignar: ${cantidadInvitados}`
+      );
+    }
+  };
+
+  /* -----------------------
+    DnD handlers
+  ----------------------- */
 
   const handleDragStart = (event) => {
     const { active } = event;
@@ -291,6 +577,8 @@ const eliminarElemento = (id) => {
     if (!delta) return;
 
     const draggedElementId = active.id;
+    const adjDeltaX = delta.x / (zoom || 1);
+    const adjDeltaY = delta.y / (zoom || 1);
 
     setAllElements((prev) =>
       prev.map((element) => {
@@ -300,9 +588,12 @@ const eliminarElemento = (id) => {
             position: {
               x: Math.max(
                 0,
-                Math.min(1600 - 100, element.position.x + delta.x)
+                Math.min(1600 - 100, element.position.x + adjDeltaX)
               ),
-              y: Math.max(0, Math.min(800 - 100, element.position.y + delta.y)),
+              y: Math.max(
+                0,
+                Math.min(800 - 100, element.position.y + adjDeltaY)
+              ),
             },
           };
         }
@@ -310,6 +601,15 @@ const eliminarElemento = (id) => {
       })
     );
   };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setActiveElement(null);
+  };
+
+  /* -----------------------
+    Save / reset / edit layout
+  ----------------------- */
 
   // Función para guardar el layout final
   const guardarDistribucion = () => {
@@ -355,7 +655,7 @@ const eliminarElemento = (id) => {
   const resetearLayout = () => {
     if (
       window.confirm(
-        "🗑️ ¿Estás seguro de que quieres resetear todo el layout?\n\nEsta acción eliminará:\n• Todo el diseño actual\n• Las asignaciones de novios\n• No se puede deshacer"
+        "¿Estás seguro de que quieres resetear todo el layout?\n\nEsta acción eliminará:\n• Todo el diseño actual\n• Las asignaciones de novios\n• No se puede deshacer"
       )
     ) {
       // Limpiar localStorage
@@ -375,96 +675,9 @@ const eliminarElemento = (id) => {
     }
   };
 
-  const handleDragCancel = () => {
-    setActiveId(null);
-    setActiveElement(null);
-  };
-
- // Agregar función para validar asignación de silla especial
-const validarAsignacionSillaEspecial = (mesa, invitado) => {
-  // Si el invitado tiene necesidad especial
-  if (invitado.necesidadEspecial) {
-    // Verificar si la mesa tiene sillas especiales disponibles
-    const sillasEspecialesDisponibles = mesa.sillasEspeciales ? mesa.sillasEspeciales.length : 0;
-    
-    if (sillasEspecialesDisponibles === 0) {
-      return {
-        permitido: false,
-        mensaje: `❌ La Mesa ${mesa.numero} no tiene sillas especiales.\n\n` +
-                `${invitado.nombre} requiere una silla de accesibilidad.\n` +
-                `Por favor, selecciona una mesa que tenga sillas especiales disponibles.`
-      };
-    }
-    
-    // Verificar si ya hay personas asignadas a sillas especiales
-    const personasConNecesidadEspecialAsignadas = mesa.invitadosEspeciales || 0;
-    
-    if (personasConNecesidadEspecialAsignadas >= sillasEspecialesDisponibles) {
-      return {
-        permitido: false,
-        mensaje: `❌ Las sillas especiales de la Mesa ${mesa.numero} ya están ocupadas.\n\n` +
-                `Sillas especiales: ${sillasEspecialesDisponibles}\n` +
-                `Ya asignadas: ${personasConNecesidadEspecialAsignadas}\n` +
-                `Busca otra mesa con sillas especiales disponibles.`
-      };
-    }
-  }
-  
-  return { permitido: true };
-};
-
-// Actualizar la función asignarInvitadosMesa
-const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
-  const mesaSeleccionada = allElements.find(element => 
-    element.numero === numeroMesa && (element.type === 'mesa' || element.type === 'mesaRectangular')
-  );
-
-  if (!mesaSeleccionada) return;
-
-  // Validar asignación de silla especial
-  const validacion = validarAsignacionSillaEspecial(mesaSeleccionada, datosInvitado);
-  
-  if (!validacion.permitido) {
-    alert(validacion.mensaje);
-    return;
-  }
-
-  const espacioDisponible = mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
-  const cantidadInvitados = datosInvitado.cantidad;
-
-  // Verificar si hay espacio suficiente
-  if (espacioDisponible >= cantidadInvitados) {
-    setAllElements(prev => prev.map(element => 
-      element.numero === numeroMesa && (element.type === 'mesa' || element.type === 'mesaRectangular')
-        ? { 
-            ...element, 
-            invitados: element.invitados + cantidadInvitados,
-            // Actualizar contador de personas con necesidades especiales
-            invitadosEspeciales: datosInvitado.necesidadEspecial 
-              ? (element.invitadosEspeciales || 0) + cantidadInvitados
-              : (element.invitadosEspeciales || 0)
-          }
-        : element
-    ));
-
-    // Mostrar confirmación específica para necesidades especiales
-    if (datosInvitado.necesidadEspecial) {
-      alert(
-        `✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}\n\n` +
-        `🦽 Silla especial reservada para persona con necesidades de accesibilidad.\n` +
-        `La mesa cuenta con ${mesaSeleccionada.sillasEspeciales?.length || 0} silla(s) especial(es).`
-      );
-    } else {
-      alert(`✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}`);
-    }
-  } else {
-    alert(
-      `❌ No hay suficiente espacio en la Mesa ${numeroMesa}\n\n` +
-      `Espacio disponible: ${espacioDisponible} asientos\n` +
-      `Personas a asignar: ${cantidadInvitados}`
-    );
-  }
-};
+  /* -----------------------
+    Render helpers
+  ----------------------- */
 
   const renderElementAdmin = (element) => {
     if (element.type === "mesa") {
@@ -475,7 +688,7 @@ const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
             invitadosAsignados={element.invitados}
             capacidadMaxima={element.capacidad}
             sillasEspeciales={element.sillasEspeciales || []}
-            invitadosEspeciales={element.invitadosEspeciales || 0} 
+            invitadosEspeciales={element.invitadosEspeciales || 0}
             onDrop={asignarInvitadosMesa}
           />
           <button
@@ -591,50 +804,50 @@ const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
     return elementContent;
   };
 
- // Actualizar la función confirmarMesaConSillas
-const confirmarMesaConSillas = (sillasEspeciales) => {
-  const tipo = tipoMesaModal;
-  const siguienteNumero = obtenerSiguienteNumeroMesa();
-  
-  const posicionAleatoria = {
-    x: Math.random() * 1400 + 100,
-    y: Math.random() * 600 + 100,
+  // Actualizar la función confirmarMesaConSillas
+  const confirmarMesaConSillas = (sillasEspeciales) => {
+    const tipo = tipoMesaModal;
+    const siguienteNumero = obtenerSiguienteNumeroMesa();
+
+    const posicionAleatoria = {
+      x: Math.random() * 1400 + 100,
+      y: Math.random() * 600 + 100,
+    };
+
+    let nuevoElemento;
+
+    if (tipo === "mesa") {
+      nuevoElemento = {
+        id: `mesa-${siguienteNumero}`,
+        type: "mesa",
+        numero: siguienteNumero,
+        invitados: 0,
+        capacidad: 8,
+        sillasEspeciales: sillasEspeciales,
+        position: posicionAleatoria,
+      };
+    } else if (tipo === "mesaRectangular") {
+      nuevoElemento = {
+        id: `mesa-rect-${siguienteNumero}`,
+        type: "mesaRectangular",
+        numero: siguienteNumero,
+        invitados: 0,
+        capacidad: 10,
+        sillasEspeciales: sillasEspeciales,
+        position: posicionAleatoria,
+      };
+    }
+
+    setAllElements((prev) => [...prev, nuevoElemento]);
+
+    // Actualizar contador solo para el tipo específico
+    setContadores((prev) => ({
+      ...prev,
+      [tipo]: prev[tipo] + 1,
+    }));
+
+    setShowModalSillas(false);
   };
-
-  let nuevoElemento;
-
-  if (tipo === "mesa") {
-    nuevoElemento = {
-      id: `mesa-${siguienteNumero}`,
-      type: "mesa",
-      numero: siguienteNumero,
-      invitados: 0,
-      capacidad: 8,
-      sillasEspeciales: sillasEspeciales,
-      position: posicionAleatoria,
-    };
-  } else if (tipo === "mesaRectangular") {
-    nuevoElemento = {
-      id: `mesa-rect-${siguienteNumero}`,
-      type: "mesaRectangular", 
-      numero: siguienteNumero,
-      invitados: 0,
-      capacidad: 10,
-      sillasEspeciales: sillasEspeciales,
-      position: posicionAleatoria,
-    };
-  }
-
-  setAllElements((prev) => [...prev, nuevoElemento]);
-  
-  // Actualizar contador solo para el tipo específico
-  setContadores((prev) => ({ 
-    ...prev, 
-    [tipo]: prev[tipo] + 1 
-  }));
-  
-  setShowModalSillas(false);
-};
 
   const calcularEstadisticas = () => {
     // Filtrar solo las mesas (redondas y rectangulares)
@@ -659,9 +872,9 @@ const confirmarMesaConSillas = (sillasEspeciales) => {
     }
 
     // Contadores para MESAS por categoría (para la visualización)
-    let mesasDisponibles = 0; // Mesas 0% ocupación
-    let mesasPocoLlenas = 0; // Mesas 1-50% ocupación
-    let mesasMedias = 0; // Mesas 51-80% ocupación
+    let mesasDisponibles = 0;
+    let mesasPocoLlenas = 0; 
+    let mesasMedias = 0; 
     let mesasCasiLlenas = 0;
     let mesasOcupadas = 0;
 
@@ -669,7 +882,7 @@ const confirmarMesaConSillas = (sillasEspeciales) => {
     let asientosDisponibles = 0;
     let asientosPocoLlenos = 0;
     let asientosMedios = 0;
-    let asientosCasiLlenos = 0; 
+    let asientosCasiLlenos = 0;
     let asientosOcupados = 0;
 
     let sillasEspeciales = 0;
@@ -696,7 +909,7 @@ const confirmarMesaConSillas = (sillasEspeciales) => {
         asientosDisponibles += mesa.capacidad - mesa.invitados;
       } else {
         mesasOcupadas++;
-        asientosOcupados += mesa.invitados; // Todos ocupados
+        asientosOcupados += mesa.invitados;
       }
 
       // Contar sillas especiales
@@ -720,7 +933,7 @@ const confirmarMesaConSillas = (sillasEspeciales) => {
       totalCapacidad,
       totalOcupados,
       porcentajeCapacidadUtilizada:
-      Math.round((totalOcupados / totalCapacidad) * 100) || 0,
+        Math.round((totalOcupados / totalCapacidad) * 100) || 0,
       mesasOcupadas: mesas.filter((m) => m.invitados > 7).length,
       mesasDisponibles,
       mesasPocoLlenas,
@@ -732,73 +945,58 @@ const confirmarMesaConSillas = (sillasEspeciales) => {
 
   const stats = calcularEstadisticas();
 
-
-  // Agregar función para obtener el siguiente número de mesa disponible
-const obtenerSiguienteNumeroMesa = () => {
-  const mesas = allElements.filter(el => el.type === 'mesa' || el.type === 'mesaRectangular');
-  
-  if (mesas.length === 0) return 1;
-  
-  // Obtener todos los números ocupados y ordenarlos
-  const numerosOcupados = mesas
-    .map(mesa => mesa.numero)
-    .sort((a, b) => a - b);
-  
-  // Buscar el primer hueco en la secuencia
-  for (let i = 1; i <= numerosOcupados.length + 1; i++) {
-    if (!numerosOcupados.includes(i)) {
-      return i;
+  // Función para reorganizar números al eliminar una mesa
+  const reorganizarNumerosMesas = (mesaEliminadaId) => {
+    const mesaEliminada = allElements.find((el) => el.id === mesaEliminadaId);
+    if (
+      !mesaEliminada ||
+      (mesaEliminada.type !== "mesa" &&
+        mesaEliminada.type !== "mesaRectangular")
+    ) {
+      return;
     }
-  }
+
+    const numeroEliminado = mesaEliminada.numero;
+
+    // Obtener todas las mesas que tienen número mayor al eliminado
+    const mesasAReorganizar = allElements
+      .filter(
+        (el) =>
+          (el.type === "mesa" || el.type === "mesaRectangular") &&
+          el.numero > numeroEliminado
+      )
+      .sort((a, b) => a.numero - b.numero);
+
+    // Reorganizar los números (bajar en 1 cada mesa posterior)
+    const elementosActualizados = allElements
+      .map((element) => {
+        if (element.id === mesaEliminadaId) {
+          return null; // Marcar para eliminación
+        }
+
+        // Si es una mesa con número mayor, reducir en 1
+        if (
+          (element.type === "mesa" || element.type === "mesaRectangular") &&
+          element.numero > numeroEliminado
+        ) {
+          return {
+            ...element,
+            numero: element.numero - 1,
+            id:
+              element.type === "mesa"
+                ? `mesa-${element.numero - 1}`
+                : `mesa-rect-${element.numero - 1}`,
+          };
+        }
+
+        return element;
+      })
+      .filter((element) => element !== null); // Eliminar el elemento marcado
+
+    setAllElements(elementosActualizados);
+  };
+
   
-  // Si no hay huecos, devolver el siguiente número
-  return numerosOcupados.length + 1;
-};
-
-// Función para reorganizar números al eliminar una mesa
-const reorganizarNumerosMesas = (mesaEliminadaId) => {
-  const mesaEliminada = allElements.find(el => el.id === mesaEliminadaId);
-  if (!mesaEliminada || (mesaEliminada.type !== 'mesa' && mesaEliminada.type !== 'mesaRectangular')) {
-    return;
-  }
-
-  const numeroEliminado = mesaEliminada.numero;
-  
-  // Obtener todas las mesas que tienen número mayor al eliminado
-  const mesasAReorganizar = allElements
-    .filter(el => 
-      (el.type === 'mesa' || el.type === 'mesaRectangular') && 
-      el.numero > numeroEliminado
-    )
-    .sort((a, b) => a.numero - b.numero);
-
-  // Reorganizar los números (bajar en 1 cada mesa posterior)
-  const elementosActualizados = allElements.map(element => {
-    if (element.id === mesaEliminadaId) {
-      return null; // Marcar para eliminación
-    }
-    
-    // Si es una mesa con número mayor, reducir en 1
-    if ((element.type === 'mesa' || element.type === 'mesaRectangular') && 
-        element.numero > numeroEliminado) {
-      return {
-        ...element,
-        numero: element.numero - 1,
-        id: element.type === 'mesa' 
-          ? `mesa-${element.numero - 1}` 
-          : `mesa-rect-${element.numero - 1}`
-      };
-    }
-    
-    return element;
-  }).filter(element => element !== null); // Eliminar el elemento marcado
-
-  setAllElements(elementosActualizados);
-};
-
-
-
-
 
   return (
     <div className="min-h-screen">
@@ -832,7 +1030,7 @@ const reorganizarNumerosMesas = (mesaEliminadaId) => {
               {!layoutGuardado && (
                 <button
                   onClick={guardarDistribucion}
-                  className="flex items-center gap-2 bg-casal text-white py-2 px-6 rounded-lg font-semibold hover:bg-casal/80 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                  className="flex items-center gap-2 bg-casal text-white  py-2 px-6 rounded-lg font-semibold hover:bg-casal/80 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
                 >
                   Guardar Layout
                 </button>
@@ -918,231 +1116,62 @@ const reorganizarNumerosMesas = (mesaEliminadaId) => {
                   </p>
                 </div>
               </div>
-              <div className="top-24 right-2 w-62 text-right">
-                <Menu>
-                  <MenuButton className="inline-flex  items-center gap-2 border rounded-md bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-sm/6 font-semibold text-gray-700 dark:text-white shadow-inner shadow-white/10 focus:not-data-focus:outline-none data-focus:outline data-focus:outline-white data-hover:bg-gray-700 data-open:bg-gray-700">
-                    Herramientas de Diseño
-                    <ChevronDown className="size-4 fill-white/60" />
-                  </MenuButton>
-
-                  <MenuItems
-                    transition
-                    anchor="bottom end"
-                    className="w-52 mt-2 origin-top-right rounded-xl border border-gray-200 dark:border-gray-500 bg-white dark:bg-gray-800 p-1 text-sm/6 text-gray-700 dark:text-white  transition duration-100 ease-out [--anchor-gap:--spacing(1)] focus:outline-none data-closed:scale-95 data-closed:opacity-0 z-10"
-                  >
-                    <MenuItem>
-                      <Button
-                        onClick={() => agregarElemento("mesa")}
-                        className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <Circle className="size-4 fill-white/30" />
-                        Mesa Redonda
-                      </Button>
-                    </MenuItem>
-                    <MenuItem>
-                      <Button
-                        onClick={() => agregarElemento("mesaRectangular")}
-                        className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <RectangleHorizontal className="size-4 fill-white/30 " />
-                        Mesa Rectangular
-                      </Button>
-                    </MenuItem>
-                    <MenuItem>
-                      <Button
-                        onClick={() => agregarElemento("pistaBaileRedonda")}
-                        className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <CircleDashed className="size-4 fill-white/50" />
-                        Pista Redonda
-                      </Button>
-                    </MenuItem>
-                    <MenuItem>
-                      <Button
-                        onClick={() => agregarElemento("pistaBaileRectangular")}
-                        className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <div className="w-5 h-4 border-gray-500 dark:fill-white/50 border-2 rounded border-dashed"></div>
-                        Pista Rectangular
-                      </Button>
-                    </MenuItem>
-                    <MenuItem>
-                      <Button
-                        onClick={() => agregarElemento("barra")}
-                        className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <SquareDashed className="size-4 fill-white/30" />
-                        Barra
-                      </Button>
-                    </MenuItem>
-                    <MenuItem>
-                      <Button
-                        onClick={() => agregarElemento("buffet")}
-                        className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <SquareDashed className="size-4 fill-white/30" />
-                        Buffet
-                      </Button>
-                    </MenuItem>
-                    <MenuItem>
-                      <Button
-                        onClick={() => agregarElemento("escenario")}
-                        className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <SquareDashedTopSolid className="size-4 fill-white/30" />
-                        Escenario
-                      </Button>
-                    </MenuItem>
-                    <MenuItem>
-                      <Button
-                        onClick={() => agregarElemento("entrada")}
-                        className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <DoorOpen className="size-4 fill-white/30" />
-                        Entrada
-                      </Button>
-                    </MenuItem>
-                  </MenuItems>
-                </Menu>
+              <div className="">
+                <DesignTools agregarElemento={agregarElemento} />
               </div>
             </div>
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="border rounded-3xl dark:border-gray-700 lg:w-40 bg-gray-100 dark:bg-[#1a1a1a] flex flex-col">
-              <div className="text-2xl p-4 border-b text-center font-semibold text-gray-700 dark:text-white">
-                Asientos
-              </div>
-              <div className="p-4 flex flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="border-2 border-gray-300 rounded-lg w-8 h-8 bg-gray-200 "></div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 font-semibold">
-                      Disponible
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      ({stats.disponibles} Asiento )
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 ">
-                  <div className="border-2 border-blue-500 rounded-lg w-8 h-8 bg-blue-400 "></div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 font-semibold">
-                      Poco llena
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      ({stats.pocoLlenas} Asiento)
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="border-2 border-yellow-700 rounded-lg w-8 h-8 bg-yellow-500 "></div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 font-semibold">
-                      Media
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      ({stats.medias} Asiento)
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="border-2 border-orange-700 rounded-lg w-8 h-8 bg-orange-500 "></div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 font-semibold">
-                      Casi lleno
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      ({stats.casiLlenas} Asiento)
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="border-2 border-green-700 rounded-lg w-8 h-8 bg-green-500 "></div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 font-semibold">
-                      Ocupado
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      ({stats.ocupadas} Asiento)
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="border-2 border-gray-300 rounded-lg w-8 h-8 bg-gray-200 ">
-                    <Accessibility className="w-5 h-5 text-gray-500 m-auto mt-1"></Accessibility>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 font-semibold">
-                      Silla de rueda
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      ({stats.sillasEspeciales} Asiento)
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 font-semibold">
-                    Mesas Ocupadas:
-                  </p>
-                  <p className="text-casal text-3xl font-semibold">
-                    {stats.mesasOcupadas}/{stats.totalMesas}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300  font-semibold">
-                    Capacidad Utilizada:
-                  </p>
-                  <p
-                    className={`text-3xl font-semibold ${
-                      stats.porcentajeCapacidadUtilizada >= 90
-                        ? "text-red-600"
-                        : stats.porcentajeCapacidadUtilizada >= 70
-                        ? "text-orange-600"
-                        : stats.porcentajeCapacidadUtilizada >= 50
-                        ? "text-yellow-600"
-                        : stats.porcentajeCapacidadUtilizada > 0
-                        ? "text-blue-600"
-                        : "text-gray-600"
-                    }`}
-                  >
-                    {stats.porcentajeCapacidadUtilizada}%
-                  </p>
-                </div>
-              </div>
-            </div>
+            <StatsPanel stats={stats} />
 
             {/* Área de Diseño */}
             <div className="flex-1 border border-gray-300 rounded-3xl overflow-hidden shadow-sm">
               <div
+                ref={containerRef}
                 className="overflow-x-auto overflow-y-auto"
                 style={{ height: "600px", maxHeight: "600px" }}
+                // onWheel={handleWheel}
+                onMouseDown={handleMouseDownCanvas}
+                onMouseMove={handleMouseMoveCanvas}
+                onMouseUp={handleMouseUpCanvas}
+                onMouseLeave={handleMouseUpCanvas}
               >
                 <div
-                  className="relative bg-gray-50 dark:bg-[#1a1a1a]"
+                  className="relative bg-gray-50 dark:bg-[#1a1a1a] overflow-hidden"
                   style={{
-                    height: "800px",
-                    minHeight: "800px",
-                    minWidth: "1600px",
-                    width: "1600px",
+                    height: `${CANVAS_HEIGHT}px`,
+                    minHeight: `${CANVAS_HEIGHT}px`,
+                    minWidth: `${CANVAS_WIDTH}px`,
+                    width: `${CANVAS_WIDTH}px`,
                   }}
                 >
-                  {allElements.map((element) => (
-                    <DraggableElement
-                      key={element.id}
-                      id={element.id}
-                      data={element}
-                      style={{
-                        position: "absolute",
-                        left: `${element.position.x}px`,
-                        top: `${element.position.y}px`,
-                        zIndex: activeId === element.id ? 1000 : 1,
-                      }}
-                    >
-                      {renderElementAdmin(element)}
-                    </DraggableElement>
-                  ))}
+                  <div
+                    ref={canvasRef}
+                    className="absolute left-0 top-0 origin-top-left"
+                    style={{
+                      transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                      transformOrigin: "0 0",
+                      width: `${CANVAS_WIDTH}px`,
+                      height: `${CANVAS_HEIGHT}px`,
+                    }}
+                  >
+                    {allElements.map((element) => (
+                      <DraggableElement
+                        key={element.id}
+                        id={element.id}
+                        data={element}
+                        style={{
+                          position: "absolute",
+                          left: `${element.position.x}px`,
+                          top: `${element.position.y}px`,
+                          zIndex: activeId === element.id ? 1000 : 1,
+                        }}
+                      >
+                        {renderElementAdmin(element)}
+                      </DraggableElement>
+                    ))}
+                  </div>
 
                   <div
                     className="absolute inset-0 pointer-events-none opacity-5"
@@ -1165,6 +1194,49 @@ const reorganizarNumerosMesas = (mesaEliminadaId) => {
                   <span className="text-blue-500">
                     Modo Admin - Edición completa
                   </span>
+                  <div className="inline-flex items-center gap-2 ml-3">
+                    <Button
+                      onClick={zoomOut}
+                      className="px-2 py-2 bg-white border rounded hover:bg-Acapulco hover:text-white dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-Acapulco"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </Button>
+                    <div className="px-3 py-1 bg-white dark:bg-slate-800 dark:text-gray-50 border rounded text-sm">
+                      {Math.round(zoom * 100)}%
+                    </div>
+                    <Button
+                      onClick={zoomIn}
+                      className="px-2 py-2 bg-white border rounded hover:bg-Acapulco hover:text-white dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-Acapulco"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+
+                    {/* <Tooltip content="Restablecer zoom">
+                      <Button
+                        onClick={resetZoom}
+                        className="ml-2 px-2 py-2 border bg-white rounded hover:bg-gray-400 hover:text-white text-sm dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-gray-400"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </Button>
+                    </Tooltip> */}
+
+                    <Tooltip content="Amplear pantalla" position="top">
+                      <Button
+                        onClick={openDesignModal}
+                        className="ml-2 px-2 py-2 bg-casal text-white rounded hover:opacity-90 text-sm"
+                      >
+                        <Scan className="w-3 h-3" />
+                      </Button>
+                    </Tooltip>
+                    <Tooltip content="Ajustar vista ( f )" position="left">
+                      <Button
+                        onClick={fitToView}
+                        className="ml-2 px-2 py-2 bg-white border rounded hover:bg-gray-200 dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-gray-400 text-sm"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </Button>
+                    </Tooltip>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1178,6 +1250,126 @@ const reorganizarNumerosMesas = (mesaEliminadaId) => {
             </div>
           ) : null}
         </DragOverlay>
+
+        {/* MODAL DE DISEÑO FULLSCREEN */}
+        {showDesignModal && (
+          <div className="fixed inset-0 z-40 bg-black/60 flex items-stretch">
+            <div className="m-auto w-full h-full bg-white dark:bg-gray-900 relative flex flex-col">
+              {/* Barra superior de herramientas */}
+              <div className="flex p-3 border-b bg-fondoVs dark:bg-gray-800">
+                <div>
+                  <img
+                    src="/logop.png"
+                    alt="Logo P"
+                    className="object-contain rounded-full w-14 h-14"
+                  />
+                </div>
+                <div className="flex items-center justify-between w-full ml-4">
+                  <div className="flex items-center gap-2">
+                    <DesignTools agregarElemento={agregarElemento} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={zoomOut}
+                      className="px-2 py-2 bg-white border rounded dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-Acapulco hover:bg-Acapulco hover:text-white shadow-sm"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </Button>
+                    <div className="px-3 py-1 bg-white border rounded text-sm">
+                      {Math.round(zoom * 100)}%
+                    </div>
+                    <Button
+                      onClick={zoomIn}
+                      className="px-2 py-2 bg-white border rounded dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-Acapulco hover:bg-Acapulco hover:text-white shadow-sm"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      onClick={resetZoom}
+                      className="ml-2 px-2 py-2 bg-white border rounded dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-gray-400 hover:bg-gray-400 hover:text-white text-sm shadow-sm"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={saveFromModal}
+                      className="px-3 py-1 bg-casal text-white rounded"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      onClick={closeDesignModal}
+                      className="px-3 py-1 bg-red-500 text-white rounded"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Canvas ampliado (scroll + zoom) */}
+              <div
+                className="flex-1 overflow-auto"
+                ref={containerRef}
+                onWheel={handleWheel}
+                onMouseDown={handleMouseDownCanvas}
+                onMouseMove={handleMouseMoveCanvas}
+                onMouseUp={handleMouseUpCanvas}
+                onMouseLeave={handleMouseUpCanvas}
+              >
+                <div
+                  className="relative bg-gray-50 dark:bg-[#0f172a] w-full h-full"
+                  style={{
+                    height: `${CANVAS_HEIGHT}px`,
+                    minHeight: `${CANVAS_HEIGHT}px`,
+                    minWidth: `${CANVAS_WIDTH}px`,
+                    width: `${CANVAS_WIDTH}px`,
+                  }}
+                >
+                  <div
+                    ref={canvasRef}
+                    className="absolute left-0 top-0 origin-top-left"
+                    style={{
+                      transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                      transformOrigin: "0 0",
+                      width: `${CANVAS_WIDTH}px`,
+                      height: `${CANVAS_HEIGHT}px`,
+                    }}
+                  >
+                    {allElements.map((element) => (
+                      <DraggableElement
+                        key={element.id}
+                        id={element.id}
+                        data={element}
+                        style={{
+                          position: "absolute",
+                          left: element.position.x,
+                          top: element.position.y,
+                          zIndex: activeId === element.id ? 1000 : 1,
+                        }}
+                      >
+                        {renderElementAdmin(element)}
+                      </DraggableElement>
+                    ))}
+                  </div>
+
+                  <div
+                    className="absolute inset-0 pointer-events-none opacity-5"
+                    style={{
+                      backgroundImage: `
+                      linear-gradient(to right, #ec4899 1px, transparent 1px),
+                      linear-gradient(to bottom, #ec4899 1px, transparent 1px)
+                    `,
+                      backgroundSize: "40px 40px",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </DndContext>
 
       <ModalSillasEspeciales

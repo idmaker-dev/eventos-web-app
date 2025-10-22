@@ -1,8 +1,20 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Mesa from "./Mesa.jsx";
 import MesaRectangular from "./MesaRectangular.jsx";
-import { TriangleAlert, Save, Accessibility } from "lucide-react";
+import {
+  TriangleAlert,
+  Save,
+  Accessibility,
+  Minus,
+  Plus,
+  RotateCcw,
+  Scan,
+} from "lucide-react";
 import { Button } from "@headlessui/react";
+import { Tooltip } from "../ui/Tooltip.jsx";
+import ModalRestricciones from "./ModalRestricciones.jsx";
+import ModalMesaDetalles from "./ModalMesaDetalles.jsx";
+import FullscreenDesignModal from "./FullscreenDesignModal.jsx";
 
 export default function DistribuccionNovios({
   allElements = [],
@@ -11,18 +23,61 @@ export default function DistribuccionNovios({
   layoutGuardado,
   layoutFinal,
 }) {
+  /* -----------------------
+    Constantes
+  ----------------------- */
+  const CANVAS_WIDTH = 4000;
+  const CANVAS_HEIGHT = 2400;
+  const ZOOM_STEP = 0.1;
+  const ZOOM_MIN = 0.1;
+  const ZOOM_MAX = 4;
+
+  /* -----------------------
+    Estados y refs
+  ----------------------- */
   const [activeInvitado, setActiveInvitado] = React.useState(null);
   const [invitadosSinAsignar, setInvitadosSinAsignar] =
     React.useState(invitados);
-  const [showModal, setShowModal] = React.useState(false);
-  const [modalData, setModalData] = React.useState(null);
-
-  // NUEVOS ESTADOS para las funcionalidades
-  const [autoAsignando, setAutoAsignando] = React.useState(false);
-  const [guardando, setGuardando] = React.useState(false);
   const [distribucionesGuardadas, setDistribucionesGuardadas] = React.useState(
     []
   );
+  const [autoAsignando, setAutoAsignando] = React.useState(false);
+  const [guardando, setGuardando] = React.useState(false);
+
+  const [activeId, setActiveId] = useState(null);
+
+  // ZOOM & FULLSCREEN modal
+  const [zoom, setZoom] = useState(1); // 1 = 100%
+  const [offset, setOffset] = useState({ x: 0, y: 0 }); // pan en coordenadas del canvas
+  const [showDesignModal, setShowDesignModal] = useState(false);
+  const [showFullscreenModal, setShowFullscreenModal] = useState(false);
+
+  const [showRestrModal, setShowRestrModal] = useState(false);
+  const [restricciones, setRestricciones] = useState({
+    vegetariano: 0,
+    vegano: 0,
+    sinGluten: 0,
+    alergiaMarisco: 0,
+  });
+  const [otra, setOtra] = useState("");
+  const [pendingAsignacion, setPendingAsignacion] = useState(null);
+  const [pendingNombre, setPendingNombre] = useState("");
+
+  const [showMesaModal, setShowMesaModal] = useState(false);
+  const [mesaSeleccionadaModal, setMesaSeleccionadaModal] = useState(null);
+
+  // modal confirmación parcial
+  const [showModal, setShowModal] = React.useState(false);
+  const [modalData, setModalData] = React.useState(null);
+
+  const containerRef = useRef(null);
+  const canvasRef = useRef(null);
+  const isPanningRef = useRef(false);
+  const panLastRef = useRef({ x: 0, y: 0 });
+
+  /* -----------------------
+    Effects
+  ----------------------- */
 
   // Cargar distribuciones guardadas del localStorage al inicio
   React.useEffect(() => {
@@ -32,6 +87,178 @@ export default function DistribuccionNovios({
     }
   }, []);
 
+  // atajos: Esc -> reset zoom, double click centro -> fit
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") resetZoom();
+      if (e.key === "f") fitToView();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoom, offset, allElements]);
+
+  /* -----------------------
+     Util / Notificaciones
+     ----------------------- */
+
+  // Función para mostrar notificaciones
+  const mostrarNotificacion = (mensaje, tipo) => {
+    const colores = {
+      success: "bg-green-100 border-green-400 text-green-700",
+      error: "bg-red-100 border-red-400 text-red-700",
+      warning: "bg-yellow-100 border-yellow-400 text-yellow-700",
+      info: "bg-blue-100 border-blue-400 text-blue-700",
+    };
+
+    const notification = document.createElement("div");
+    notification.className = `fixed top-4 right-4 px-4 py-3 rounded border-l-4 ${colores[tipo]} z-50 max-w-md shadow-lg`;
+    notification.style.whiteSpace = "pre-line";
+    notification.textContent = mensaje;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 5000);
+  };
+
+  /* -----------------------
+    Estadísticas derivadas
+  ----------------------- */
+  // Calcular estadísticas
+  const totalPersonasSinAsignar = invitadosSinAsignar.reduce(
+    (total, inv) => total + inv.cantidad,
+    0
+  );
+  const mesas = allElements.filter(
+    (el) => el.type === "mesa" || el.type === "mesaRectangular"
+  );
+  const totalInvitadosAsignados = mesas.reduce(
+    (total, mesa) => total + (mesa.invitados || 0),
+    0
+  );
+  const totalCapacidad = mesas.reduce(
+    (total, mesa) => total + (mesa.capacidad || 0),
+    0
+  );
+  const mesasOcupadas = mesas.filter((mesa) => mesa.invitados > 0).length;
+  const totalMesas = mesas.length;
+  const porcentajeCapacidadUtilizada =
+    totalCapacidad > 0
+      ? Math.round((totalInvitadosAsignados / totalCapacidad) * 100)
+      : 0;
+
+  /* -----------------------
+     Zoom / Pan handlers
+  ----------------------- */
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  const zoomIn = () =>
+    setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)));
+  const zoomOut = () =>
+    setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)));
+  const resetZoom = () => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  };
+
+  // Zoom con rueda (mantén Ctrl o sin Ctrl — aquí uso Ctrl+wheel para evitar scroll accidental)
+  const handleWheel = (e) => {
+    // evita scroll accidental: opcional activar Ctrl/meta
+    // if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const delta = -e.deltaY;
+    const factor = delta > 0 ? 1.12 : 0.88;
+    const newZoom = clamp(zoom * factor, ZOOM_MIN, ZOOM_MAX);
+    const rect = containerRef.current.getBoundingClientRect();
+    const cursorCanvasX = (e.clientX - rect.left) / zoom - offset.x;
+    const cursorCanvasY = (e.clientY - rect.top) / zoom - offset.y;
+    const newOffsetX = offset.x - cursorCanvasX * (newZoom / zoom - 1);
+    const newOffsetY = offset.y - cursorCanvasY * (newZoom / zoom - 1);
+    setZoom(newZoom);
+    setOffset({ x: newOffsetX, y: newOffsetY });
+  };
+
+  // Inicia pan (barra espacio presionada, Alt o botón medio)
+  const handleMouseDownCanvas = (e) => {
+    // no iniciar pan si estamos arrastrando un elemento
+    if (activeId) return;
+
+    // iniciar pan con botón medio o Alt o Space
+    const startPan =
+      e.button === 1 || e.altKey || e.code === "Space" || e.shiftKey;
+    if (!startPan) return;
+
+    isPanningRef.current = true;
+    panLastRef.current = { x: e.clientX, y: e.clientY };
+    // evitar selección de texto
+    if (containerRef.current) containerRef.current.style.cursor = "grabbing";
+  };
+
+  const handleMouseMoveCanvas = (e) => {
+    if (!isPanningRef.current) return;
+    const dx = (e.clientX - panLastRef.current.x) / zoom;
+    const dy = (e.clientY - panLastRef.current.y) / zoom;
+    panLastRef.current = { x: e.clientX, y: e.clientY };
+    setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+  };
+
+  const handleMouseUpCanvas = () => {
+    if (!isPanningRef.current) return;
+    isPanningRef.current = false;
+    if (containerRef.current) containerRef.current.style.cursor = "default";
+  };
+
+  // Ajusta zoom y offset para encuadrar todo el contenido
+  const fitToView = () => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    if (!allElements || allElements.length === 0) {
+      resetZoom();
+      return;
+    }
+
+    // calcular bounding box de elementos
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
+    allElements.forEach((el) => {
+      const x = el.position?.x || 0;
+      const y = el.position?.y || 0;
+      const w = el.width || 100;
+      const h = el.height || 100;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + w);
+      maxY = Math.max(maxY, y + h);
+    });
+
+    const padding = 200;
+    const contentW = Math.max(1, maxX - minX + padding * 2);
+    const contentH = Math.max(1, maxY - minY + padding * 2);
+
+    const scaleX = rect.width / contentW;
+    const scaleY = rect.height / contentH;
+    const newZoom = clamp(Math.min(scaleX, scaleY), ZOOM_MIN, ZOOM_MAX);
+
+    // centrar contenido
+    const contentCenterX = (minX + maxX) / 2;
+    const contentCenterY = (minY + maxY) / 2;
+    const hostCenterX = rect.width / 2 / newZoom;
+    const hostCenterY = rect.height / 2 / newZoom;
+
+    const newOffsetX = hostCenterX - contentCenterX;
+    const newOffsetY = hostCenterY - contentCenterY;
+
+    setZoom(newZoom);
+    setOffset({ x: newOffsetX, y: newOffsetY });
+  };
+
+  /* -----------------------
+    Asignación automática y manual
+  ----------------------- */
   // Actualizar la función autoAsignarInvitados para priorizar necesidades especiales
   const autoAsignarInvitados = async () => {
     if (invitadosSinAsignar.length === 0) {
@@ -171,6 +398,297 @@ export default function DistribuccionNovios({
     }
   };
 
+  // Función para verificar si hay mesa con capacidad disponible
+  const encontrarMesaDisponible = (cantidadPersonas) => {
+    return allElements.find(
+      (element) =>
+        (element.type === "mesa" || element.type === "mesaRectangular") &&
+        element.capacidad - element.invitados >= cantidadPersonas
+    );
+  };
+
+  const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
+    // buscar la mesa en el layout
+    const mesaSeleccionada = allElements.find(
+      (el) =>
+        el.numero === numeroMesa &&
+        (el.type === "mesa" || el.type === "mesaRectangular")
+    );
+
+    if (!mesaSeleccionada) {
+      mostrarNotificacion(`Mesa ${numeroMesa} no encontrada`, "error");
+      return;
+    }
+
+    // normalize cantidad
+    const cantidad = Number(datosInvitado?.cantidad || 1);
+
+    // obtener sillas especiales (soporta array o número)
+    const sillasEspecialesDisponibles = Array.isArray(
+      mesaSeleccionada.sillasEspeciales
+    )
+      ? mesaSeleccionada.sillasEspeciales.length
+      : typeof mesaSeleccionada.sillasEspeciales === "number"
+      ? mesaSeleccionada.sillasEspeciales
+      : 0;
+
+    const personasEspecialesAsignadas = Number(
+      mesaSeleccionada.invitadosEspeciales || 0
+    );
+
+    // Validar silla especial si es necesario
+    if (datosInvitado?.necesidadEspecial) {
+      if (sillasEspecialesDisponibles === 0) {
+        mostrarNotificacion(
+          `❌ La Mesa ${numeroMesa} no tiene sillas especiales.\n\n` +
+            `${datosInvitado.nombre} requiere una silla de accesibilidad.\n` +
+            `Busca una mesa con el ícono 🦽 que indica sillas especiales.`,
+          "error"
+        );
+        return;
+      }
+
+      if (personasEspecialesAsignadas >= sillasEspecialesDisponibles) {
+        mostrarNotificacion(
+          `❌ Las sillas especiales de la Mesa ${numeroMesa} ya están ocupadas.\n\n` +
+            `Sillas especiales: ${sillasEspecialesDisponibles}\n` +
+            `Ya asignadas: ${personasEspecialesAsignadas}`,
+          "error"
+        );
+        return;
+      }
+    }
+
+    // Validar capacidad disponible
+    const espacioDisponible =
+      Number(mesaSeleccionada.capacidad || 0) -
+      Number(mesaSeleccionada.invitados || 0);
+
+    if (espacioDisponible <= 0) {
+      mostrarNotificacion(
+        `❌ La Mesa ${numeroMesa} ya está llena (0 espacios disponibles).`,
+        "error"
+      );
+      return;
+    }
+
+    // Si no cabe todo el grupo -> abrir modal de confirmación parcial (ya implementado)
+    if (cantidad > espacioDisponible) {
+      setModalData({
+        invitado: datosInvitado,
+        mesa: mesaSeleccionada,
+        espacioDisponible,
+        personasSobrantes: cantidad - espacioDisponible,
+      });
+      setShowModal(true);
+      return;
+    }
+
+    // Si todo OK -> abrir el modal de restricciones para confirmar nombre/restricciones
+    setPendingAsignacion({ invitado: datosInvitado, numeroMesa });
+    setPendingNombre(datosInvitado?.nombre || "");
+    // resetear formulario del modal
+    setRestricciones({
+      vegetariano: 0,
+      vegano: 0,
+      sinGluten: 0,
+      alergiaMarisco: 0,
+    });
+    setOtra("");
+    setShowRestrModal(true);
+  };
+
+  /* -----------------------
+    Confirmaciones desde modales
+  ----------------------- */
+
+  // Confirmación desde ModalRestricciones: guarda datos y asigna (total o parcial)
+  const handleConfirmRestricciones = ({
+    nombre,
+    restricciones: res,
+    otra: otraText,
+  }) => {
+    if (!pendingAsignacion) return;
+    const { invitado, numeroMesa } = pendingAsignacion;
+
+    const mesaSeleccionada = allElements.find(
+      (el) =>
+        el.numero === numeroMesa &&
+        (el.type === "mesa" || el.type === "mesaRectangular")
+    );
+    if (!mesaSeleccionada) {
+      mostrarNotificacion("Mesa no encontrada", "error");
+      setShowRestrModal(false);
+      setPendingAsignacion(null);
+      return;
+    }
+    const espacioDisponible =
+      mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
+    const cantidad = invitado.cantidad;
+
+    // Si cabe todo, asignar y guardar detalles en assignedGuests
+    if (espacioDisponible >= cantidad) {
+      setAllElements((prev) =>
+        prev.map((el) =>
+          el.numero === numeroMesa &&
+          (el.type === "mesa" || el.type === "mesaRectangular")
+            ? {
+                ...el,
+                invitados: (el.invitados || 0) + cantidad,
+                invitadosEspeciales: invitado.necesidadEspecial
+                  ? (el.invitadosEspeciales || 0) + cantidad
+                  : el.invitadosEspeciales || 0,
+                assignedGuests: [
+                  ...(el.assignedGuests || []),
+                  {
+                    id: invitado.id,
+                    nombre: nombre || invitado.nombre,
+                    cantidad,
+                    restricciones: res,
+                    otra: otraText,
+                    necesidadEspecial: invitado.necesidadEspecial || false,
+                  },
+                ],
+              }
+            : el
+        )
+      );
+      setInvitadosSinAsignar((prev) =>
+        prev.filter((inv) => inv.id !== invitado.id)
+      );
+      mostrarNotificacion(
+        `✅ ${nombre || invitado.nombre} asignado a Mesa ${numeroMesa}`,
+        "success"
+      );
+    } else {
+      // espacio insuficiente -> dividir grupo: asignar lo que cabe y crear sobrante con mismas restricciones
+      const personasSobrantes = cantidad - Math.max(0, espacioDisponible);
+
+      // asignar lo que cabe (si cabe algo)
+      if (espacioDisponible > 0) {
+        setAllElements((prev) =>
+          prev.map((el) =>
+            el.numero === numeroMesa &&
+            (el.type === "mesa" || el.type === "mesaRectangular")
+              ? {
+                  ...el,
+                  invitados: (el.invitados || 0) + espacioDisponible,
+                  invitadosEspeciales: invitado.necesidadEspecial
+                    ? (el.invitadosEspeciales || 0) + espacioDisponible
+                    : el.invitadosEspeciales || 0,
+                  assignedGuests: [
+                    ...(el.assignedGuests || []),
+                    {
+                      id: `${invitado.id}-${Date.now()}`,
+                      nombre: nombre || invitado.nombre,
+                      cantidad: espacioDisponible,
+                      restricciones: res,
+                      otra: otraText,
+                      necesidadEspecial: invitado.necesidadEspecial || false,
+                    },
+                  ],
+                }
+              : el
+          )
+        );
+      }
+
+      // crear sobrante y devolver a la lista sin asignar
+      const sobrante = {
+        ...invitado,
+        id: Date.now(),
+        nombre: `${nombre || invitado.nombre} (restantes)`,
+        cantidad: personasSobrantes,
+      };
+      setInvitadosSinAsignar((prev) => [
+        ...prev.filter((inv) => inv.id !== invitado.id),
+        sobrante,
+      ]);
+
+      mostrarNotificacion(
+        `Asignación parcial: ${Math.max(
+          0,
+          espacioDisponible
+        )} personas → Mesa ${numeroMesa}. ${personasSobrantes} en lista (sobrantes).`,
+        "warning"
+      );
+    }
+
+    // cerrar modal y limpiar
+    setShowRestrModal(false);
+    setPendingAsignacion(null);
+    setPendingNombre("");
+  };
+
+  // Función para confirmar asignación parcial
+  const confirmarAsignacionParcial = (aceptar) => {
+    if (!modalData) return;
+
+    const { invitado, mesa, espacioDisponible, personasSobrantes } = modalData;
+
+    if (aceptar) {
+      setAllElements((prev) =>
+        prev.map((element) =>
+          element.numero === mesa.numero &&
+          (element.type === "mesa" || element.type === "mesaRectangular")
+            ? { ...element, invitados: element.invitados + espacioDisponible }
+            : element
+        )
+      );
+
+      setInvitadosSinAsignar((prev) =>
+        prev.filter((inv) => inv.id !== invitado.id)
+      );
+
+      const personasSobrantes_grupo = {
+        ...invitado,
+        id: Date.now(),
+        nombre: `${invitado.nombre} (${personasSobrantes} restantes)`,
+        cantidad: personasSobrantes,
+      };
+
+      const mesaParaSobrantes = allElements.find(
+        (element) =>
+          (element.type === "mesa" || element.type === "mesaRectangular") &&
+          element.numero !== mesa.numero &&
+          element.capacidad - element.invitados >= personasSobrantes
+      );
+
+      if (mesaParaSobrantes) {
+        setAllElements((prev) =>
+          prev.map((element) =>
+            element.numero === mesaParaSobrantes.numero &&
+            (element.type === "mesa" || element.type === "mesaRectangular")
+              ? { ...element, invitados: element.invitados + personasSobrantes }
+              : element
+          )
+        );
+
+        mostrarNotificacion(
+          `Distribución exitosa:\n• ${espacioDisponible} personas → Mesa ${mesa.numero}\n• ${personasSobrantes} personas → Mesa ${mesaParaSobrantes.numero}`,
+          "success"
+        );
+      } else {
+        setInvitadosSinAsignar((prev) => [...prev, personasSobrantes_grupo]);
+        mostrarNotificacion(
+          `Asignación parcial completada:\n• ${espacioDisponible} personas → Mesa ${mesa.numero}\n• ${personasSobrantes} personas regresaron a la lista (sin mesas disponibles)`,
+          "warning"
+        );
+      }
+    } else {
+      mostrarNotificacion(
+        `${invitado.nombre} permaneció en la lista. Busque una mesa con más capacidad`,
+        "info"
+      );
+    }
+
+    setShowModal(false);
+    setModalData(null);
+  };
+
+  /* -----------------------
+   Guardado / Distribuciones
+  ----------------------- */
   // FUNCIÓN PARA GUARDAR DISTRIBUCIÓN
   const guardarDistribucion = () => {
     setGuardando(true);
@@ -274,300 +792,34 @@ export default function DistribuccionNovios({
     );
   };
 
-  // Función para verificar si hay mesa con capacidad disponible
-  const encontrarMesaDisponible = (cantidadPersonas) => {
-    return allElements.find(
-      (element) =>
-        (element.type === "mesa" || element.type === "mesaRectangular") &&
-        element.capacidad - element.invitados >= cantidadPersonas
+  /* -----------------------
+     Helpers de UI / Modales
+     ----------------------- */
+
+  const openMesaModal = (numeroMesa) => {
+    const mesa = allElements.find(
+      (el) =>
+        el.numero === numeroMesa &&
+        (el.type === "mesa" || el.type === "mesaRectangular")
     );
-  };
-
-  // Actualizar la función asignarInvitadosMesa en DistribuccionNovios
-  const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
-    const mesaSeleccionada = allElements.find(
-      (element) =>
-        element.numero === numeroMesa &&
-        (element.type === "mesa" || element.type === "mesaRectangular")
-    );
-
-    if (!mesaSeleccionada) return;
-
-    // Validar silla especial si es necesario
-    if (datosInvitado.necesidadEspecial) {
-      const sillasEspecialesDisponibles = mesaSeleccionada.sillasEspeciales
-        ? mesaSeleccionada.sillasEspeciales.length
-        : 0;
-      const personasEspecialesAsignadas =
-        mesaSeleccionada.invitadosEspeciales || 0;
-
-      if (sillasEspecialesDisponibles === 0) {
-        mostrarNotificacion(
-          `❌ La Mesa ${numeroMesa} no tiene sillas especiales.\n\n` +
-            `${datosInvitado.nombre} requiere una silla de accesibilidad.\n` +
-            `Busca una mesa con el ícono 🦽 que indica sillas especiales.`,
-          "error"
-        );
-        return;
-      }
-
-      if (personasEspecialesAsignadas >= sillasEspecialesDisponibles) {
-        mostrarNotificacion(
-          `❌ Las sillas especiales de la Mesa ${numeroMesa} ya están ocupadas.\n\n` +
-            `Sillas especiales: ${sillasEspecialesDisponibles}\n` +
-            `Ya asignadas: ${personasEspecialesAsignadas}`,
-          "error"
-        );
-        return;
-      }
-    }
-
-    const espacioDisponible =
-      mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
-    const cantidadInvitados = datosInvitado.cantidad;
-
-    // Caso 1: Caben todos perfectamente
-    if (espacioDisponible >= cantidadInvitados) {
-      setAllElements((prev) =>
-        prev.map((element) =>
-          element.numero === numeroMesa &&
-          (element.type === "mesa" || element.type === "mesaRectangular")
-            ? {
-                ...element,
-                invitados: element.invitados + cantidadInvitados,
-                invitadosEspeciales: datosInvitado.necesidadEspecial
-                  ? (element.invitadosEspeciales || 0) + cantidadInvitados
-                  : element.invitadosEspeciales || 0,
-              }
-            : element
-        )
-      );
-
-      setInvitadosSinAsignar((prev) =>
-        prev.filter((inv) => inv.id !== datosInvitado.id)
-      );
-
-      if (datosInvitado.necesidadEspecial) {
-        mostrarNotificacion(
-          `✅ ${datosInvitado.nombre} asignado a la Mesa ${numeroMesa}\n\n` +
-            `🦽 Silla especial reservada para accesibilidad.\n` +
-            `Mesa con ${
-              mesaSeleccionada.sillasEspeciales?.length || 0
-            } silla(s) especial(es).`,
-          "success"
-        );
-      } else {
-        mostrarNotificacion(
-          `✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}`,
-          "success"
-        );
-      }
+    if (!mesa) {
+      mostrarNotificacion(`Mesa ${numeroMesa} no encontrada`, "error");
       return;
     }
-
-    // Para casos de espacio insuficiente, manejar según necesidades especiales
-    if (espacioDisponible > 0) {
-      // Si tiene necesidad especial, no dividir el grupo
-      if (datosInvitado.necesidadEspecial) {
-        const mesaAlternativa = allElements.find(
-          (element) =>
-            (element.type === "mesa" || element.type === "mesaRectangular") &&
-            element.numero !== numeroMesa &&
-            element.capacidad - element.invitados >= cantidadInvitados &&
-            element.sillasEspeciales &&
-            element.sillasEspeciales.length > 0 &&
-            (element.invitadosEspeciales || 0) < element.sillasEspeciales.length
-        );
-
-        if (mesaAlternativa) {
-          // Asignar automáticamente a mesa alternativa
-          setAllElements((prev) =>
-            prev.map((element) =>
-              element.numero === mesaAlternativa.numero &&
-              (element.type === "mesa" || element.type === "mesaRectangular")
-                ? {
-                    ...element,
-                    invitados: element.invitados + cantidadInvitados,
-                    invitadosEspeciales:
-                      (element.invitadosEspeciales || 0) + cantidadInvitados,
-                  }
-                : element
-            )
-          );
-
-          setInvitadosSinAsignar((prev) =>
-            prev.filter((inv) => inv.id !== datosInvitado.id)
-          );
-
-          mostrarNotificacion(
-            `✅ Mesa ${numeroMesa} sin espacio suficiente.\n\n` +
-              `${datosInvitado.nombre} asignado automáticamente a Mesa ${mesaAlternativa.numero}\n` +
-              `🦽 Con silla especial disponible.`,
-            "success"
-          );
-        } else {
-          mostrarNotificacion(
-            `❌ No hay mesas disponibles con sillas especiales\n\n` +
-              `${datosInvitado.nombre} requiere ${cantidadInvitados} asientos y silla de accesibilidad.\n` +
-              `Considera reasignar otros invitados para liberar espacio.`,
-            "error"
-          );
-        }
-        return;
-      }
-
-      // Para invitados sin necesidades especiales, usar el modal existente
-      setModalData({
-        invitado: datosInvitado,
-        mesa: mesaSeleccionada,
-        espacioDisponible,
-        cantidadInvitados,
-        personasSobrantes: cantidadInvitados - espacioDisponible,
-      });
-      setShowModal(true);
-    } else {
-      // Mesa llena - buscar alternativa
-      const mesaAlternativa = datosInvitado.necesidadEspecial
-        ? allElements.find(
-            (element) =>
-              (element.type === "mesa" || element.type === "mesaRectangular") &&
-              element.capacidad - element.invitados >= cantidadInvitados &&
-              element.sillasEspeciales &&
-              element.sillasEspeciales.length > 0 &&
-              (element.invitadosEspeciales || 0) <
-                element.sillasEspeciales.length
-          )
-        : encontrarMesaDisponible(cantidadInvitados);
-
-      if (mesaAlternativa) {
-        setAllElements((prev) =>
-          prev.map((element) =>
-            element.numero === mesaAlternativa.numero &&
-            (element.type === "mesa" || element.type === "mesaRectangular")
-              ? {
-                  ...element,
-                  invitados: element.invitados + cantidadInvitados,
-                  invitadosEspeciales: datosInvitado.necesidadEspecial
-                    ? (element.invitadosEspeciales || 0) + cantidadInvitados
-                    : element.invitadosEspeciales || 0,
-                }
-              : element
-          )
-        );
-
-        setInvitadosSinAsignar((prev) =>
-          prev.filter((inv) => inv.id !== datosInvitado.id)
-        );
-
-        const mensajeEspecial = datosInvitado.necesidadEspecial
-          ? `\n🦽 Con silla especial disponible.`
-          : "";
-
-        mostrarNotificacion(
-          `Mesa ${numeroMesa} estaba llena.\n` +
-            `${datosInvitado.nombre} asignado automáticamente a Mesa ${mesaAlternativa.numero}${mensajeEspecial}`,
-          "success"
-        );
-      } else {
-        const mensajeEspecial = datosInvitado.necesidadEspecial
-          ? ` con sillas especiales disponibles`
-          : "";
-
-        mostrarNotificacion(
-          `La Mesa ${numeroMesa} está llena y no hay mesas disponibles${mensajeEspecial} para ${cantidadInvitados} personas`,
-          "error"
-        );
-      }
-    }
+    setMesaSeleccionadaModal(mesa);
+    setShowMesaModal(true);
+  };
+  const closeMesaModal = () => {
+    setShowMesaModal(false);
+    setMesaSeleccionadaModal(null);
   };
 
-  // Función para confirmar asignación parcial
-  const confirmarAsignacionParcial = (aceptar) => {
-    if (!modalData) return;
+  const openFullscreenModal = () => setShowFullscreenModal(true);
+  const closeFullscreenModal = () => setShowFullscreenModal(false);
 
-    const { invitado, mesa, espacioDisponible, personasSobrantes } = modalData;
-
-    if (aceptar) {
-      setAllElements((prev) =>
-        prev.map((element) =>
-          element.numero === mesa.numero &&
-          (element.type === "mesa" || element.type === "mesaRectangular")
-            ? { ...element, invitados: element.invitados + espacioDisponible }
-            : element
-        )
-      );
-
-      setInvitadosSinAsignar((prev) =>
-        prev.filter((inv) => inv.id !== invitado.id)
-      );
-
-      const personasSobrantes_grupo = {
-        ...invitado,
-        id: Date.now(),
-        nombre: `${invitado.nombre} (${personasSobrantes} restantes)`,
-        cantidad: personasSobrantes,
-      };
-
-      const mesaParaSobrantes = allElements.find(
-        (element) =>
-          (element.type === "mesa" || element.type === "mesaRectangular") &&
-          element.numero !== mesa.numero &&
-          element.capacidad - element.invitados >= personasSobrantes
-      );
-
-      if (mesaParaSobrantes) {
-        setAllElements((prev) =>
-          prev.map((element) =>
-            element.numero === mesaParaSobrantes.numero &&
-            (element.type === "mesa" || element.type === "mesaRectangular")
-              ? { ...element, invitados: element.invitados + personasSobrantes }
-              : element
-          )
-        );
-
-        mostrarNotificacion(
-          `Distribución exitosa:\n• ${espacioDisponible} personas → Mesa ${mesa.numero}\n• ${personasSobrantes} personas → Mesa ${mesaParaSobrantes.numero}`,
-          "success"
-        );
-      } else {
-        setInvitadosSinAsignar((prev) => [...prev, personasSobrantes_grupo]);
-        mostrarNotificacion(
-          `Asignación parcial completada:\n• ${espacioDisponible} personas → Mesa ${mesa.numero}\n• ${personasSobrantes} personas regresaron a la lista (sin mesas disponibles)`,
-          "warning"
-        );
-      }
-    } else {
-      mostrarNotificacion(
-        `${invitado.nombre} permaneció en la lista. Busque una mesa con más capacidad`,
-        "info"
-      );
-    }
-
-    setShowModal(false);
-    setModalData(null);
-  };
-
-  // Función para mostrar notificaciones
-  const mostrarNotificacion = (mensaje, tipo) => {
-    const colores = {
-      success: "bg-green-100 border-green-400 text-green-700",
-      error: "bg-red-100 border-red-400 text-red-700",
-      warning: "bg-yellow-100 border-yellow-400 text-yellow-700",
-      info: "bg-blue-100 border-blue-400 text-blue-700",
-    };
-
-    const notification = document.createElement("div");
-    notification.className = `fixed top-4 right-4 px-4 py-3 rounded border-l-4 ${colores[tipo]} z-50 max-w-md shadow-lg`;
-    notification.style.whiteSpace = "pre-line";
-    notification.textContent = mensaje;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-      if (document.body.contains(notification)) {
-        document.body.removeChild(notification);
-      }
-    }, 5000);
-  };
+  /* -----------------------
+     Componentes locales para render
+     ----------------------- */
 
   // En DistribuccionNovios.jsx, actualizar el InvitadoDraggable
   const InvitadoDraggable = ({ invitado }) => {
@@ -584,15 +836,18 @@ export default function DistribuccionNovios({
         <div className="flex gap-3 items-center">
           <div className="font-medium text-gray-800">{invitado.nombre}</div>
           <div className="text-sm text-gray-600">
-            ({invitado.cantidad} personas)
+            <span className="font-semibold">
+              {" "}
+              ({invitado.cantidad} personas)
+            </span>
           </div>
         </div>
-
-        {/* Indicador de necesidades especiales */}
         {invitado.necesidadEspecial && (
-          <div className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
+          <div
+            title="Necesita silla especial 🦽  "
+            className="flex items-center gap-1 bg-Acapulco/40 text-casal px-2 py-1 rounded-full text-xs cursor-default"
+          >
             <Accessibility className="w-3 h-3" />
-            <span>Silla especial</span>
           </div>
         )}
       </div>
@@ -679,14 +934,15 @@ export default function DistribuccionNovios({
   // Componentes estáticos para mesas
   const MesaEstatica = ({ element }) => (
     <div className="pointer-events-auto">
-    <Mesa
-      numeroMesa={element.numero}
-      invitadosAsignados={element.invitados}
-      capacidadMaxima={element.capacidad}
-      sillasEspeciales={element.sillasEspeciales || []}
-      invitadosEspeciales={element.invitadosEspeciales || 0}
-      onDrop={asignarInvitadosMesa}
-    />
+      <Mesa
+        numeroMesa={element.numero}
+        invitadosAsignados={element.invitados}
+        capacidadMaxima={element.capacidad}
+        sillasEspeciales={element.sillasEspeciales || []}
+        invitadosEspeciales={element.invitadosEspeciales || 0}
+        onDrop={asignarInvitadosMesa}
+        onDoubleClick={() => openMesaModal(element.numero)}
+      />
     </div>
   );
 
@@ -699,6 +955,7 @@ export default function DistribuccionNovios({
         sillasEspeciales={element.sillasEspeciales || []}
         invitadosEspeciales={element.invitadosEspeciales || 0}
         onDrop={asignarInvitadosMesa}
+        onDoubleClick={() => openMesaModal(element.numero)}
       />
     </div>
   );
@@ -766,29 +1023,6 @@ export default function DistribuccionNovios({
     }
   };
 
-  // Calcular estadísticas
-  const totalPersonasSinAsignar = invitadosSinAsignar.reduce(
-    (total, inv) => total + inv.cantidad,
-    0
-  );
-  const mesas = allElements.filter(
-    (el) => el.type === "mesa" || el.type === "mesaRectangular"
-  );
-  const totalInvitadosAsignados = mesas.reduce(
-    (total, mesa) => total + (mesa.invitados || 0),
-    0
-  );
-  const totalCapacidad = mesas.reduce(
-    (total, mesa) => total + (mesa.capacidad || 0),
-    0
-  );
-  const mesasOcupadas = mesas.filter((mesa) => mesa.invitados > 0).length;
-  const totalMesas = mesas.length;
-  const porcentajeCapacidadUtilizada =
-    totalCapacidad > 0
-      ? Math.round((totalInvitadosAsignados / totalCapacidad) * 100)
-      : 0;
-
   return (
     <div className="min-h-screen">
       <div className="py-4">
@@ -819,8 +1053,9 @@ export default function DistribuccionNovios({
             </div>
 
             <div className="flex items-center gap-3">
-              {/* onClick={guardarDistribucion} */}
+              {/*  */}
               <Button
+                onClick={guardarDistribucion}
                 disabled={guardando}
                 className={`px-4 py-2 rounded-full font-medium transition-colors flex items-center gap-2 ${
                   guardando
@@ -840,7 +1075,7 @@ export default function DistribuccionNovios({
         <div className="flex flex-col xl:flex-row gap-6">
           {/* Lista de Invitados */}
           <div className="w-full xl:w-80 flex-shrink-0">
-            <div className="bg-slate-50 py-6 px-3 rounded-lg shadow-sm">
+            <div className="bg-slate-50 py-6 px-3 rounded-lg shadow-sm z-30">
               <p className="text-xl font-semibold mb-4 text-gray-700 flex items-center justify-between gap-2">
                 Invitados sin Asignar
                 <span className="text-sm text-gray-500 font-normal">
@@ -879,40 +1114,89 @@ export default function DistribuccionNovios({
 
           {/* Plano del Salón */}
           <div className="flex-1 min-w-0">
-            <div className="border border-gray-300 rounded-lg bg-white overflow-hidden shadow-sm">
-              <div className="p-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-800">
+            <div className="border border-gray-100 rounded-lg bg-white overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-fondoVs">
+                <h3 className="text-lg font-semibold text-gray-800 ">
                   Plano del Salón - "Jardín Romántico"
                 </h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={zoomOut}
+                    className="px-2 py-2 bg-white border rounded hover:bg-Acapulco hover:text-white dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-Acapulco"
+                  >
+                    <Minus className="w-3 h-3" />
+                  </Button>
+                  <div className="px-3 py-1 bg-white dark:bg-slate-800 dark:text-gray-50 border rounded text-sm">
+                    {Math.round(zoom * 100)}%
+                  </div>
+                  <Button
+                    onClick={zoomIn}
+                    className="px-2 py-2 bg-white border rounded hover:bg-Acapulco hover:text-white dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-Acapulco"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                  <Tooltip content="Ajustar vista ( f )" position="left">
+                    <Button
+                      onClick={fitToView}
+                      className="ml-2 px-2 py-2 bg-white border rounded hover:bg-Acapulco hover:text-white dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-gray-400 text-sm"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip content="Pantalla completa" position="left">
+                    <Button
+                      onClick={openFullscreenModal}
+                      className="ml-2 px-2 py-2 bg-white border rounded hover:bg-gray-200 dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-gray-400 text-sm"
+                    >
+                      <Scan className="w-3 h-3" />
+                    </Button>
+                  </Tooltip>
+                </div>
               </div>
 
-              <div className="overflow-x-auto overflow-y-auto">
+              <div
+                ref={containerRef}
+                className="overflow-x-auto overflow-y-auto"
+                style={{ height: "600px", maxHeight: "600px" }}
+                // onWheel={handleWheel}
+                onMouseDown={handleMouseDownCanvas}
+                onMouseMove={handleMouseMoveCanvas}
+                onMouseUp={handleMouseUpCanvas}
+                onMouseLeave={handleMouseUpCanvas}
+              >
                 <div
-                  className="relative bg-gradient-to-br from-pink-25 to-blue-25"
+                  className="relative dark:bg-[#1a1a1a] overflow-hidden"
                   style={{
-                    height: "600px",
-                    minWidth: "1600px",
-                    width: "1600px",
+                    height: `${CANVAS_HEIGHT}px`,
+                    minHeight: `${CANVAS_HEIGHT}px`,
+                    minWidth: `${CANVAS_WIDTH}px`,
+                    width: `${CANVAS_WIDTH}px`,
                   }}
                 >
-                  {allElements.map((element) => (
-                    <div
-                      key={element.id}
-                      className="absolute"
-                      style={{
-                        left: `${element.position?.x || 0}px`,
-                        top: `${element.position?.y || 0}px`,
-                        cursor:
-                          element.type === "mesa" ||
-                          element.type === "mesaRectangular"
-                            ? "default"
-                            : "default",
-                        userSelect: "none",
-                      }}
-                    >
-                      {renderElementoEstatico(element)}
-                    </div>
-                  ))}
+                  <div
+                    ref={canvasRef}
+                    className="absolute left-0 top-0 origin-top-left"
+                    style={{
+                      transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                      transformOrigin: "0 0",
+                      width: `${CANVAS_WIDTH}px`,
+                      height: `${CANVAS_HEIGHT}px`,
+                    }}
+                  >
+                    {allElements.map((element) => (
+                      <div
+                        key={element.id}
+                        style={{
+                          position: "absolute",
+                          left: `${element.position?.x || 0}px`,
+                          top: `${element.position?.y || 0}px`,
+                          userSelect: "none",
+                        }}
+                      >
+                        {renderElementoEstatico(element)}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -977,9 +1261,59 @@ export default function DistribuccionNovios({
           </div>
         </div>
       </div>
+      {showFullscreenModal && (
+        <FullscreenDesignModal
+          isOpen={showFullscreenModal}
+          onClose={closeFullscreenModal}
+          allElements={allElements}
+          invitadosSinAsignar={invitadosSinAsignar}
+          InvitadoDraggable={InvitadoDraggable}
+          renderElementoEstatico={renderElementoEstatico}
+          zoom={zoom}
+          offset={offset}
+          handleWheel={handleWheel}
+          handleMouseDownCanvas={handleMouseDownCanvas}
+          handleMouseMoveCanvas={handleMouseMoveCanvas}
+          handleMouseUpCanvas={handleMouseUpCanvas}
+          CANVAS_WIDTH={CANVAS_WIDTH}
+          CANVAS_HEIGHT={CANVAS_HEIGHT}
+          TotalPersonasSinAsignar={totalPersonasSinAsignar}
+          zoomIn={zoomIn}
+          zoomOut={zoomOut}
+          fitToView={fitToView}
+          guardarDistribucion={guardarDistribucion}
+          guardando={guardando}
+        />
+      )}
 
       {/* Modal de Confirmación */}
       <ModalConfirmacion />
+
+      {showRestrModal && (
+        <ModalRestricciones
+          isOpen={showRestrModal}
+          onClose={() => {
+            setShowRestrModal(false);
+            setPendingAsignacion(null);
+          }}
+          invitado={pendingAsignacion?.invitado}
+          mesaNumero={pendingAsignacion?.numeroMesa}
+          restricciones={restricciones}
+          setRestricciones={setRestricciones}
+          otra={otra}
+          setOtra={setOtra}
+          nombre={pendingNombre}
+          setNombre={setPendingNombre}
+          onConfirm={handleConfirmRestricciones}
+        />
+      )}
+      {showMesaModal && (
+        <ModalMesaDetalles
+          isOpen={showMesaModal}
+          onClose={closeMesaModal}
+          mesa={mesaSeleccionadaModal}
+        />
+      )}
     </div>
   );
 }

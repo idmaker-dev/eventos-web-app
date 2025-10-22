@@ -1,7 +1,7 @@
 import React from 'react';
 import { Accessibility } from 'lucide-react';
 
-const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, sillasEspeciales = [], invitadosEspeciales = 0, onDrop }) => {
+const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, sillasEspeciales = [], invitadosEspeciales = 0, onDrop, onDoubleClick }) => {
   // Calcular porcentaje de ocupación
   const porcentajeOcupacion = (invitadosAsignados / capacidadMaxima) * 100;
   
@@ -80,7 +80,7 @@ const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, sillasE
   const sillasEspecialesDisponibles = totalSillasEspeciales - sillasEspecialesOcupadas;
 
   return (
-    <div className="relative w-40 h-40 flex items-center justify-center">
+    <div className="relative w-40 h-40 flex items-center justify-center" onDoubleClick={() => onDoubleClick?.()}>
       {/* Sillas alrededor de la mesa */}
       {posicionesSillas.slice(0, capacidadMaxima).map((posicion, index) => {
         const esSillaEspecialPos = esSillaEspecial(index);

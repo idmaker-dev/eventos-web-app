@@ -14,7 +14,7 @@ export default function DesktopSidebar({
   configMenuRef,
 }) {
   return (
-    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-[130px] flex-col justify-between items-center py-6 z-50">
+    <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-[130px] flex-col justify-between items-center py-6 z-40">
       {/* Logo */}
       <div className="flex-shrink-0">
         <img

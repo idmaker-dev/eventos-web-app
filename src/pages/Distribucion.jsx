@@ -100,9 +100,9 @@ export default function Distribucion() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#1a1a1a]">
+    <div className="min-h-screen dark:bg-[#1a1a1a]">
       {/* Header de Novios */}
-      <div className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-700 shadow-sm">
+      {/* <div className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -128,10 +128,10 @@ export default function Distribucion() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Estadísticas de Invitados */}
-      <div className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-700">
+      {/* <div className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className="text-sm">
@@ -160,7 +160,7 @@ export default function Distribucion() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Componente de Novios */}
       <DistribuccionNovios
