@@ -1,11 +1,15 @@
+import React, { useState } from "react";
+import clsx from "clsx";
 import "../styles/pages/Home.css";
 import MasterPage from "../components/layout/MasterPage";
 import { CircleChart } from "../components/ui/CircleChart";
 import { Outlet } from "react-router-dom";
 import { Button } from "@headlessui/react";
 import Logo from "../assets/recursos/logoTentativo2.svg";
+import Configuracion from "../components/Modales/Configuracion";
 import {
   Circle,
+  CircleArrowDown,
   CircleArrowUp,
   Dot,
   MoveRight,
@@ -15,32 +19,54 @@ import {
 } from "lucide-react";
 
 export default function Home() {
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const open = () => {
+    // Lógica para abrir la configuración
+    setIsOpen(true);
+  }
+  const Minimizar = () => {
+    setIsMinimized(!isMinimized);
+  };
   return (
     <div className="">
-      <div className="bg-fondoGris min-h-screen home-container">
+      <div className={clsx("bg-fondoGris home-container",
+        isMinimized ? "md:max-h-screen pb-10" : "min-h-screen pb-5"
+      )}>
         {/* APARTADO DE LA IMAGEN*/}
-        <section className="w-full lg:w-[95%] mx-auto h-[60vh] rounded-b-3xl shadow-md flex items-center justify-center relative bg-center ">
+        <section className={clsx(
+          "relative w-full md:w-[95%] mx-auto  rounded-b-3xl overflow-hidden shadow-lg text-center",
+          isMinimized ? "h-56 md:h-52" : "h-96 md:h-[32rem]"
+        )}>
           <div className="absolute inset-0 bg-black/40 rounded-b-3xl z-1"></div>
           <div className="flex justify-between px-5 absolute top-2 w-full">
             <Button className="bg-white px-2 rounded-full shadow-2xl text-3xl font-bold">
               <img src={Logo} alt="Menu" className="w-24 h-8" />
             </Button>
-            <Button className="text-white p-0.5 bg-transparent border-4 border-white rounded-full shadow-2xl">
+            <Button onClick={open} className="text-white p-0.5 bg-transparent border-4 border-white rounded-full shadow-2xl">
               <Settings className="w-6 h-6" />
             </Button>
           </div>
-          <div className="absolute bottom-2 ">
+          <div className="absolute bottom-2 flex justify-center w-full z-1">
             <div className="text-center text-white">
-              <h3 className="font-semibold text-2xl">Boda de</h3>
-              <h1 className="font-bold text-7xl minion-medium-italic">
-                Ana & Juan
-              </h1>
-              <p className="font-medium text-2xl">15 de septiembre, 2025</p>
+              <div>
+                <h3 className="font-semibold text-2xl">Boda de</h3>
+                <h1 className="font-bold text-7xl minion-medium-italic">
+                  Ana & Juan
+                </h1>
+                <p className="font-medium text-2xl">15 de septiembre, 2025</p>
+              </div>
             </div>
           </div>
           <div className="flex justify-end px-5 absolute bottom-2 w-full">
             <Button className="text-white rounded-full shadow-2xl">
-              <CircleArrowUp className="w-8 h-8 md:w-10 md:h-10" />
+              {
+                isMinimized ? (
+                  <CircleArrowDown onClick={Minimizar} className="w-8 h-8 md:w-10 md:h-10" />
+                ) : (
+                  <CircleArrowUp  onClick={Minimizar} className="w-8 h-8 md:w-10 md:h-10" />
+                )
+              }
             </Button>
           </div>
           <img
@@ -179,6 +205,7 @@ export default function Home() {
       <MasterPage>
         <Outlet />
       </MasterPage>
+      <Configuracion isOpen={isOpen} setIsOpen={setIsOpen} />
     </div>
   );
 }

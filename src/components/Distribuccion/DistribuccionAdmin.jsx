@@ -15,9 +15,7 @@ import {
   RotateCcw,
   Scan,
 } from "lucide-react";
-import {
-  Button,
-} from "@headlessui/react";
+import { Button } from "@headlessui/react";
 // UI - local components */
 import { Tooltip } from "../ui/Tooltip.jsx";
 import Mesa from "./Mesa.jsx";
@@ -26,6 +24,7 @@ import DraggableElement from "./DraggableElement.jsx";
 import DesignTools from "./DesignTools.jsx";
 import StatsPanel from "./StatsPanel.jsx";
 import ModalSillasEspeciales from "./ModalSillasEspeciales.jsx";
+import ModalMesaDetalles from "./ModalMesaDetalles.jsx";
 
 
 export default function DistribuccionAdmin({
@@ -42,11 +41,13 @@ export default function DistribuccionAdmin({
 }) {
   const [activeId, setActiveId] = useState(null);
   const [activeElement, setActiveElement] = useState(null);
-
+  // Modo: false => edición (Gestionar), true => solo visualización (Monitor en vivo)
+  const [isLiveMode, setIsLiveMode] = useState(true);
   const [showModalSillas, setShowModalSillas] = useState(false);
   const [tipoMesaModal, setTipoMesaModal] = useState("");
   const [capacidadMesaModal, setCapacidadMesaModal] = useState(8);
-
+  const [showMesaModal, setShowMesaModal] = useState(false);
+  const [mesaSeleccionadaModal, setMesaSeleccionadaModal] = useState(null);
   // ZOOM & FULLSCREEN modal
   const [zoom, setZoom] = useState(1); // 1 = 100%
   const [offset, setOffset] = useState({ x: 0, y: 0 }); // opcional para pan futuro
@@ -57,7 +58,7 @@ export default function DistribuccionAdmin({
   const isPanningRef = useRef(false);
   const panLastRef = useRef({ x: 0, y: 0 });
 
-  const CANVAS_WIDTH = 4000; 
+  const CANVAS_WIDTH = 4000;
   const CANVAS_HEIGHT = 2400;
 
   const ZOOM_STEP = 0.1;
@@ -330,6 +331,12 @@ export default function DistribuccionAdmin({
   };
 
   const agregarElemento = (tipo) => {
+    if (isLiveMode) {
+      alert(
+        "Modo 'Monitor en vivo' activado.\n\nNo se pueden agregar elementos en este modo."
+      );
+      return;
+    }
     if (tipo === "mesa" || tipo === "mesaRectangular") {
       setTipoMesaModal(tipo);
       setCapacidadMesaModal(tipo === "mesa" ? 8 : 10);
@@ -490,7 +497,7 @@ export default function DistribuccionAdmin({
     return { permitido: true };
   };
 
-    // Actualizar la función asignarInvitadosMesa
+  // Actualizar la función asignarInvitadosMesa
   const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
     const mesaSeleccionada = allElements.find(
       (element) =>
@@ -561,6 +568,7 @@ export default function DistribuccionAdmin({
   ----------------------- */
 
   const handleDragStart = (event) => {
+    if (isLiveMode) return;
     const { active } = event;
     setActiveId(active.id);
 
@@ -569,6 +577,7 @@ export default function DistribuccionAdmin({
   };
 
   const handleDragEnd = (event) => {
+    if (isLiveMode) return;
     const { active, delta } = event;
 
     setActiveId(null);
@@ -603,6 +612,7 @@ export default function DistribuccionAdmin({
   };
 
   const handleDragCancel = () => {
+    if (isLiveMode) return;
     setActiveId(null);
     setActiveElement(null);
   };
@@ -690,16 +700,19 @@ export default function DistribuccionAdmin({
             sillasEspeciales={element.sillasEspeciales || []}
             invitadosEspeciales={element.invitadosEspeciales || 0}
             onDrop={asignarInvitadosMesa}
+            onDoubleClick={!isLiveMode ? null : () => openMesaModal(element.numero)}
           />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              eliminarElemento(element.id);
-            }}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-red-600"
-          >
-            ×
-          </button>
+          {!isLiveMode && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                eliminarElemento(element.id);
+              }}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-red-600"
+            >
+              ×
+            </button>
+          )}
         </div>
       );
     }
@@ -714,16 +727,19 @@ export default function DistribuccionAdmin({
             sillasEspeciales={element.sillasEspeciales || []}
             invitadosEspeciales={element.invitadosEspeciales || 0}
             onDrop={asignarInvitadosMesa}
+            onDoubleClick={!isLiveMode ? null : () => openMesaModal(element.numero)}
           />
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              eliminarElemento(element.id);
-            }}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-red-600"
-          >
-            ×
-          </button>
+          {!isLiveMode && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                eliminarElemento(element.id);
+              }}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-red-600"
+            >
+              ×
+            </button>
+          )}
         </div>
       );
     }
@@ -788,15 +804,17 @@ export default function DistribuccionAdmin({
       return (
         <div className="relative group">
           {elementContent}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              eliminarElemento(element.id);
-            }}
-            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-red-600"
-          >
-            ×
-          </button>
+          {!isLiveMode && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                eliminarElemento(element.id);
+              }}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center hover:bg-red-600"
+            >
+              ×
+            </button>
+          )}
         </div>
       );
     }
@@ -873,8 +891,8 @@ export default function DistribuccionAdmin({
 
     // Contadores para MESAS por categoría (para la visualización)
     let mesasDisponibles = 0;
-    let mesasPocoLlenas = 0; 
-    let mesasMedias = 0; 
+    let mesasPocoLlenas = 0;
+    let mesasMedias = 0;
     let mesasCasiLlenas = 0;
     let mesasOcupadas = 0;
 
@@ -996,7 +1014,49 @@ export default function DistribuccionAdmin({
     setAllElements(elementosActualizados);
   };
 
+  /* -----------------------
+   Helpers de UI / Modales
+    ----------------------- */
+
+  const openMesaModal = (numeroMesa) => {
+    const mesa = allElements.find(
+      (el) =>
+        el.numero === numeroMesa &&
+        (el.type === "mesa" || el.type === "mesaRectangular")
+    );
+    if (!mesa) {
+      mostrarNotificacion(`Mesa ${numeroMesa} no encontrada`, "error");
+      return;
+    }
+    setMesaSeleccionadaModal(mesa);
+    setShowMesaModal(true);
+  };
+  const closeMesaModal = () => {
+    setShowMesaModal(false);
+    setMesaSeleccionadaModal(null);
+  };
   
+  // Función para mostrar notificaciones
+  const mostrarNotificacion = (mensaje, tipo) => {
+    const colores = {
+      success: "bg-green-100 border-green-400 text-green-700",
+      error: "bg-red-100 border-red-400 text-red-700",
+      warning: "bg-yellow-100 border-yellow-400 text-yellow-700",
+      info: "bg-blue-100 border-blue-400 text-blue-700",
+    };
+
+    const notification = document.createElement("div");
+    notification.className = `fixed top-4 right-4 px-4 py-3 rounded border-l-4 ${colores[tipo]} z-50 max-w-md shadow-lg`;
+    notification.style.whiteSpace = "pre-line";
+    notification.textContent = mensaje;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 5000);
+  };
 
   return (
     <div className="min-h-screen">
@@ -1028,17 +1088,17 @@ export default function DistribuccionAdmin({
               )}
               {/* Botón Guardar (solo si no está guardado) */}
               {!layoutGuardado && (
-                <button
+                <Button
                   onClick={guardarDistribucion}
                   className="flex items-center gap-2 bg-casal text-white  py-2 px-6 rounded-lg font-semibold hover:bg-casal/80 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
                 >
                   Guardar Layout
-                </button>
+                </Button>
               )}
 
               {/* Botón Editar (solo si está guardado) */}
               {layoutGuardado && (
-                <button
+                <Button
                   onClick={editarLayout}
                   className="flex items-center gap-2 bg-yellow-500 text-white py-2 px-6 rounded-lg font-semibold hover:bg-yellow-600 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
                 >
@@ -1056,10 +1116,10 @@ export default function DistribuccionAdmin({
                     />
                   </svg>
                   Editar Layout
-                </button>
+                </Button>
               )}
 
-              <button
+              <Button
                 onClick={resetearLayout}
                 className="flex items-center gap-2 px-4 py-2 bg-rojop hover:bg-red-500 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
               >
@@ -1077,16 +1137,32 @@ export default function DistribuccionAdmin({
                   />
                 </svg>
                 Resetear Todo
-              </button>
+              </Button>
             </div>
           </div>
 
           <div className="flex gap-3 my-6 ">
-            <Button className="flex items-center gap-2 bg-casal text-white py-2 px-4 rounded-full font-semibold hover:bg-casal/80 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105">
+            <Button
+              onClick={() => setIsLiveMode(false)}
+              aria-pressed={!isLiveMode}
+              className={`flex items-center gap-2 py-2 px-4 rounded-full font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 ${
+                !isLiveMode
+                  ? "bg-casal text-white"
+                  : "bg-gray-200  dark:bg-black/70 text-gray-700 dark:text-gray-300 border border-gray-400"
+              }`}
+            >
               <BringToFront className="w-4 h-4" />
               Gestionar layaout
             </Button>
-            <Button className="flex items-center gap-2 bg-casal text-white py-2 px-4 rounded-full font-semibold hover:bg-casal/80 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105">
+            <Button
+              onClick={() => setIsLiveMode(true)}
+              aria-pressed={isLiveMode}
+              className={`flex items-center gap-2 py-2 px-4 rounded-full font-semibold transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 ${
+                isLiveMode
+                  ? "bg-casal text-white"
+                  : "bg-gray-200 dark:bg-black/70 text-gray-700 dark:text-gray-300 border border-gray-400"
+              }`}
+            >
               <div className="w-3 h-3 animate-duration-1000 animate-pulse bg-red-500 rounded-full"></div>
               Monitor en vivo
             </Button>
@@ -1116,7 +1192,9 @@ export default function DistribuccionAdmin({
                   </p>
                 </div>
               </div>
-              <div className="">
+              <div
+                className={isLiveMode ? "opacity-50 pointer-events-none" : ""}
+              >
                 <DesignTools agregarElemento={agregarElemento} />
               </div>
             </div>
@@ -1192,7 +1270,7 @@ export default function DistribuccionAdmin({
                     ↔ Scroll horizontal | ↕ Scroll vertical para navegar
                   </span>
                   <span className="text-blue-500">
-                    Modo Admin - Edición completa
+                    {isLiveMode ? "Modo Monitor en vivo - Solo lectura" : "Modo Admin - Edición completa"}
                   </span>
                   <div className="inline-flex items-center gap-2 ml-3">
                     <Button
@@ -1379,6 +1457,13 @@ export default function DistribuccionAdmin({
         tipoMesa={tipoMesaModal}
         capacidadMesa={capacidadMesaModal}
       />
+      {showMesaModal && (
+              <ModalMesaDetalles
+                isOpen={showMesaModal}
+                onClose={closeMesaModal}
+                mesa={mesaSeleccionadaModal}
+              />
+            )}
     </div>
   );
 }
