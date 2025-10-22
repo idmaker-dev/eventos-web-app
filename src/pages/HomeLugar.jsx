@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import InlineSpinner from '../components/ui/InlineSpinner';
-import { BarChart2, Calendar, Users, TrendingUp, LogOut, RefreshCw, Download } from 'lucide-react';
+import { BarChart2, Calendar, Users, TrendingUp, LogOut, RefreshCw, Download, Eye } from 'lucide-react';
 import lugarDashboardService from '../services/lugarDashboardService';
 import { useAuth } from '../hooks/useAuth';
+import DetalleEvento from '../components/Modales/DetalleEvento';
 
 /**
  * Home para usuarios con rol 'lugar'
@@ -16,6 +17,8 @@ export default function HomeLugar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [eventoSeleccionado, setEventoSeleccionado] = useState(null);
+  const [modalDetalleOpen, setModalDetalleOpen] = useState(false);
 
   const formatDate = (iso) => {
     if (!iso) return '-';
@@ -29,6 +32,7 @@ export default function HomeLugar() {
     if (refreshing) setIsRefreshing(true); else setLoading(true);
     try {
       const res = await lugarDashboardService.getResumen(lugarId);
+      console.log('Resumen cargado:', res);
       setData(res);
       setLastUpdated(new Date());
       setError(null);
@@ -70,9 +74,13 @@ export default function HomeLugar() {
       import('xlsx').then((XLSX) => {
         const workbook = XLSX.utils.book_new();
         
+        // Formato de fecha de última actualización
+        const fechaActualizacion = lastUpdated ? formatDate(lastUpdated.toISOString()) : 'No disponible';
+        
         // Hoja 1: Resumen General (KPIs)
         const resumenData = [
           ['RESUMEN GENERAL - ' + lugarNombre],
+          ['Última actualización: ' + fechaActualizacion],
           [''],
           ['Métrica', 'Valor'],
           ['Eventos totales', totales.eventos],
@@ -93,15 +101,16 @@ export default function HomeLugar() {
         if (proximosEventos && proximosEventos.length > 0) {
           const proximosData = [
             ['PRÓXIMOS EVENTOS'],
+            ['Última actualización: ' + fechaActualizacion],
             [''],
             ['Fecha', 'Nombre', 'Tipo', 'Alumnos', 'Apartados', 'Apartados $', 'Pagados', 'Pagados $', 'Abonado $', 'Por Pagar', 'Por Pagar $', '% Pagado', '% Abonado']
           ];
           
           proximosEventos.forEach(ev => {
             proximosData.push([
-              formatDate(ev.fecha),
-              ev.nombre,
-              ev.tipo,
+              formatDate(ev.evento.fecha_evento),
+              ev.evento.nombre_evento,
+              ev.evento.tipo,
               ev.asistentesAlumnos || '-',
               ev.boletosApartados,
               ev.boletosApartadosDinero,
@@ -123,15 +132,16 @@ export default function HomeLugar() {
         if (eventosRecientes && eventosRecientes.length > 0) {
           const recientesData = [
             ['EVENTOS RECIENTES'],
+            ['Última actualización: ' + fechaActualizacion],
             [''],
             ['Fecha', 'Nombre', 'Tipo', 'Alumnos', 'Con boletos', 'Ocupación', 'Apartados', 'Apartados $', 'Pagados', 'Pagados $', 'Abonado $', 'Por Pagar', 'Por Pagar $', '% Pagado', '% Abonado']
           ];
           
           eventosRecientes.forEach(ev => {
             recientesData.push([
-              formatDate(ev.fecha),
-              ev.nombre,
-              ev.tipo,
+              formatDate(ev.evento.fecha_evento),
+              ev.evento.nombre_evento,
+              ev.evento.tipo,
               ev.asistentesAlumnos || '-',
               ev.asistentes,
               ev.ocupacion + '%',
@@ -163,6 +173,16 @@ export default function HomeLugar() {
       console.error('Error en exportación:', error);
       alert('Error al exportar a Excel');
     }
+  };
+
+  const handleVerDetalle = (evento) => {
+    setEventoSeleccionado(evento);
+    setModalDetalleOpen(true);
+  };
+
+  const handleCloseDetalle = () => {
+    setModalDetalleOpen(false);
+    setEventoSeleccionado(null);
   };
 
   if (loading) {
@@ -280,6 +300,7 @@ export default function HomeLugar() {
                 <Th>Por Pagar</Th>
                 <Th>% Pagado</Th>
                 <Th>% Abonado</Th>
+                <Th>Acciones</Th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-[#1e1e1e] divide-y divide-gray-100 dark:divide-gray-800">
@@ -287,10 +308,10 @@ export default function HomeLugar() {
                 <tr><td colSpan={11} className="p-4 text-center text-gray-500">No hay eventos próximos</td></tr>
               )}
               {proximosEventos.map(ev => (
-                <tr key={ev.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
-                  <Td>{formatDate(ev.fecha)}</Td>
-                  <Td className="font-medium">{ev.nombre}</Td>
-                  <Td>{ev.tipo}</Td>
+                <tr key={ev.evento.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
+                  <Td>{formatDate(ev.evento.fecha_evento)}</Td>
+                  <Td className="font-medium">{ev.evento.nombre_evento}</Td>
+                  <Td>{ev.evento.tipo}</Td>
                   <Td>{ev.asistentesAlumnos || '-'}</Td>
                   {/* <Td>{ev.invitados}</Td> */}
                   <Td>
@@ -327,6 +348,15 @@ export default function HomeLugar() {
                       {ev.porcentajeAbonado}%
                     </span>
                   </Td>
+                  <Td>
+                    <button
+                      onClick={() => handleVerDetalle(ev)}
+                      className="p-2 rounded-lg bg-[#246370] hover:bg-[#1d4f5a] dark:bg-[#2a9d8f] dark:hover:bg-[#238276] text-white transition-colors shadow-sm"
+                      title="Ver detalles del evento"
+                    >
+                      <Eye size={16} />
+                    </button>
+                  </Td>
                 </tr>
               ))}
             </tbody>
@@ -354,17 +384,18 @@ export default function HomeLugar() {
                   <Th>Por Pagar</Th>
                   <Th>% Pagado</Th>
                   <Th>% Abonado</Th>
+                  <Th>Acciones</Th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-[#1e1e1e] divide-y divide-gray-100 dark:divide-gray-800">
                 {eventosRecientes.length === 0 && (
-                  <tr><td colSpan={12} className="p-4 text-center text-gray-500">No hay eventos registrados</td></tr>
+                  <tr><td colSpan={13} className="p-4 text-center text-gray-500">No hay eventos registrados</td></tr>
                 )}
                 {eventosRecientes.map(ev => (
-                  <tr key={ev.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
-                    <Td>{formatDate(ev.fecha)}</Td>
-                    <Td className="font-medium">{ev.nombre}</Td>
-                    <Td>{ev.tipo}</Td>
+                  <tr key={ev.evento.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
+                    <Td>{formatDate(ev.evento.fecha_evento)}</Td>
+                    <Td className="font-medium">{ev.evento.nombre_evento}</Td>
+                    <Td>{ev.evento.tipo}</Td>
                     <Td>{ev.asistentesAlumnos || '-'}</Td>
                     <Td>{ev.asistentes}</Td>
                     <Td>{ev.ocupacion}%</Td>
@@ -402,6 +433,15 @@ export default function HomeLugar() {
                         {ev.porcentajeAbonado}%
                       </span>
                     </Td>
+                    <Td>
+                      <button
+                        onClick={() => handleVerDetalle(ev)}
+                        className="p-2 rounded-lg bg-[#246370] hover:bg-[#1d4f5a] dark:bg-[#2a9d8f] dark:hover:bg-[#238276] text-white transition-colors shadow-sm"
+                        title="Ver detalles del evento"
+                      >
+                        <Eye size={16} />
+                      </button>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
@@ -425,6 +465,13 @@ export default function HomeLugar() {
           </div>
         )}
       </section>
+      
+      {/* Modal de detalle de evento */}
+      <DetalleEvento 
+        open={modalDetalleOpen}
+        onClose={handleCloseDetalle}
+        evento={eventoSeleccionado}
+      />
     </div>
   );
 }

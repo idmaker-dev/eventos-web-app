@@ -1,0 +1,34 @@
+/* Estilos personalizados para html5-qrcode */
+
+#qr-reader {
+  width: 100% !important;
+  border: none !important;
+}
+
+#qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 0.5rem;
+}
+
+/* Ocultar el botón de permisos por defecto */
+#qr-reader__dashboard_section_csr {
+  display: none !important;
+}
+
+/* Estilizar el overlay del escáner */
+#qr-reader__scan_region {
+  border: none !important;
+}
+
+/* Personalizar el cuadro de escaneo */
+#qr-reader__scan_region video {
+  border-radius: 0.5rem !important;
+}
+
+/* Estilos para el área de escaneo */
+#qr-shaded-region {
+  border: 2px solid rgba(20, 184, 166, 0.5) !important;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4) !important;
+}
