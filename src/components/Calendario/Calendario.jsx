@@ -135,69 +135,68 @@ export function TimelineProgress({ items, title = "Progreso General" }) {
           </div>
         </div>
         <div className="xl:w-80 bg-gray-50 rounded-xl p-6 border border-gray-100">
-        <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">
-          {title}
-        </h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-6 text-center">
+            {title}
+          </h2>
 
-        <div className="flex justify-center mb-6">
-          <div className="relative w-32 h-32">
-            <svg
-              className="w-32 h-32 transform -rotate-90"
-              viewBox="0 0 128 128"
-            >
-              <circle
-                cx="64"
-                cy="64"
-                r="52"
-                stroke="#e5e7eb"
-                strokeWidth="10"
-                fill="none"
-              />
-              <circle
-                cx="64"
-                cy="64"
-                r="52"
-                stroke="#22c55e"
-                strokeWidth="10"
-                fill="none"
-                strokeDasharray={`${2 * Math.PI * 52}`}
-                strokeDashoffset={`${
-                  2 * Math.PI * 52 * (1 - progressPercentage / 100)
-                }`}
-                strokeLinecap="round"
-                className="transition-all duration-1000 ease-out"
-              />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-3xl font-bold text-gray-900">
-                {progressPercentage}%
+          <div className="flex justify-center mb-6">
+            <div className="relative w-32 h-32">
+              <svg
+                className="w-32 h-32 transform -rotate-90"
+                viewBox="0 0 128 128"
+              >
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="52"
+                  stroke="#e5e7eb"
+                  strokeWidth="10"
+                  fill="none"
+                />
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="52"
+                  stroke="#22c55e"
+                  strokeWidth="10"
+                  fill="none"
+                  strokeDasharray={`${2 * Math.PI * 52}`}
+                  strokeDashoffset={`${
+                    2 * Math.PI * 52 * (1 - progressPercentage / 100)
+                  }`}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000 ease-out"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-bold text-gray-900">
+                  {progressPercentage}%
+                </span>
+                <span className="text-sm text-gray-500 font-medium">
+                  completado
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 bg-green-500 rounded-sm flex items-center justify-center">
+                <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+              </div>
+              <span className="text-gray-700 text-sm font-medium">
+                {completedItems.length} tareas completadas
               </span>
-              <span className="text-sm text-gray-500 font-medium">
-                completado
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 border-2 border-orange-400 rounded-sm bg-orange-50"></div>
+              <span className="text-gray-700 text-sm font-medium">
+                {pendingItems.length} tareas pendientes
               </span>
             </div>
           </div>
         </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 bg-green-500 rounded-sm flex items-center justify-center">
-              <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-            </div>
-            <span className="text-gray-700 text-sm font-medium">
-              {completedItems.length} tareas completadas
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-4 h-4 border-2 border-orange-400 rounded-sm bg-orange-50"></div>
-            <span className="text-gray-700 text-sm font-medium">
-              {pendingItems.length} tareas pendientes
-            </span>
-          </div>
-        </div>
       </div>
-      </div>
-      
     </div>
   );
 }
