@@ -11,13 +11,14 @@ import {
   User,
   Tag,
   Download,
-  QrCode
+  Copy,
+  CheckCircle2
 } from "lucide-react";
 import clsx from "clsx";
-import LectorQR from "./LectorQR";
+import EnvConfig from "../../utils/config";
 
 export default function DetalleEvento({ open, onClose, evento }) {
-  const [modalQROpen, setModalQROpen] = useState(false);
+  const [urlCopiada, setUrlCopiada] = useState(false);
   
   if (!evento) return null;
 
@@ -85,17 +86,45 @@ export default function DetalleEvento({ open, onClose, evento }) {
   };
 
   const handleDescargarDistribucion = () => {
-    // TODO: Implementar descarga de Excel con distribución de mesas
-    console.log('📥 Descargando distribución de mesas...');
-    alert('Función de descarga de distribución de mesas - Próximamente');
+    try {
+      console.log('📥 Descargando distribución de mesas...');
+      
+      // Crear un enlace temporal para descargar el archivo desde public
+      const link = document.createElement('a');
+      link.href = `${process.env.PUBLIC_URL}/formato_distribucion_mesas.xlsx`;
+      link.download = `Distribucion_Mesas_${evento?.nombre_evento || 'Evento'}.xlsx`;
+      link.setAttribute('target', '_blank');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('✅ Distribución descargada exitosamente');
+    } catch (error) {
+      console.error('❌ Error al descargar distribución:', error);
+      alert('Error al descargar el archivo. Por favor intenta de nuevo.');
+    }
   };
 
-  const handleAbrirLectorQR = () => {
-    setModalQROpen(true);
-  };
-
-  const handleCerrarLectorQR = () => {
-    setModalQROpen(false);
+  const handleCopiarURLLectorQR = async () => {
+    try {
+      // Construir la URL usando la configuración base
+      const url = `${EnvConfig.BASE_URL}/lector-qr/${eventoData.id}`;
+      
+      // Copiar al portapapeles
+      await navigator.clipboard.writeText(url);
+      
+      // Mostrar feedback visual
+      setUrlCopiada(true);
+      console.log('✅ URL copiada al portapapeles:', url);
+      
+      // Resetear el estado después de 2 segundos
+      setTimeout(() => {
+        setUrlCopiada(false);
+      }, 2000);
+    } catch (error) {
+      console.error('❌ Error al copiar URL:', error);
+      alert('No se pudo copiar la URL. Por favor, inténtalo de nuevo.');
+    }
   };
 
   return (
@@ -311,12 +340,27 @@ export default function DetalleEvento({ open, onClose, evento }) {
                   </button>
                   
                   <button
-                    onClick={handleAbrirLectorQR}
-                    className="px-4 py-2 bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-white rounded-lg font-semibold transition-colors shadow-md flex items-center gap-2"
-                    title="Lector de códigos QR"
+                    onClick={handleCopiarURLLectorQR}
+                    className={clsx(
+                      "px-4 py-2 rounded-lg font-semibold transition-all shadow-md flex items-center gap-2",
+                      urlCopiada
+                        ? "bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
+                        : "bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600",
+                      "text-white"
+                    )}
+                    title={urlCopiada ? "URL copiada" : "Copiar URL del Lector QR"}
                   >
-                    <QrCode size={18} />
-                    <span className="hidden sm:inline">Lector QR</span>
+                    {urlCopiada ? (
+                      <>
+                        <CheckCircle2 size={18} />
+                        <span className="hidden sm:inline">¡Copiado!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={18} />
+                        <span className="hidden sm:inline">Copiar URL QR</span>
+                      </>
+                    )}
                   </button>
                 </div>
 
@@ -332,13 +376,6 @@ export default function DetalleEvento({ open, onClose, evento }) {
           </DialogPanel>
         </div>
       </div>
-      
-      {/* Modal de Lector QR */}
-      <LectorQR 
-        open={modalQROpen}
-        onClose={handleCerrarLectorQR}
-        evento={eventoData}
-      />
     </Dialog>
   );
 }

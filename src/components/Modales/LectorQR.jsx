@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import { 
   CircleX, 
   QrCode, 
@@ -14,14 +13,19 @@ import clsx from "clsx";
 import { Html5Qrcode } from "html5-qrcode";
 import "./LectorQR.css";
 
-export default function LectorQR({ open, onClose, evento }) {
+export default function LectorQR({ onClose, evento }) {
   const [scanning, setScanning] = useState(false);
   const [lastScan, setLastScan] = useState(null);
   const [scanHistory, setScanHistory] = useState([]);
+  const [pendingConfirmation, setPendingConfirmation] = useState(null);
+  const [boletosConfirmar, setBoletosConfirmar] = useState(1);
+  // eslint-disable-next-line no-unused-vars
+  const [boletosRegistrados, setBoletosRegistrados] = useState({}); // usado via setBoletosRegistrados para sync UI con ref
   const html5QrCodeRef = useRef(null);
   const scannerIdRef = useRef("qr-reader");
   const lastScanTextRef = useRef(null);
   const scanTimeoutRef = useRef(null);
+  const boletosRegistradosRef = useRef({}); // Ref sincronizado con el estado
 
   // Función para procesar el código QR escaneado (useCallback para estabilidad)
   const onScanSuccess = useCallback(async (decodedText, decodedResult) => {
@@ -165,26 +169,57 @@ export default function LectorQR({ open, onClose, evento }) {
       
       console.log('✅ Información del invitado encontrada:', invitadoData);
       
-      // Crear objeto con la información del escaneo
-      const scanData = {
-        id: `QR-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        invitadoId: invitadoData.id,
-        invitado: invitadoData.nombre,
-        mesa: invitadoData.mesa,
-        boletos: invitadoData.boletos,
-        restricciones: invitadoData.restricciones || {
-          vegetarianos: 0,
-          alergicosMariscos: 0,
-          celiaco: 0,
-          alergicosLactosa: 0
-        },
-        valido: invitadoData.valido,
-        evento: evento?.nombre_evento || 'Evento'
-      };
-
-      setLastScan(scanData);
-      setScanHistory(prev => [scanData, ...prev].slice(0, 10));
+      // Calcular boletos restantes (total - ya usados)
+      const boletosYaUsados = boletosRegistradosRef.current[invitadoData.id] || 0;
+      const boletosRestantes = invitadoData.boletos - boletosYaUsados;
+      
+      console.log(`📊 Estado de boletos para ${invitadoData.id}:`, {
+        total: invitadoData.boletos,
+        yaUsados: boletosYaUsados,
+        restantes: boletosRestantes,
+        registrados: boletosRegistradosRef.current
+      });
+      
+      if (boletosRestantes <= 0) {
+        // No quedan boletos disponibles
+        console.warn('⚠️ No quedan boletos disponibles para este invitado');
+        
+        const scanData = {
+          id: `QR-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          invitadoId: invitadoData.id,
+          invitado: invitadoData.nombre,
+          mesa: invitadoData.mesa,
+          boletos: 0,
+          boletosTotal: invitadoData.boletos,
+          boletosUsados: boletosYaUsados,
+          restricciones: invitadoData.restricciones || {
+            vegetarianos: 0,
+            alergicosMariscos: 0,
+            celiaco: 0,
+            alergicosLactosa: 0
+          },
+          valido: false,
+          evento: evento?.nombre_evento || 'Evento',
+          error: 'Todos los boletos ya fueron utilizados'
+        };
+        
+        setLastScan(scanData);
+        setScanHistory(prev => [scanData, ...prev].slice(0, 10));
+        return;
+      }
+      
+      // Mostrar modal de confirmación con boletos restantes
+      console.log(`📋 Solicitando confirmación: ${boletosRestantes} boleto(s) disponible(s)`);
+      
+      setPendingConfirmation({
+        invitadoData: invitadoData,
+        boletosRestantes: boletosRestantes,
+        boletosYaUsados: boletosYaUsados
+      });
+      
+      // Establecer el valor inicial de boletos a confirmar
+      setBoletosConfirmar(Math.min(boletosRestantes, 1));
       
     } catch (error) {
       console.error('❌ Error al consultar información del invitado:', error);
@@ -395,6 +430,66 @@ export default function LectorQR({ open, onClose, evento }) {
     }
   };
 
+  const handleConfirmarBoletos = () => {
+    if (!pendingConfirmation) return;
+
+    const { invitadoData, boletosYaUsados } = pendingConfirmation;
+    
+    const nuevoTotal = boletosYaUsados + boletosConfirmar;
+    
+    // Actualizar el ref inmediatamente (sincrónico)
+    boletosRegistradosRef.current = {
+      ...boletosRegistradosRef.current,
+      [invitadoData.id]: nuevoTotal
+    };
+    
+    // Actualizar el estado para UI
+    setBoletosRegistrados(boletosRegistradosRef.current);
+    
+    console.log(`✅ Boletos actualizados para ${invitadoData.id}:`, {
+      confirmados: boletosConfirmar,
+      yaUsados: boletosYaUsados,
+      nuevoTotal: nuevoTotal,
+      registrados: boletosRegistradosRef.current
+    });
+
+    // Crear objeto con la información del escaneo
+    const scanData = {
+      id: `QR-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      invitadoId: invitadoData.id,
+      invitado: invitadoData.nombre,
+      mesa: invitadoData.mesa,
+      boletos: boletosConfirmar,
+      boletosTotal: invitadoData.boletos,
+      boletosUsados: nuevoTotal,
+      restricciones: invitadoData.restricciones || {
+        vegetarianos: 0,
+        alergicosMariscos: 0,
+        celiaco: 0,
+        alergicosLactosa: 0
+      },
+      valido: true,
+      evento: evento?.nombre_evento || 'Evento'
+    };
+
+    setLastScan(scanData);
+    setScanHistory(prev => [scanData, ...prev].slice(0, 10));
+    
+    // Limpiar estado de confirmación pendiente
+    setPendingConfirmation(null);
+    setBoletosConfirmar(1);
+
+    console.log(`✅ ${boletosConfirmar} boleto(s) confirmado(s) para ${invitadoData.nombre}`);
+  };
+
+  const handleCancelarConfirmacion = () => {
+    setPendingConfirmation(null);
+    setBoletosConfirmar(1);
+    console.log('❌ Confirmación cancelada');
+  };
+
+
   // Cleanup al desmontar el componente
   useEffect(() => {
     return () => {
@@ -417,71 +512,33 @@ export default function LectorQR({ open, onClose, evento }) {
     };
   }, []);
 
-  // Cleanup cuando se cierra el modal
-  useEffect(() => {
-    if (!open && html5QrCodeRef.current) {
-      try {
-        const state = html5QrCodeRef.current.getState();
-        if (state === 2 && scanning) { // Solo detener si está escaneando
-          html5QrCodeRef.current.stop()
-            .then(() => {
-              console.log('Scanner detenido al cerrar modal');
-              setScanning(false);
-            })
-            .catch(err => {
-              console.error('Error stopping scanner:', err);
-              setScanning(false);
-            });
-        } else if (scanning) {
-          // Si scanning es true pero el escáner no está corriendo, solo actualizar estado
-          setScanning(false);
-        }
-      } catch (err) {
-        console.log('Error verificando estado:', err.message);
-        setScanning(false);
-      }
-    }
-  }, [open, scanning]);
-
   const handleClose = () => {
     handleStopScan();
     onClose();
   };
 
   return (
-    <Dialog
-      open={open}
-      as="div"
-      className="relative z-[60] focus:outline-none"
-      onClose={handleClose}
-    >
-      {/* Overlay */}
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" aria-hidden="true" />
-      
-      {/* Container del modal */}
-      <div className="fixed inset-0 z-[60] overflow-y-auto">
-        <div className="flex min-h-full items-center justify-center p-4">
-          <DialogPanel
-            transition
-            className={clsx(
-              "w-full max-w-5xl rounded-xl bg-white dark:bg-[#1a1a1a] shadow-2xl duration-300 ease-out",
-              "max-h-[95vh] relative z-[60] flex flex-col"
-            )}
-          >
-            {/* Header */}
-            <div className="flex-shrink-0 bg-gradient-to-r from-teal-600 to-teal-500 dark:from-teal-500 dark:to-teal-400 px-6 py-4 rounded-t-xl">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <QrCode className="w-7 h-7 text-white" />
-                  <div>
-                    <DialogTitle className="text-2xl font-bold text-white">
-                      Lector de Códigos QR
-                    </DialogTitle>
-                    <p className="text-sm text-white/80 mt-1">
-                      {evento?.nombre_evento || 'Escanea las invitaciones'}
-                    </p>
-                  </div>
+    <div className="h-screen w-screen overflow-hidden bg-gray-100 dark:bg-gray-900 flex flex-col">
+      {/* Container principal - ocupa toda la pantalla */}
+      <div className={clsx(
+        "w-full h-full bg-white dark:bg-[#1a1a1a]",
+        "flex flex-col"
+      )}>
+          {/* Header */}
+          <div className="flex-shrink-0 bg-gradient-to-r from-teal-600 to-teal-500 dark:from-teal-500 dark:to-teal-400 px-6 py-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <QrCode className="w-7 h-7 text-white" />
+                <div>
+                  <h1 className="text-2xl font-bold text-white">
+                    Lector de Códigos QR
+                  </h1>
+                  <p className="text-sm text-white/80 mt-1">
+                    {evento?.nombre_evento || 'Escanea las invitaciones'}
+                  </p>
                 </div>
+              </div>
+              {onClose && (
                 <button
                   className="text-white/80 hover:text-white transition-colors"
                   onClick={handleClose}
@@ -489,34 +546,32 @@ export default function LectorQR({ open, onClose, evento }) {
                 >
                   <CircleX size={28} />
                 </button>
-              </div>
+              )}
             </div>
+          </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4 h-full">
                 {/* Columna izquierda: Cámara y controles */}
-                <div className="space-y-4">
-                  <div className="bg-gray-50 dark:bg-[#23272e] rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700">
+                <div className="flex flex-col space-y-4 h-full">
+                  <div className="bg-gray-50 dark:bg-[#23272e] rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700 flex-1 flex flex-col">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
                       <QrCode size={20} className="text-teal-600 dark:text-teal-400" />
                       Escáner
                     </h3>
                     
                     {/* Área de video/preview */}
-                    <div className="relative bg-black rounded-lg overflow-hidden aspect-video mb-4">
-                      {/* Contenedor para html5-qrcode */}
+                    <div className="relative bg-black rounded-lg overflow-hidden flex-1 mb-4 min-h-[400px] max-h-[500px]">
+                      {/* Contenedor para html5-qrcode - siempre presente */}
                       <div 
                         id="qr-reader"
-                        className={clsx(
-                          "w-full h-full",
-                          !scanning && "hidden"
-                        )}
+                        className="w-full h-full"
                       />
                       
-                      {/* Placeholder cuando no está escaneando */}
+                      {/* Placeholder cuando no está escaneando - overlay absoluto */}
                       {!scanning && (
-                        <div className="w-full h-full flex items-center justify-center">
+                        <div className="absolute inset-0 flex items-center justify-center bg-black">
                           <div className="text-center text-gray-400">
                             <QrCode size={64} className="mx-auto mb-3 opacity-50" />
                             <p className="text-sm">Presiona "Iniciar Escaneo" para comenzar</p>
@@ -548,7 +603,7 @@ export default function LectorQR({ open, onClose, evento }) {
                   {/* Última lectura */}
                   {lastScan && (
                     <div className={clsx(
-                      "rounded-xl p-4 border-2",
+                      "rounded-xl p-4 border-2 overflow-y-auto max-h-96",
                       lastScan.valido 
                         ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-600"
                         : "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-600"
@@ -584,6 +639,16 @@ export default function LectorQR({ open, onClose, evento }) {
                             <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                               <Ticket size={16} />
                               <span>{lastScan.boletos} boleto{lastScan.boletos !== 1 ? 's' : ''}</span>
+                              {lastScan.boletosTotal && (
+                                <span className="text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-full">
+                                  {lastScan.boletosUsados}/{lastScan.boletosTotal} confirmados
+                                </span>
+                              )}
+                              {lastScan.error && (
+                                <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full">
+                                  {lastScan.error}
+                                </span>
+                              )}
                             </div>
                             
                             {/* Restricciones Alimentarias */}
@@ -639,9 +704,9 @@ export default function LectorQR({ open, onClose, evento }) {
                 </div>
 
                 {/* Columna derecha: Historial */}
-                <div className="space-y-4">
-                  <div className="bg-gray-50 dark:bg-[#23272e] rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <div className="flex flex-col space-y-4 overflow-hidden h-full">
+                  <div className="bg-gray-50 dark:bg-[#23272e] rounded-xl p-4 border border-gray-200 dark:border-gray-700 flex-1 flex flex-col overflow-hidden">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2 flex-shrink-0">
                       <Clock size={20} className="text-gray-600 dark:text-gray-400" />
                       Historial de Escaneos
                     </h3>
@@ -652,7 +717,7 @@ export default function LectorQR({ open, onClose, evento }) {
                         <p className="text-sm">Aún no hay escaneos registrados</p>
                       </div>
                     ) : (
-                      <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                      <div className="space-y-2 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent flex-1">
                         {scanHistory.map((scan, index) => (
                           <div
                             key={scan.id}
@@ -690,6 +755,11 @@ export default function LectorQR({ open, onClose, evento }) {
                                   <span className="flex items-center gap-1">
                                     <Ticket size={12} />
                                     {scan.boletos}
+                                    {scan.boletosTotal && (
+                                      <span className="text-xs text-gray-500 dark:text-gray-500">
+                                        de {scan.boletosTotal} ({scan.boletosUsados || scan.boletos}/{scan.boletosTotal})
+                                      </span>
+                                    )}
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Clock size={12} />
@@ -735,9 +805,9 @@ export default function LectorQR({ open, onClose, evento }) {
                       </div>
                     )}
                   </div>
-
+                  
                   {/* Estadísticas */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 flex-shrink-0">
                     <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                       <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Escaneados</div>
                       <div className="text-2xl font-bold text-gray-800 dark:text-gray-100">
@@ -815,22 +885,132 @@ export default function LectorQR({ open, onClose, evento }) {
             </div>
 
             {/* Footer */}
-            <div className="flex-shrink-0 bg-gray-50 dark:bg-[#23272e] px-6 py-4 rounded-b-xl border-t border-gray-200 dark:border-gray-700">
+            <div className="flex-shrink-0 bg-gray-50 dark:bg-[#23272e] px-6 py-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-center">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   💡 <span className="font-medium">Tip:</span> Coloca el código QR frente a la cámara para escanearlo
                 </p>
-                <button
-                  className="px-6 py-2 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors shadow-md"
-                  onClick={handleClose}
-                >
-                  Cerrar
-                </button>
+                {onClose && (
+                  <button
+                    className="px-6 py-2 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors shadow-md"
+                    onClick={handleClose}
+                  >
+                    Cerrar
+                  </button>
+                )}
               </div>
             </div>
-          </DialogPanel>
+          </div>
+
+      {/* Modal de Confirmación de Boletos */}
+      {pendingConfirmation && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 dark:bg-black/60" onClick={handleCancelarConfirmacion} />
+          
+          <div className="relative z-[71] mx-auto w-full max-w-md rounded-xl bg-white dark:bg-[#1e1e1e] shadow-2xl">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-teal-500 to-teal-600 dark:from-teal-600 dark:to-teal-700 px-6 py-4 rounded-t-xl">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 11l3 3L22 4"/>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+                Confirmar Boletos
+              </h2>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-6">
+              {/* Información del Invitado */}
+              <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-12 h-12 bg-teal-500 dark:bg-teal-600 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-gray-900 dark:text-gray-100">
+                      {pendingConfirmation.invitadoData.nombre}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Mesa: <span className="font-semibold">{pendingConfirmation.invitadoData.mesa}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Total de boletos: <span className="font-semibold">{pendingConfirmation.invitadoData.boletos}</span>
+                    </div>
+                    {pendingConfirmation.boletosYaUsados > 0 && (
+                      <div className="text-sm text-orange-600 dark:text-orange-400 mt-1">
+                        Ya usados: <span className="font-semibold">{pendingConfirmation.boletosYaUsados}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Selector de Boletos */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    ¿Cuántos boletos desea confirmar?
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setBoletosConfirmar(Math.max(1, boletosConfirmar - 1))}
+                      disabled={boletosConfirmar <= 1}
+                      className="w-12 h-12 flex items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-bold text-xl transition-colors"
+                    >
+                      −
+                    </button>
+                    
+                    <div className="flex-1 text-center">
+                      <input
+                        type="number"
+                        min="1"
+                        max={pendingConfirmation.boletosRestantes}
+                        value={boletosConfirmar}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 1;
+                          setBoletosConfirmar(Math.min(Math.max(1, value), pendingConfirmation.boletosRestantes));
+                        }}
+                        className="w-full text-center text-4xl font-bold bg-white dark:bg-[#2d2d30] border-2 border-teal-500 dark:border-teal-600 rounded-lg py-3 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      />
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        de {pendingConfirmation.boletosRestantes} disponible(s)
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setBoletosConfirmar(Math.min(pendingConfirmation.boletosRestantes, boletosConfirmar + 1))}
+                      disabled={boletosConfirmar >= pendingConfirmation.boletosRestantes}
+                      className="w-12 h-12 flex items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-bold text-xl transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                {/* Botones de acción */}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={handleCancelarConfirmacion}
+                    className="flex-1 px-4 py-3 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white rounded-lg font-semibold transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleConfirmarBoletos}
+                    className="flex-1 px-4 py-3 bg-teal-600 hover:bg-teal-700 dark:bg-teal-600 dark:hover:bg-teal-700 text-white rounded-lg font-semibold transition-colors shadow-md"
+                  >
+                    Confirmar {boletosConfirmar} boleto{boletosConfirmar !== 1 ? 's' : ''}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </Dialog>
+      )}
+    </div>
   );
 }
