@@ -24,14 +24,14 @@ export default function LectorQR({ open, onClose, evento }) {
   const scanTimeoutRef = useRef(null);
 
   // Función para procesar el código QR escaneado (useCallback para estabilidad)
-  const onScanSuccess = useCallback((decodedText, decodedResult) => {
+  const onScanSuccess = useCallback(async (decodedText, decodedResult) => {
     // Evitar escaneos duplicados - ignorar si es el mismo código en los últimos 2 segundos
     if (lastScanTextRef.current === decodedText) {
       console.log('⏭️ Ignorando escaneo duplicado:', decodedText);
       return;
     }
 
-    console.log('✅ QR Code detectado y procesado:', decodedText, decodedResult);
+    console.log('✅ QR Code detectado:', decodedText, decodedResult);
     
     // Guardar el último código escaneado
     lastScanTextRef.current = decodedText;
@@ -47,18 +47,169 @@ export default function LectorQR({ open, onClose, evento }) {
       console.log('🔄 Listo para escanear nuevamente');
     }, 2000);
     
-    // Procesar el código QR (aquí puedes agregar lógica de validación con API)
-    const mockData = {
-      id: `QR-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      invitado: decodedText, // Usar el texto del QR real
-      boletos: Math.floor(Math.random() * 5) + 1, // Esto vendrá del API
-      alumno: evento?.nombre_evento || 'Evento',
-      valido: true // Esto vendrá del API después de validar
-    };
+    // Simular consulta a API para obtener información del invitado
+    try {
+      console.log('🔍 Consultando información del invitado con ID:', decodedText);
+      
+      // TODO: Reemplazar con llamada real a API
+      // const response = await fetch(`/api/eventos/${evento?.id}/invitados/${decodedText}`);
+      // const data = await response.json();
+      
+      // SIMULACIÓN: Generar datos mock basados en el ID del QR
+      const mockInvitados = [
+        { 
+          id: 'INV001', 
+          nombre: 'Juan Pérez García', 
+          mesa: 5, 
+          boletos: 2, 
+          valido: true,
+          restricciones: {
+            vegetarianos: 1,
+            alergicosMariscos: 0,
+            celiaco: 0,
+            alergicosLactosa: 0
+          }
+        },
+        { 
+          id: 'INV002', 
+          nombre: 'María López Rodríguez', 
+          mesa: 12, 
+          boletos: 4, 
+          valido: true,
+          restricciones: {
+            vegetarianos: 2,
+            alergicosMariscos: 1,
+            celiaco: 0,
+            alergicosLactosa: 0
+          }
+        },
+        { 
+          id: 'INV003', 
+          nombre: 'Carlos Hernández Sánchez', 
+          mesa: 8, 
+          boletos: 3, 
+          valido: true,
+          restricciones: {
+            vegetarianos: 0,
+            alergicosMariscos: 1,
+            celiaco: 1,
+            alergicosLactosa: 0
+          }
+        },
+        { 
+          id: 'INV004', 
+          nombre: 'Ana Martínez González', 
+          mesa: 15, 
+          boletos: 2, 
+          valido: true,
+          restricciones: {
+            vegetarianos: 0,
+            alergicosMariscos: 0,
+            celiaco: 0,
+            alergicosLactosa: 1
+          }
+        },
+        { 
+          id: 'INV005', 
+          nombre: 'Luis Ramírez Torres', 
+          mesa: 3, 
+          boletos: 5, 
+          valido: true,
+          restricciones: {
+            vegetarianos: 1,
+            alergicosMariscos: 0,
+            celiaco: 1,
+            alergicosLactosa: 1
+          }
+        },
+        { 
+          id: 'INVALID', 
+          nombre: 'Invitación No Válida', 
+          mesa: null, 
+          boletos: 0, 
+          valido: false,
+          restricciones: {
+            vegetarianos: 0,
+            alergicosMariscos: 0,
+            celiaco: 0,
+            alergicosLactosa: 0
+          }
+        },
+      ];
+      
+      // Buscar invitado por ID o simular uno aleatorio si no existe en la lista
+      let invitadoData = mockInvitados.find(inv => inv.id === decodedText);
+      
+      if (!invitadoData) {
+        // Simular invitado con datos generados del QR
+        const randomMesa = Math.floor(Math.random() * 20) + 1;
+        const randomBoletos = Math.floor(Math.random() * 5) + 1;
+        
+        // Generar restricciones aleatorias basadas en el número de boletos
+        const restriccionesAleatorias = {
+          vegetarianos: Math.floor(Math.random() * (randomBoletos + 1)),
+          alergicosMariscos: Math.floor(Math.random() * (randomBoletos + 1)),
+          celiaco: Math.floor(Math.random() * (randomBoletos + 1)),
+          alergicosLactosa: Math.floor(Math.random() * (randomBoletos + 1))
+        };
+        
+        invitadoData = {
+          id: decodedText,
+          nombre: `Invitado ${decodedText.substring(0, 6)}`,
+          mesa: randomMesa,
+          boletos: randomBoletos,
+          valido: true,
+          restricciones: restriccionesAleatorias
+        };
+      }
+      
+      console.log('✅ Información del invitado encontrada:', invitadoData);
+      
+      // Crear objeto con la información del escaneo
+      const scanData = {
+        id: `QR-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        invitadoId: invitadoData.id,
+        invitado: invitadoData.nombre,
+        mesa: invitadoData.mesa,
+        boletos: invitadoData.boletos,
+        restricciones: invitadoData.restricciones || {
+          vegetarianos: 0,
+          alergicosMariscos: 0,
+          celiaco: 0,
+          alergicosLactosa: 0
+        },
+        valido: invitadoData.valido,
+        evento: evento?.nombre_evento || 'Evento'
+      };
 
-    setLastScan(mockData);
-    setScanHistory(prev => [mockData, ...prev].slice(0, 10));
+      setLastScan(scanData);
+      setScanHistory(prev => [scanData, ...prev].slice(0, 10));
+      
+    } catch (error) {
+      console.error('❌ Error al consultar información del invitado:', error);
+      
+      // En caso de error, mostrar invitación no válida
+      const errorScanData = {
+        id: `QR-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        invitadoId: decodedText,
+        invitado: 'Error al validar invitación',
+        mesa: null,
+        boletos: 0,
+        restricciones: {
+          vegetarianos: 0,
+          alergicosMariscos: 0,
+          celiaco: 0,
+          alergicosLactosa: 0
+        },
+        valido: false,
+        evento: evento?.nombre_evento || 'Evento'
+      };
+      
+      setLastScan(errorScanData);
+      setScanHistory(prev => [errorScanData, ...prev].slice(0, 10));
+    }
   }, [evento]);
 
   const onScanError = useCallback((errorMessage) => {
@@ -420,10 +571,62 @@ export default function LectorQR({ open, onClose, evento }) {
                               <User size={16} />
                               <span className="font-semibold">{lastScan.invitado}</span>
                             </div>
+                            {lastScan.mesa && (
+                              <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect width="18" height="18" x="3" y="3" rx="2"/>
+                                  <path d="M3 9h18"/>
+                                  <path d="M9 21V9"/>
+                                </svg>
+                                <span>Mesa {lastScan.mesa}</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                               <Ticket size={16} />
                               <span>{lastScan.boletos} boleto{lastScan.boletos !== 1 ? 's' : ''}</span>
                             </div>
+                            
+                            {/* Restricciones Alimentarias */}
+                            {lastScan.restricciones && (lastScan.restricciones.vegetarianos > 0 || 
+                              lastScan.restricciones.alergicosMariscos > 0 || 
+                              lastScan.restricciones.celiaco > 0 || 
+                              lastScan.restricciones.alergicosLactosa > 0) && (
+                              <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+                                <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1.5 flex items-center gap-1">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 2a10 10 0 0 0-9.95 9h11.64L9.74 7.22a1 1 0 0 1 1.41-1.41l3.68 3.68a2 2 0 0 1 0 2.83l-3.68 3.68a1 1 0 0 1-1.41-1.41l3.95-3.95H2.05A10 10 0 1 0 12 2Z"/>
+                                  </svg>
+                                  Restricciones Alimentarias:
+                                </div>
+                                <div className="space-y-0.5 text-xs text-gray-600 dark:text-gray-400">
+                                  {lastScan.restricciones.vegetarianos > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                      <span>Vegetarianos: <strong>{lastScan.restricciones.vegetarianos}</strong></span>
+                                    </div>
+                                  )}
+                                  {lastScan.restricciones.alergicosMariscos > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                                      <span>Alérgicos a mariscos: <strong>{lastScan.restricciones.alergicosMariscos}</strong></span>
+                                    </div>
+                                  )}
+                                  {lastScan.restricciones.celiaco > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                                      <span>Celiacos: <strong>{lastScan.restricciones.celiaco}</strong></span>
+                                    </div>
+                                  )}
+                                  {lastScan.restricciones.alergicosLactosa > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                      <span>Alérgicos a lactosa: <strong>{lastScan.restricciones.alergicosLactosa}</strong></span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            
                             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-xs">
                               <Clock size={14} />
                               <span>{new Date(lastScan.timestamp).toLocaleTimeString('es-MX')}</span>
@@ -474,6 +677,16 @@ export default function LectorQR({ open, onClose, evento }) {
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+                                  {scan.mesa && (
+                                    <span className="flex items-center gap-1">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect width="18" height="18" x="3" y="3" rx="2"/>
+                                        <path d="M3 9h18"/>
+                                        <path d="M9 21V9"/>
+                                      </svg>
+                                      Mesa {scan.mesa}
+                                    </span>
+                                  )}
                                   <span className="flex items-center gap-1">
                                     <Ticket size={12} />
                                     {scan.boletos}
@@ -486,6 +699,35 @@ export default function LectorQR({ open, onClose, evento }) {
                                     })}
                                   </span>
                                 </div>
+                                
+                                {/* Restricciones compactas */}
+                                {scan.restricciones && (scan.restricciones.vegetarianos > 0 || 
+                                  scan.restricciones.alergicosMariscos > 0 || 
+                                  scan.restricciones.celiaco > 0 || 
+                                  scan.restricciones.alergicosLactosa > 0) && (
+                                  <div className="flex items-center gap-2 mt-1 text-xs">
+                                    {scan.restricciones.vegetarianos > 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                                        🥬 {scan.restricciones.vegetarianos}
+                                      </span>
+                                    )}
+                                    {scan.restricciones.alergicosMariscos > 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded">
+                                        🦐 {scan.restricciones.alergicosMariscos}
+                                      </span>
+                                    )}
+                                    {scan.restricciones.celiaco > 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded">
+                                        🌾 {scan.restricciones.celiaco}
+                                      </span>
+                                    )}
+                                    {scan.restricciones.alergicosLactosa > 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded">
+                                        🥛 {scan.restricciones.alergicosLactosa}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -509,6 +751,65 @@ export default function LectorQR({ open, onClose, evento }) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Restricciones Alimentarias Totales */}
+                  {scanHistory.length > 0 && (() => {
+                    const totales = scanHistory.reduce((acc, scan) => {
+                      if (scan.restricciones) {
+                        acc.vegetarianos += scan.restricciones.vegetarianos || 0;
+                        acc.alergicosMariscos += scan.restricciones.alergicosMariscos || 0;
+                        acc.celiaco += scan.restricciones.celiaco || 0;
+                        acc.alergicosLactosa += scan.restricciones.alergicosLactosa || 0;
+                      }
+                      return acc;
+                    }, { vegetarianos: 0, alergicosMariscos: 0, celiaco: 0, alergicosLactosa: 0 });
+
+                    const tieneRestricciones = totales.vegetarianos > 0 || 
+                      totales.alergicosMariscos > 0 || 
+                      totales.celiaco > 0 || 
+                      totales.alergicosLactosa > 0;
+
+                    return tieneRestricciones ? (
+                      <div className="bg-white dark:bg-[#1e1e1e] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2a10 10 0 0 0-9.95 9h11.64L9.74 7.22a1 1 0 0 1 1.41-1.41l3.68 3.68a2 2 0 0 1 0 2.83l-3.68 3.68a1 1 0 0 1-1.41-1.41l3.95-3.95H2.05A10 10 0 1 0 12 2Z"/>
+                          </svg>
+                          Restricciones Alimentarias Totales
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {totales.vegetarianos > 0 && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                              <span className="text-gray-600 dark:text-gray-400">Vegetarianos:</span>
+                              <span className="font-bold text-gray-800 dark:text-gray-100">{totales.vegetarianos}</span>
+                            </div>
+                          )}
+                          {totales.alergicosMariscos > 0 && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                              <span className="text-gray-600 dark:text-gray-400">Mariscos:</span>
+                              <span className="font-bold text-gray-800 dark:text-gray-100">{totales.alergicosMariscos}</span>
+                            </div>
+                          )}
+                          {totales.celiaco > 0 && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
+                              <span className="text-gray-600 dark:text-gray-400">Celiacos:</span>
+                              <span className="font-bold text-gray-800 dark:text-gray-100">{totales.celiaco}</span>
+                            </div>
+                          )}
+                          {totales.alergicosLactosa > 0 && (
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                              <span className="text-gray-600 dark:text-gray-400">Lactosa:</span>
+                              <span className="font-bold text-gray-800 dark:text-gray-100">{totales.alergicosLactosa}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               </div>
             </div>
