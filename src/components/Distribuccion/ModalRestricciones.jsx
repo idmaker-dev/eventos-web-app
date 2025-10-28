@@ -28,29 +28,29 @@ export default function ModalRestricciones({
       <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-2xl shadow-lg overflow-auto">
         <div className="flex items-center justify-between p-4 border-b">
           <div>
-            <p className="text-lg font-semibold">Restricciones alimenticias</p>
-            <p className="text-xs">Asignación a Mesa {mesaNumero}</p>
+            <p className="text-lg font-semibold dark:text-white">Restricciones alimenticias</p>
+            <p className="text-xs dark:text-gray-400">Asignación a Mesa {mesaNumero}</p>
           </div>
-          <Button onClick={onClose} className="text-gray-400 hover:text-gray-200 hover:border hover:bg-slate-500 rounded-lg p-1">
+          <Button onClick={onClose} className="text-gray-400 dark:bg-gray-200 hover:text-gray-200 dark:hover:text-gray-500 hover:border hover:bg-slate-500 rounded-lg p-1">
             <X className="w-5 h-5" />
           </Button>
         </div>
 
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700">Nombre / Grupo</label>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Nombre / Grupo</label>
             <input
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              className="mt-2 block w-full rounded-3xl border-2 px-3 py-2"
+              className="mt-2 block w-full rounded-3xl border-2 px-3 py-2 dark:text-white dark:bg-gray-800"
               placeholder={invitado?.nombre || "Nombre completo o familia"}
             />
-            <p className="text-xs text-gray-500 mt-1">Cantidad: {invitado?.cantidad || 1} personas</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400   mt-1">Cantidad: {invitado?.cantidad || 1} personas</p>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700">Restricciones alimenticias</label>
-            <div className="p-4 border-2 rounded-2xl bg-white mt-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-100">Restricciones alimenticias</label>
+            <div className="p-4 border-2 rounded-2xl bg-white dark:bg-gray-950 mt-2">
               {[
                 { label: "Vegetariano", key: "vegetariano" },
                 { label: "Vegano", key: "vegano" },
@@ -58,7 +58,7 @@ export default function ModalRestricciones({
                 { label: "Alergia a marisco", key: "alergiaMarisco" },
               ].map((item) => (
                 <div key={item.key} className="flex items-center justify-between mb-2">
-                  <span className="text-gray-600 font-medium w-40">{item.label}</span>
+                  <span className="text-gray-600 dark:text-gray-300 font-medium w-40">{item.label}</span>
 
                   <div className="flex items-center gap-2">
                     <button
@@ -88,7 +88,7 @@ export default function ModalRestricciones({
                 value={otra}
                 onChange={(e) => setOtra(e.target.value)}
                 placeholder="Tu Respuesta"
-                className="mt-2 block w-full rounded-3xl border-2 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700 placeholder:italic focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                className="mt-2 block w-full rounded-3xl border-2 px-3 py-1.5 text-sm/6 dark:bg-gray-900 dark:text-white text-gray-700 placeholder:italic focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
               />
             </div>
           </div>
