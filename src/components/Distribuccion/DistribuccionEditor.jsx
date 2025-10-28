@@ -7,13 +7,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import {
-  BadgeQuestionMark,
-  Minus,
-  Plus,
-  RotateCcw,
-  Scan,
-} from "lucide-react";
+import { BadgeQuestionMark, Minus, Plus, RotateCcw, Scan } from "lucide-react";
 import { Button } from "@headlessui/react";
 import { Tooltip } from "../ui/Tooltip.jsx";
 import Mesa from "./Mesa.jsx";
@@ -35,20 +29,24 @@ export default function DistribuccionEditor({
   invitados,
   setInvitados,
 }) {
+  console.log("🔍 DistribuccionEditor recibió:", {
+    allElementsLength: allElements?.length || 0,
+    elementos:
+      allElements?.map((el) => ({
+        id: el.id,
+        type: el.type,
+        numero: el.numero,
+      })) || [],
+    layoutGuardado,
+    contadores,
+  });
 
-console.log("🔍 DistribuccionEditor recibió:", {
-   allElementsLength: allElements?.length || 0,
-   elementos: allElements?.map(el => ({ id: el.id, type: el.type, numero: el.numero })) || [],
-   layoutGuardado,
-   contadores
- });
- 
   const [activeId, setActiveId] = useState(null);
   const [activeElement, setActiveElement] = useState(null);
   const [showModalSillas, setShowModalSillas] = useState(false);
   const [tipoMesaModal, setTipoMesaModal] = useState("");
   const [capacidadMesaModal, setCapacidadMesaModal] = useState(8);
-  
+
   // ZOOM & FULLSCREEN modal
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -65,6 +63,8 @@ console.log("🔍 DistribuccionEditor recibió:", {
   const ZOOM_MIN = 0.1;
   const ZOOM_MAX = 4;
 
+  const openDesignModal = () => setShowDesignModal(true);
+  const closeDesignModal = () => setShowDesignModal(false);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -76,8 +76,10 @@ console.log("🔍 DistribuccionEditor recibió:", {
 
   // Zoom functions
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-  const zoomIn = () => setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)));
-  const zoomOut = () => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)));
+  const zoomIn = () =>
+    setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)));
+  const zoomOut = () =>
+    setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)));
   const resetZoom = () => {
     setZoom(1);
     setOffset({ x: 0, y: 0 });
@@ -89,7 +91,9 @@ console.log("🔍 DistribuccionEditor recibió:", {
       (el) => el.type === "mesa" || el.type === "mesaRectangular"
     );
     if (mesas.length === 0) return 1;
-    const numerosOcupados = mesas.map((mesa) => mesa.numero).sort((a, b) => a - b);
+    const numerosOcupados = mesas
+      .map((mesa) => mesa.numero)
+      .sort((a, b) => a - b);
     for (let i = 1; i <= numerosOcupados.length + 1; i++) {
       if (!numerosOcupados.includes(i)) {
         return i;
@@ -168,11 +172,14 @@ console.log("🔍 DistribuccionEditor recibió:", {
   // Eliminar elemento
   const eliminarElemento = (id) => {
     const elemento = allElements.find((el) => el.id === id);
-    if (elemento && (elemento.type === "mesa" || elemento.type === "mesaRectangular")) {
+    if (
+      elemento &&
+      (elemento.type === "mesa" || elemento.type === "mesaRectangular")
+    ) {
       if (elemento.invitados > 0) {
         alert(
           `No se puede eliminar la Mesa ${elemento.numero}\n\n` +
-          `Esta mesa tiene ${elemento.invitados} invitado(s) asignado(s).\n`
+            `Esta mesa tiene ${elemento.invitados} invitado(s) asignado(s).\n`
         );
         return;
       }
@@ -189,7 +196,11 @@ console.log("🔍 DistribuccionEditor recibió:", {
   // Reorganizar números de mesas
   const reorganizarNumerosMesas = (mesaEliminadaId) => {
     const mesaEliminada = allElements.find((el) => el.id === mesaEliminadaId);
-    if (!mesaEliminada || (mesaEliminada.type !== "mesa" && mesaEliminada.type !== "mesaRectangular")) {
+    if (
+      !mesaEliminada ||
+      (mesaEliminada.type !== "mesa" &&
+        mesaEliminada.type !== "mesaRectangular")
+    ) {
       return;
     }
 
@@ -199,11 +210,17 @@ console.log("🔍 DistribuccionEditor recibió:", {
         if (element.id === mesaEliminadaId) {
           return null;
         }
-        if ((element.type === "mesa" || element.type === "mesaRectangular") && element.numero > numeroEliminado) {
+        if (
+          (element.type === "mesa" || element.type === "mesaRectangular") &&
+          element.numero > numeroEliminado
+        ) {
           return {
             ...element,
             numero: element.numero - 1,
-            id: element.type === "mesa" ? `mesa-${element.numero - 1}` : `mesa-rect-${element.numero - 1}`,
+            id:
+              element.type === "mesa"
+                ? `mesa-${element.numero - 1}`
+                : `mesa-rect-${element.numero - 1}`,
           };
         }
         return element;
@@ -216,18 +233,22 @@ console.log("🔍 DistribuccionEditor recibió:", {
   // Asignar invitados a mesa
   const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
     const mesaSeleccionada = allElements.find(
-      (element) => element.numero === numeroMesa && (element.type === "mesa" || element.type === "mesaRectangular")
+      (element) =>
+        element.numero === numeroMesa &&
+        (element.type === "mesa" || element.type === "mesaRectangular")
     );
 
     if (!mesaSeleccionada) return;
 
-    const espacioDisponible = mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
+    const espacioDisponible =
+      mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
     const cantidadInvitados = datosInvitado.cantidad;
 
     if (espacioDisponible >= cantidadInvitados) {
       setAllElements((prev) =>
         prev.map((element) =>
-          element.numero === numeroMesa && (element.type === "mesa" || element.type === "mesaRectangular")
+          element.numero === numeroMesa &&
+          (element.type === "mesa" || element.type === "mesaRectangular")
             ? {
                 ...element,
                 invitados: element.invitados + cantidadInvitados,
@@ -238,12 +259,14 @@ console.log("🔍 DistribuccionEditor recibió:", {
             : element
         )
       );
-      alert(`✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}`);
+      alert(
+        `✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}`
+      );
     } else {
       alert(
         `No hay suficiente espacio en la Mesa ${numeroMesa}\n\n` +
-        `Espacio disponible: ${espacioDisponible} asientos\n` +
-        `Personas a asignar: ${cantidadInvitados}`
+          `Espacio disponible: ${espacioDisponible} asientos\n` +
+          `Personas a asignar: ${cantidadInvitados}`
       );
     }
   };
@@ -272,8 +295,14 @@ console.log("🔍 DistribuccionEditor recibió:", {
           return {
             ...element,
             position: {
-              x: Math.max(0, Math.min(1600 - 100, element.position.x + adjDeltaX)),
-              y: Math.max(0, Math.min(800 - 100, element.position.y + adjDeltaY)),
+              x: Math.max(
+                0,
+                Math.min(1600 - 100, element.position.x + adjDeltaX)
+              ),
+              y: Math.max(
+                0,
+                Math.min(800 - 100, element.position.y + adjDeltaY)
+              ),
             },
           };
         }
@@ -290,7 +319,8 @@ console.log("🔍 DistribuccionEditor recibió:", {
   // Canvas pan handlers
   const handleMouseDownCanvas = (e) => {
     if (activeId) return;
-    const startPan = e.button === 1 || e.altKey || e.code === "Space" || e.shiftKey;
+    const startPan =
+      e.button === 1 || e.altKey || e.code === "Space" || e.shiftKey;
     if (!startPan) return;
     isPanningRef.current = true;
     panLastRef.current = { x: e.clientX, y: e.clientY };
@@ -360,18 +390,33 @@ console.log("🔍 DistribuccionEditor recibió:", {
 
   // Calcular estadísticas
   const calcularEstadisticas = () => {
-    const mesas = allElements.filter((el) => el.type === "mesa" || el.type === "mesaRectangular");
+    const mesas = allElements.filter(
+      (el) => el.type === "mesa" || el.type === "mesaRectangular"
+    );
     if (mesas.length === 0) {
       return {
-        disponibles: 0, pocoLlenas: 0, medias: 0, casiLlenas: 0, ocupadas: 0,
-        sillasEspeciales: 0, totalMesas: 0, totalCapacidad: 0, totalOcupados: 0,
-        porcentajeCapacidadUtilizada: 0, mesasOcupadas: 0
+        disponibles: 0,
+        pocoLlenas: 0,
+        medias: 0,
+        casiLlenas: 0,
+        ocupadas: 0,
+        sillasEspeciales: 0,
+        totalMesas: 0,
+        totalCapacidad: 0,
+        totalOcupados: 0,
+        porcentajeCapacidadUtilizada: 0,
+        mesasOcupadas: 0,
       };
     }
 
-    let asientosDisponibles = 0, asientosPocoLlenos = 0, asientosMedios = 0;
-    let asientosCasiLlenos = 0, asientosOcupados = 0, sillasEspeciales = 0;
-    let totalCapacidad = 0, totalOcupados = 0;
+    let asientosDisponibles = 0,
+      asientosPocoLlenos = 0,
+      asientosMedios = 0;
+    let asientosCasiLlenos = 0,
+      asientosOcupados = 0,
+      sillasEspeciales = 0;
+    let totalCapacidad = 0,
+      totalOcupados = 0;
 
     mesas.forEach((mesa) => {
       const porcentajeOcupacion = (mesa.invitados / mesa.capacidad) * 100;
@@ -398,10 +443,17 @@ console.log("🔍 DistribuccionEditor recibió:", {
     });
 
     return {
-      disponibles: asientosDisponibles, pocoLlenas: asientosPocoLlenos, medias: asientosMedios,
-      casiLlenas: asientosCasiLlenos, ocupadas: asientosOcupados, sillasEspeciales,
-      totalMesas: mesas.length, totalCapacidad, totalOcupados,
-      porcentajeCapacidadUtilizada: Math.round((totalOcupados / totalCapacidad) * 100) || 0,
+      disponibles: asientosDisponibles,
+      pocoLlenas: asientosPocoLlenos,
+      medias: asientosMedios,
+      casiLlenas: asientosCasiLlenos,
+      ocupadas: asientosOcupados,
+      sillasEspeciales,
+      totalMesas: mesas.length,
+      totalCapacidad,
+      totalOcupados,
+      porcentajeCapacidadUtilizada:
+        Math.round((totalOcupados / totalCapacidad) * 100) || 0,
       mesasOcupadas: mesas.filter((m) => m.invitados > 7).length,
     };
   };
@@ -412,7 +464,9 @@ console.log("🔍 DistribuccionEditor recibió:", {
       elementos: [...allElements],
       contadores: { ...contadores },
       fechaCreacion: new Date().toISOString(),
-      totalMesas: allElements.filter((el) => el.type === "mesa" || el.type === "mesaRectangular").length,
+      totalMesas: allElements.filter(
+        (el) => el.type === "mesa" || el.type === "mesaRectangular"
+      ).length,
     };
     setLayoutFinal(layoutConDatos);
     setLayoutGuardado(true);
@@ -495,13 +549,17 @@ console.log("🔍 DistribuccionEditor recibió:", {
         case "pistaBaileRedonda":
           return (
             <div className="w-40 h-40 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold bg-cafe/10 cursor-move rounded-full">
-              <span className="text-cafe text-lg font-bold">Pista de <br /> Baile</span>
+              <span className="text-cafe text-lg font-bold">
+                Pista de <br /> Baile
+              </span>
             </div>
           );
         case "pistaBaileRectangular":
           return (
             <div className="w-64 h-28 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold bg-cafe/10 cursor-move rounded-lg">
-              <span className="text-cafe text-lg font-bold">Pista de <br /> Baile</span>
+              <span className="text-cafe text-lg font-bold">
+                Pista de <br /> Baile
+              </span>
             </div>
           );
         case "escenario":
@@ -542,6 +600,11 @@ console.log("🔍 DistribuccionEditor recibió:", {
   };
 
   const stats = calcularEstadisticas();
+
+  const saveFromModal = () => {
+    guardarDistribucion && guardarDistribucion(); // reutiliza la función existente si está definida
+    closeDesignModal();
+  };
 
   return (
     <div className="min-h-screen">
@@ -673,7 +736,9 @@ console.log("🔍 DistribuccionEditor recibió:", {
                   <span className="font-medium">
                     ↔ Scroll horizontal | ↕ Scroll vertical para navegar
                   </span>
-                  <span className="text-blue-500">Modo Gestionar - Edición completa</span>
+                  <span className="text-blue-500">
+                    Modo Gestionar - Edición completa
+                  </span>
                   <div className="inline-flex items-center gap-2 ml-3">
                     <Button
                       onClick={zoomOut}
@@ -690,6 +755,14 @@ console.log("🔍 DistribuccionEditor recibió:", {
                     >
                       <Plus className="w-3 h-3" />
                     </Button>
+                    <Tooltip content="Amplear pantalla" position="top">
+                      <Button
+                        onClick={openDesignModal}
+                        className="ml-2 px-2 py-2 bg-casal text-white rounded hover:opacity-90 text-sm"
+                      >
+                        <Scan className="w-3 h-3" />
+                      </Button>
+                    </Tooltip>
                     <Tooltip content="Ajustar vista ( f )" position="left">
                       <Button
                         onClick={fitToView}
@@ -712,6 +785,125 @@ console.log("🔍 DistribuccionEditor recibió:", {
             </div>
           ) : null}
         </DragOverlay>
+        {/* MODAL DE DISEÑO FULLSCREEN */}
+        {showDesignModal && (
+          <div className="fixed inset-0 z-40 bg-black/60 flex items-stretch">
+            <div className="m-auto w-full h-full bg-white dark:bg-gray-900 relative flex flex-col">
+              {/* Barra superior de herramientas */}
+              <div className="flex p-3 border-b bg-fondoVs dark:bg-gray-800">
+                <div>
+                  <img
+                    src="/logop.png"
+                    alt="Logo P"
+                    className="object-contain rounded-full w-14 h-14"
+                  />
+                </div>
+                <div className="flex items-center justify-between w-full ml-4">
+                  <div className="flex items-center gap-2">
+                    <DesignTools agregarElemento={agregarElemento} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={zoomOut}
+                      className="px-2 py-2 bg-white border rounded dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-Acapulco hover:bg-Acapulco hover:text-white shadow-sm"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </Button>
+                    <div className="px-3 py-1 bg-white border rounded text-sm">
+                      {Math.round(zoom * 100)}%
+                    </div>
+                    <Button
+                      onClick={zoomIn}
+                      className="px-2 py-2 bg-white border rounded dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-Acapulco hover:bg-Acapulco hover:text-white shadow-sm"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                    <Button
+                      onClick={resetZoom}
+                      className="ml-2 px-2 py-2 bg-white border rounded dark:bg-slate-900 dark:text-gray-100 dark:hover:bg-gray-400 hover:bg-gray-400 hover:text-white text-sm shadow-sm"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={saveFromModal}
+                      className="px-3 py-1 bg-casal text-white rounded"
+                    >
+                      Guardar
+                    </button>
+                    <button
+                      onClick={closeDesignModal}
+                      className="px-3 py-1 bg-red-500 text-white rounded"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Canvas ampliado (scroll + zoom) */}
+              <div
+                className="flex-1 overflow-auto"
+                ref={containerRef}
+                // onWheel={handleWheel}
+                onMouseDown={handleMouseDownCanvas}
+                onMouseMove={handleMouseMoveCanvas}
+                onMouseUp={handleMouseUpCanvas}
+                onMouseLeave={handleMouseUpCanvas}
+              >
+                <div
+                  className="relative bg-gray-50 dark:bg-[#0f172a] w-full h-full"
+                  style={{
+                    height: `${CANVAS_HEIGHT}px`,
+                    minHeight: `${CANVAS_HEIGHT}px`,
+                    minWidth: `${CANVAS_WIDTH}px`,
+                    width: `${CANVAS_WIDTH}px`,
+                  }}
+                >
+                  <div
+                    ref={canvasRef}
+                    className="absolute left-0 top-0 origin-top-left"
+                    style={{
+                      transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                      transformOrigin: "0 0",
+                      width: `${CANVAS_WIDTH}px`,
+                      height: `${CANVAS_HEIGHT}px`,
+                    }}
+                  >
+                    {allElements.map((element) => (
+                      <DraggableElement
+                        key={element.id}
+                        id={element.id}
+                        data={element}
+                        style={{
+                          position: "absolute",
+                          left: element.position.x,
+                          top: element.position.y,
+                          zIndex: activeId === element.id ? 1000 : 1,
+                        }}
+                      >
+                        {renderElementAdmin(element)}
+                      </DraggableElement>
+                    ))}
+                  </div>
+
+                  <div
+                    className="absolute inset-0 pointer-events-none opacity-5"
+                    style={{
+                      backgroundImage: `
+                              linear-gradient(to right, #ec4899 1px, transparent 1px),
+                              linear-gradient(to bottom, #ec4899 1px, transparent 1px)
+                            `,
+                      backgroundSize: "40px 40px",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </DndContext>
 
       <ModalSillasEspeciales
