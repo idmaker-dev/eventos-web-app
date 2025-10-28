@@ -22,6 +22,7 @@ import Pagos from "../../pages/Pagos"
 import Lugares from "../../pages/Lugares"
 import Usuarios from "../../pages/Usuarios"
 import Asignacion from "../../pages/Asignacion"
+import AsignacionUser from "../../pages/AsignacionUser"
 // import Comunicacion from "../../pages/Comunicacion"
 
 /* Componentes de protección de rutas */
@@ -87,6 +88,7 @@ export default function AppRoutes() {
       <Route path="/PortalPagos/:invitadoId" element={<PortalPagos />} />
       <Route path="/Checkout/:invitadoId" element={<Checkout />} />
       <Route path="/pago-tarjeta/:invitadoId" element={<PagoTarjeta />} />
+      <Route path="/asignacion-user" element={<AsignacionUser />} />
     </Routes>
   )
 }
