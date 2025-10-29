@@ -58,6 +58,7 @@ async function fetchReal(lugarId) {
     },
     proximosEventos: proximos.map((e, idx) => ({
       id: e.id || `prox-${idx}`,
+      evento: e.evento,
       fecha: e.fecha,
       nombre: decodeMaybe(e.nombre),
       tipo: decodeMaybe(e.tipo),
@@ -78,6 +79,7 @@ async function fetchReal(lugarId) {
     })),
     eventosRecientes: recientes.map((e, idx) => ({
       id: e.id || `rec-${idx}`,
+      evento: e.evento,
       fecha: e.fecha,
       nombre: decodeMaybe(e.nombre),
       tipo: decodeMaybe(e.tipo),

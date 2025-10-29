@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import InlineSpinner from "../components/ui/InlineSpinner";
+import CambioPasswordObligatorio from "../components/Modales/CambioPasswordObligatorio";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useNotifications } from "../contexts/NotificationContext";
@@ -9,7 +10,7 @@ import { Eye, EyeOff, User, Lock, Heart } from "lucide-react";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isLoading: authLoading } = useAuth();
+  const { login, changePassword, isLoading: authLoading } = useAuth();
   const { showError, showSuccess } = useNotifications();
   
   const [formData, setFormData] = useState({
@@ -18,6 +19,25 @@ export default function Login() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
+  
+  // Leer el flag de localStorage en lugar de usar state local
+  const debeCambiarPassword = localStorage.getItem("debe_cambiar_password") === "true";
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(debeCambiarPassword);
+
+  // Debug: observar cambios en showPasswordChangeModal
+  React.useEffect(() => {
+    console.log("🔍 showPasswordChangeModal cambió a:", showPasswordChangeModal);
+  }, [showPasswordChangeModal]);
+
+  // Efecto para sincronizar el modal con localStorage
+  React.useEffect(() => {
+    const debeCambiar = localStorage.getItem("debe_cambiar_password") === "true";
+    if (debeCambiar && !showPasswordChangeModal) {
+      console.log("🔧 Abriendo modal desde useEffect");
+      setShowPasswordChangeModal(true);
+    }
+  }, [showPasswordChangeModal]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -62,10 +82,16 @@ export default function Login() {
       const result = await login(formData.email, formData.password);
       
       if (result.success) {
-        console.log("🔍 Login result:", result);
-        console.log("🔍 User object:", result.user);
-        console.log("🔍 User rol:", result.user.rol);
+        // Verificar si debe cambiar contraseña
+        if (result.debe_cambiar_password) {
+          console.log("✅ Debe cambiar contraseña - Abriendo modal");
+          setTimeout(() => {
+            setShowPasswordChangeModal(true);
+          }, 0);
+          return;
+        }
         
+        // Si no debe cambiar contraseña, proceder con la navegación normal
         showSuccess("¡Bienvenido! Has iniciado sesión exitosamente");
         
         // Obtener la ruta de origen si existe (desde ProtectedRoute)
@@ -91,6 +117,53 @@ export default function Login() {
       const errorMessage = "Error de conexión. Verifica tu conexión a internet.";
       showError(errorMessage);
       setErrors({ submit: errorMessage });
+    }
+  };
+
+  const handlePasswordChanged = async (currentPassword, newPassword) => {
+    setPasswordChangeLoading(true);
+    
+    console.log("🔐 handlePasswordChanged recibió:", {
+      currentPassword: currentPassword ? "***" : "vacío",
+      newPassword: newPassword ? "***" : "vacío",
+      currentPasswordLength: currentPassword?.length,
+      newPasswordLength: newPassword?.length,
+    });
+    
+    try {
+      const result = await changePassword(currentPassword, newPassword);
+      
+      if (result.success) {
+        showSuccess("¡Contraseña cambiada exitosamente! Redirigiendo...");
+        setShowPasswordChangeModal(false);
+        
+        // Obtener rol del usuario para navegar
+        const userRole = localStorage.getItem("userRole") || 'lugar';
+        const from = location.state?.from?.pathname || '/';
+        const isAdminRoute = from.startsWith('/admin');
+
+        // Limpiar cualquier flag residual
+        localStorage.removeItem("debe_cambiar_password");
+        localStorage.removeItem("pending_user_data");
+
+        setTimeout(() => {
+          if (userRole === 'admin') {
+            navigate('/admin', { replace: true });
+          } else if (userRole === 'lugar') {
+            navigate('/lugar', { replace: true });
+          } else if (from !== '/' && from !== '/login' && !isAdminRoute) {
+            navigate(from, { replace: true });
+          } else {
+            navigate('/');
+          }
+        }, 1000);
+      } else {
+        showError(result.error || "Error al cambiar la contraseña");
+      }
+    } catch (error) {
+      showError("Error al cambiar la contraseña. Intenta nuevamente.");
+    } finally {
+      setPasswordChangeLoading(false);
     }
   };
 
@@ -196,6 +269,13 @@ export default function Login() {
           </p>
         </div>
       </div>
+
+      {/* Modal de cambio de contraseña obligatorio */}
+      <CambioPasswordObligatorio
+        open={showPasswordChangeModal}
+        onPasswordChanged={handlePasswordChanged}
+        loading={passwordChangeLoading}
+      />
     </div>
   );
 }
