@@ -46,7 +46,7 @@ export default function DistribuccionEditor({
   const [showModalSillas, setShowModalSillas] = useState(false);
   const [tipoMesaModal, setTipoMesaModal] = useState("");
   const [capacidadMesaModal, setCapacidadMesaModal] = useState(8);
-
+  const [modoPersonalizar, setModoPersonalizar] = useState(false);
   // ZOOM & FULLSCREEN modal
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -65,14 +65,12 @@ export default function DistribuccionEditor({
 
   const openDesignModal = () => setShowDesignModal(true);
   const closeDesignModal = () => setShowDesignModal(false);
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor)
-  );
+
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: { distance: 8 },
+  });
+  const keyboardSensor = useSensor(KeyboardSensor);
+  const sensors = useSensors(pointerSensor, keyboardSensor);
 
   // Zoom functions
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -609,10 +607,10 @@ export default function DistribuccionEditor({
   return (
     <div className="min-h-screen">
       <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={handleDragCancel}
+        sensors={modoPersonalizar ? sensors : undefined}
+        onDragStart={modoPersonalizar ? handleDragStart : undefined}
+        onDragEnd={modoPersonalizar ? handleDragEnd : undefined}
+        onDragCancel={modoPersonalizar ? handleDragCancel : undefined}
       >
         <div className="p-4">
           {/* Header */}
@@ -628,6 +626,22 @@ export default function DistribuccionEditor({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              {/* Botón Personalizar */}
+              <div className="flex">
+                {!modoPersonalizar && (
+                  <Button
+                    onClick={() => setModoPersonalizar(true)}
+                    className="bg-casal text-white px-6 py-2 rounded-lg font-semibold hover:bg-casal/80 transition-all duration-200"
+                  >
+                    Personalizar
+                  </Button>
+                )}
+                {modoPersonalizar && (
+                  <span className="px-4 py-2 bg-casalds-50 text-casal border border-casal rounded-lg font-semibold">
+                    Modo Personalizar activo
+                  </span>
+                )}
+              </div>
               {!layoutGuardado && (
                 <Button
                   onClick={guardarDistribucion}

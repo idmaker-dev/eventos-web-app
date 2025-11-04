@@ -1,26 +1,27 @@
 import React, { useState } from "react";
 import { X, Monitor, Paintbrush } from "lucide-react";
 
-export default function ModalInicioAsignacion({ 
-  isOpen, 
-  onClose, 
-  direccionEvento, 
-  salonesExistentes = [], 
-  onIniciar 
+export default function ModalInicioAsignacion({
+  isOpen,
+  onClose,
+  direccionEvento,
+  salonesExistentes = [],
+  onIniciar,
 }) {
   const [seleccion, setSeleccion] = useState(null);
   const [salonSeleccionado, setSalonSeleccionado] = useState(null);
   const [tipoCreacion, setTipoCreacion] = useState(null);
 
+  const salonesConMesas = salonesExistentes.filter((s) => s.totalMesas > 0);
+
   if (!isOpen) return null;
 
   const handleClose = () => {
-   setSeleccion(null);
-   setSalonSeleccionado(null);
-   setTipoCreacion(null);
-   onClose();
- };
-
+    setSeleccion(null);
+    setSalonSeleccionado(null);
+    setTipoCreacion(null);
+    onClose();
+  };
 
   const tieneSalones = salonesExistentes.length > 0;
 
@@ -29,32 +30,21 @@ export default function ModalInicioAsignacion({
       onIniciar({
         modo: "monitor",
         salon: salonSeleccionado,
-        isLiveMode: true
+        isLiveMode: true,
       });
-    } else if (seleccion === "crear-nuevo") {
-      if (tipoCreacion === "desde-cero") {
-        onIniciar({
-          modo: "crear",
-          tipoCreacion: "vacio",
-          isLiveMode: false
-        });
-      } else if (tipoCreacion === "usar-base" && salonSeleccionado) {
-        onIniciar({
-          modo: "crear",
-          tipoCreacion: "basado",
-          salonBase: salonSeleccionado,
-          isLiveMode: false
-        });
-      }
+    } else if (seleccion === "crear-nuevo" && salonSeleccionado) {
+      onIniciar({
+        modo: "crear",
+        tipoCreacion: "basado",
+        salonBase: salonSeleccionado,
+        isLiveMode: false,
+      });
     }
   };
 
   const puedeEjecutar = () => {
-    if (seleccion === "ver-vivo") return salonSeleccionado;
-    if (seleccion === "crear-nuevo") {
-      if (tipoCreacion === "desde-cero") return true;
-      if (tipoCreacion === "usar-base") return salonSeleccionado;
-    }
+    if (seleccion === "ver-vivo") return !!salonSeleccionado;
+    if (seleccion === "crear-nuevo") return !!salonSeleccionado;
     return false;
   };
 
@@ -91,15 +81,18 @@ export default function ModalInicioAsignacion({
                   Primera vez en esta dirección
                 </h4>
                 <p className="text-blue-600 dark:text-blue-400 text-sm">
-                  No hay salones creados para esta dirección. Se creará un nuevo salón vacío para comenzar el diseño.
+                  No hay salones creados para esta dirección. Se creará un nuevo
+                  salón vacío para comenzar el diseño.
                 </p>
               </div>
               <button
-                onClick={() => onIniciar({
-                  modo: "crear",
-                  tipoCreacion: "vacio",
-                  isLiveMode: false
-                })}
+                onClick={() =>
+                  onIniciar({
+                    modo: "crear",
+                    tipoCreacion: "vacio",
+                    isLiveMode: false,
+                  })
+                }
                 className="w-full bg-casal hover:bg-casal/80 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-3"
               >
                 <Paintbrush className="w-5 h-5 " />
@@ -120,6 +113,7 @@ export default function ModalInicioAsignacion({
                       setTipoCreacion(null);
                       setSalonSeleccionado(null);
                     }}
+                    disabled={salonesConMesas.length === 0}
                     className={`p-4 border-2 rounded-lg transition-all duration-200 ${
                       seleccion === "ver-vivo"
                         ? "border-casal bg-casal/10 text-casal"
@@ -127,7 +121,9 @@ export default function ModalInicioAsignacion({
                     }`}
                   >
                     <Monitor className="w-8 h-8 mx-auto mb-3" />
-                    <h5 className="font-semibold mb-2">Ver Movimientos en Vivo</h5>
+                    <h5 className="font-semibold mb-2">
+                      Ver Movimientos en Vivo
+                    </h5>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       Monitorear asignaciones existentes sin poder editar
                     </p>
@@ -145,9 +141,11 @@ export default function ModalInicioAsignacion({
                     }`}
                   >
                     <Paintbrush className="w-8 h-8 mx-auto mb-3" />
-                    <h5 className="font-semibold mb-2">Crear Nuevo Diseño</h5>
+                    <h5 className="font-semibold mb-2">
+                      Seleccionar un Diseño
+                    </h5>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Diseñar un nuevo salón para esta dirección
+                      Diseñar un nuevo salón o usar uno existente como base
                     </p>
                   </button>
                 </div>
@@ -169,7 +167,9 @@ export default function ModalInicioAsignacion({
                             : "border-gray-200 dark:border-gray-600 hover:border-casal/50"
                         }`}
                       >
-                        <div className="font-medium dark:text-white">{salon.nombre}</div>
+                        <div className="font-medium dark:text-white">
+                          {salon.nombre}
+                        </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
                           {salon.descripcion} • {salon.totalMesas} mesas
                         </div>
@@ -181,68 +181,29 @@ export default function ModalInicioAsignacion({
 
               {seleccion === "crear-nuevo" && (
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg space-y-4">
-                  <h5 className="font-semibold text-gray-800 dark:text-white">
-                    ¿Cómo quieres crear el nuevo salón?
+                  <h5 className="font-semibold text-gray-800 dark:text-white mb-2">
+                    Selecciona el salón base:
                   </h5>
-                  
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => {
-                        setTipoCreacion("desde-cero");
-                        setSalonSeleccionado(null);
-                      }}
-                      className={`w-full text-left p-3 border rounded-lg transition-all duration-200 ${
-                        tipoCreacion === "desde-cero"
-                          ? "border-casal bg-casal/10 text-casal"
-                          : "border-gray-200 dark:border-gray-600 hover:border-casal/50"
-                      }`}
-                    >
-                      <div className="font-medium dark:text-Acapulco">Empezar desde cero</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-200">
-                        Salón vacío con solo la mesa principal
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => setTipoCreacion("usar-base")}
-                      className={`w-full text-left p-3 border rounded-lg transition-all duration-200 ${
-                        tipoCreacion === "usar-base"
-                          ? "border-casal bg-casal/10 text-casal"
-                          : "border-gray-200 dark:border-gray-600 hover:border-casal/50"
-                      }`}
-                    >
-                      <div className="font-medium dark:text-white">Usar diseño existente como base</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-200">
-                        Copiar un salón existente y modificarlo
-                      </div>
-                    </button>
+                  <div className="space-y-2">
+                    {salonesExistentes.map((salon) => (
+                      <button
+                        key={salon.id}
+                        onClick={() => setSalonSeleccionado(salon)}
+                        className={`w-full text-left p-2 border rounded transition-all duration-200 ${
+                          salonSeleccionado?.id === salon.id
+                            ? "border-casal bg-casal/10 text-casal"
+                            : "border-gray-200 dark:border-gray-600 hover:border-casal/50"
+                        }`}
+                      >
+                        <div className="font-medium  dark:text-gray-100">
+                          {salon.nombre}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {salon.totalMesas} mesas
+                        </div>
+                      </button>
+                    ))}
                   </div>
-
-                  {tipoCreacion === "usar-base" && (
-                    <div className="mt-4">
-                      <h6 className="font-medium mb-2 text-gray-700 dark:text-gray-300">
-                        Selecciona el salón base:
-                      </h6>
-                      <div className="space-y-2">
-                        {salonesExistentes.map((salon) => (
-                          <button
-                            key={salon.id}
-                            onClick={() => setSalonSeleccionado(salon)}
-                            className={`w-full text-left p-2 border rounded transition-all duration-200 ${
-                              salonSeleccionado?.id === salon.id
-                                ? "border-casal bg-casal/10 text-casal"
-                                : "border-gray-200 dark:border-gray-600 hover:border-casal/50"
-                            }`}
-                          >
-                            <div className="font-medium text-sm dark:text-gray-100">{salon.nombre}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {salon.totalMesas} mesas
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
