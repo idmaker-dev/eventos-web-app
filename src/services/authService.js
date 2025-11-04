@@ -169,23 +169,37 @@ class AuthService {
   }
 
   /**
-   * Cambiar contraseña (usuario autenticado)
+   * Cambiar contraseña (usuario autenticado) - Primera vez obligatoria
    */
   async changePassword(currentPassword, newPassword) {
     try {
-      const response = await httpService.put("/auth/change-password", {
-        currentPassword,
-        newPassword,
+      console.log("🔐 Enviando cambio de contraseña:", {
+        passwordActual: currentPassword ? "***" : "vacío",
+        passwordNuevo: newPassword ? "***" : "vacío",
       });
+
+      const response = await httpService.put(
+        "/usuarios/cambiar-password-primera-vez",
+        {
+          passwordActual: currentPassword,
+          passwordNuevo: newPassword,
+        }
+      );
+
+      console.log("✅ Respuesta cambio de contraseña:", response);
 
       return {
         success: true,
-        message: "Contraseña cambiada exitosamente",
+        message: response.data?.message || "Contraseña cambiada exitosamente",
+        data: response.data,
       };
     } catch (error) {
+      console.error("❌ Error en cambio de contraseña:", error);
+
       return {
         success: false,
-        error: error.userMessage,
+        error: error.data.error || "Error al cambiar la contraseña",
+        details: error,
       };
     }
   }

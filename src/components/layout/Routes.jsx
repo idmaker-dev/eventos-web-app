@@ -14,6 +14,7 @@ import Checkout from "../../pages/checkout"
 import PagoTarjeta from "../../pages/PagoTarjeta"
 import SignalRTest from "../../pages/SignalRTest"
 import HomeLugar from "../../pages/HomeLugar" // nueva vista para rol lugar
+import LectorQRPage from "../../pages/LectorQRPage" // vista para escaneo de QR
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
@@ -89,6 +90,9 @@ export default function AppRoutes() {
       <Route path="/Checkout/:invitadoId" element={<Checkout />} />
       <Route path="/pago-tarjeta/:invitadoId" element={<PagoTarjeta />} />
       <Route path="/asignacion-user" element={<AsignacionUser />} />
+      
+      {/* Ruta para lector QR - Accesible sin autenticación para personal del evento */}
+      <Route path="/lector-qr/:eventoId" element={<LectorQRPage />} />
     </Routes>
   )
 }

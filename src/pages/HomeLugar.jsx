@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import InlineSpinner from '../components/ui/InlineSpinner';
-import { BarChart2, Calendar, Users, TrendingUp, LogOut, RefreshCw } from 'lucide-react';
+import { BarChart2, Calendar, Users, TrendingUp, LogOut, RefreshCw, Download, Eye } from 'lucide-react';
 import lugarDashboardService from '../services/lugarDashboardService';
 import { useAuth } from '../hooks/useAuth';
+import DetalleEvento from '../components/Modales/DetalleEvento';
 
 /**
  * Home para usuarios con rol 'lugar'
@@ -16,6 +17,8 @@ export default function HomeLugar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [eventoSeleccionado, setEventoSeleccionado] = useState(null);
+  const [modalDetalleOpen, setModalDetalleOpen] = useState(false);
 
   const formatDate = (iso) => {
     if (!iso) return '-';
@@ -29,6 +32,7 @@ export default function HomeLugar() {
     if (refreshing) setIsRefreshing(true); else setLoading(true);
     try {
       const res = await lugarDashboardService.getResumen(lugarId);
+      console.log('Resumen cargado:', res);
       setData(res);
       setLastUpdated(new Date());
       setError(null);
@@ -62,6 +66,125 @@ export default function HomeLugar() {
     try { await logout(); } catch (e) { setIsLoggingOut(false); }
   };
 
+  const handleExportToExcel = () => {
+    if (!data) return;
+
+    try {
+      // Importar xlsx de forma dinámica
+      import('xlsx').then((XLSX) => {
+        const workbook = XLSX.utils.book_new();
+        
+        // Formato de fecha de última actualización
+        const fechaActualizacion = lastUpdated ? formatDate(lastUpdated.toISOString()) : 'No disponible';
+        
+        // Hoja 1: Resumen General (KPIs)
+        const resumenData = [
+          ['RESUMEN GENERAL - ' + lugarNombre],
+          ['Última actualización: ' + fechaActualizacion],
+          [''],
+          ['Métrica', 'Valor'],
+          ['Eventos totales', totales.eventos],
+          ['Alumnos', totales.asistentesAlumnos],
+          ['Ocupación promedio', totales.ocupacionPromedio + '%'],
+          [''],
+          ['BOLETOS Y PAGOS'],
+          ['Boletos apartados', totales.boletosApartados, '$' + totales.boletosApartadosDinero.toLocaleString()],
+          ['Boletos pagados', totales.boletosPagados, '$' + totales.boletosPagadosDinero.toLocaleString() + ' (' + totales.porcentajePagados + '%)'],
+          ['Abono realizado', '', '$' + totales.abonoRealizado.toLocaleString() + ' (' + totales.porcentajeAbonado + '%)'],
+          ['Boletos por pagar', totales.boletosPorPagar, '$' + totales.boletosPorPagarDinero.toLocaleString() + ' (' + (100 - totales.porcentajePagados) + '%)'],
+          ['Tasa de pago', totales.porcentajePagados + '%', totales.boletosPagados + ' de ' + totales.boletosApartados + ' pagados'],
+        ];
+        const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+        XLSX.utils.book_append_sheet(workbook, wsResumen, 'Resumen');
+
+        // Hoja 2: Próximos Eventos
+        if (proximosEventos && proximosEventos.length > 0) {
+          const proximosData = [
+            ['PRÓXIMOS EVENTOS'],
+            ['Última actualización: ' + fechaActualizacion],
+            [''],
+            ['Fecha', 'Nombre', 'Tipo', 'Alumnos', 'Apartados', 'Apartados $', 'Pagados', 'Pagados $', 'Abonado $', 'Por Pagar', 'Por Pagar $', '% Pagado', '% Abonado']
+          ];
+          
+          proximosEventos.forEach(ev => {
+            proximosData.push([
+              formatDate(ev.evento.fecha_evento),
+              ev.evento.nombre_evento,
+              ev.evento.tipo,
+              ev.asistentesAlumnos || '-',
+              ev.boletosApartados,
+              ev.boletosApartadosDinero,
+              ev.boletosPagados,
+              ev.boletosPagadosDinero,
+              ev.abonoRealizado,
+              ev.boletosPorPagar,
+              ev.boletosPorPagarDinero,
+              ev.porcentajePagados + '%',
+              ev.porcentajeAbonado + '%'
+            ]);
+          });
+
+          const wsProximos = XLSX.utils.aoa_to_sheet(proximosData);
+          XLSX.utils.book_append_sheet(workbook, wsProximos, 'Próximos Eventos');
+        }
+
+        // Hoja 3: Eventos Recientes
+        if (eventosRecientes && eventosRecientes.length > 0) {
+          const recientesData = [
+            ['EVENTOS RECIENTES'],
+            ['Última actualización: ' + fechaActualizacion],
+            [''],
+            ['Fecha', 'Nombre', 'Tipo', 'Alumnos', 'Con boletos', 'Ocupación', 'Apartados', 'Apartados $', 'Pagados', 'Pagados $', 'Abonado $', 'Por Pagar', 'Por Pagar $', '% Pagado', '% Abonado']
+          ];
+          
+          eventosRecientes.forEach(ev => {
+            recientesData.push([
+              formatDate(ev.evento.fecha_evento),
+              ev.evento.nombre_evento,
+              ev.evento.tipo,
+              ev.asistentesAlumnos || '-',
+              ev.asistentes,
+              ev.ocupacion + '%',
+              ev.boletosApartados,
+              ev.boletosApartadosDinero,
+              ev.boletosPagados,
+              ev.boletosPagadosDinero,
+              ev.abonoRealizado,
+              ev.boletosPorPagar,
+              ev.boletosPorPagarDinero,
+              ev.porcentajePagados + '%',
+              ev.porcentajeAbonado + '%'
+            ]);
+          });
+
+          const wsRecientes = XLSX.utils.aoa_to_sheet(recientesData);
+          XLSX.utils.book_append_sheet(workbook, wsRecientes, 'Eventos Recientes');
+        }
+
+        // Generar archivo
+        const fecha = new Date().toISOString().split('T')[0];
+        const nombreArchivo = `${lugarNombre.replace(/[^a-z0-9]/gi, '_')}_${fecha}.xlsx`;
+        XLSX.writeFile(workbook, nombreArchivo);
+      }).catch(err => {
+        console.error('Error al cargar xlsx:', err);
+        alert('Error al exportar. Por favor, intenta nuevamente.');
+      });
+    } catch (error) {
+      console.error('Error en exportación:', error);
+      alert('Error al exportar a Excel');
+    }
+  };
+
+  const handleVerDetalle = (evento) => {
+    setEventoSeleccionado(evento);
+    setModalDetalleOpen(true);
+  };
+
+  const handleCloseDetalle = () => {
+    setModalDetalleOpen(false);
+    setEventoSeleccionado(null);
+  };
+
   if (loading) {
     return (
       <div className="p-8 flex items-center gap-3 text-gray-600 dark:text-gray-200">
@@ -93,6 +216,15 @@ export default function HomeLugar() {
           <p className="text-xs text-gray-400 dark:text-gray-500">Última actualización: {lastUpdated ? formatDate(lastUpdated.toISOString()) : '—'}</p>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={handleExportToExcel} 
+            disabled={!data || loading}
+            title="Exportar a Excel"
+            className="px-4 py-2 bg-[#206a73] hover:bg-[#155059] text-white rounded-lg flex items-center gap-2 shadow disabled:opacity-60 disabled:cursor-not-allowed transition"
+          >
+            <Download size={18} />
+            <span className="hidden sm:inline">Exportar</span>
+          </button>
           <button onClick={handleRefresh} disabled={isRefreshing || loading} aria-busy={isRefreshing}
             className="w-10 h-10 bg-white dark:bg-gray-200 rounded-full flex items-center justify-center shadow disabled:opacity-60 disabled:cursor-not-allowed">
             {isRefreshing ? <InlineSpinner size="xs" /> : <RefreshCw className="text-gray-600 dark:text-gray-800" />}
@@ -108,9 +240,9 @@ export default function HomeLugar() {
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
         <KpiCard icon={<Calendar className="w-6 h-6" />} label="Eventos totales" value={totales.eventos} />
         <KpiCard icon={<Users className="w-6 h-6" />} label="Alumnos" value={totales.asistentesAlumnos} />
-        <KpiCard icon={<Users className="w-6 h-6" />} label="Con boletos" value={totales.asistentes} />
+        {/* <KpiCard icon={<Users className="w-6 h-6" />} label="Con boletos" value={totales.asistentes} /> */}
         <KpiCard icon={<TrendingUp className="w-6 h-6" />} label="Ocupación promedio" value={totales.ocupacionPromedio + '%'} />
-        <KpiCard icon={<BarChart2 className="w-6 h-6" />} label="Ingresos estimados" value={'$' + totales.ingresosEstimados.toLocaleString()} />
+        {/* <KpiCard icon={<BarChart2 className="w-6 h-6" />} label="Ingresos estimados" value={'$' + totales.ingresosEstimados.toLocaleString()} /> */}
       </section>
 
       {/* KPIs de Boletos */}
@@ -161,13 +293,14 @@ export default function HomeLugar() {
                 <Th>Nombre</Th>
                 <Th>Tipo</Th>
                 <Th>Alumnos</Th>
-                <Th>Con boletos</Th>
+                {/* <Th>Con boletos</Th> */}
                 <Th>Apartados</Th>
                 <Th>Pagados</Th>
                 <Th>Abonado</Th>
                 <Th>Por Pagar</Th>
                 <Th>% Pagado</Th>
                 <Th>% Abonado</Th>
+                <Th>Acciones</Th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-[#1e1e1e] divide-y divide-gray-100 dark:divide-gray-800">
@@ -175,12 +308,12 @@ export default function HomeLugar() {
                 <tr><td colSpan={11} className="p-4 text-center text-gray-500">No hay eventos próximos</td></tr>
               )}
               {proximosEventos.map(ev => (
-                <tr key={ev.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
-                  <Td>{formatDate(ev.fecha)}</Td>
-                  <Td className="font-medium">{ev.nombre}</Td>
-                  <Td>{ev.tipo}</Td>
+                <tr key={ev.evento.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
+                  <Td>{formatDate(ev.evento.fecha_evento)}</Td>
+                  <Td className="font-medium">{ev.evento.nombre_evento}</Td>
+                  <Td>{ev.evento.tipo}</Td>
                   <Td>{ev.asistentesAlumnos || '-'}</Td>
-                  <Td>{ev.invitados}</Td>
+                  {/* <Td>{ev.invitados}</Td> */}
                   <Td>
                     <div>{ev.boletosApartados}</div>
                     <div className="text-xs text-gray-500">${ev.boletosApartadosDinero.toLocaleString()}</div>
@@ -215,6 +348,15 @@ export default function HomeLugar() {
                       {ev.porcentajeAbonado}%
                     </span>
                   </Td>
+                  <Td>
+                    <button
+                      onClick={() => handleVerDetalle(ev)}
+                      className="p-2 rounded-lg bg-[#246370] hover:bg-[#1d4f5a] dark:bg-[#2a9d8f] dark:hover:bg-[#238276] text-white transition-colors shadow-sm"
+                      title="Ver detalles del evento"
+                    >
+                      <Eye size={16} />
+                    </button>
+                  </Td>
                 </tr>
               ))}
             </tbody>
@@ -242,17 +384,18 @@ export default function HomeLugar() {
                   <Th>Por Pagar</Th>
                   <Th>% Pagado</Th>
                   <Th>% Abonado</Th>
+                  <Th>Acciones</Th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-[#1e1e1e] divide-y divide-gray-100 dark:divide-gray-800">
                 {eventosRecientes.length === 0 && (
-                  <tr><td colSpan={12} className="p-4 text-center text-gray-500">No hay eventos registrados</td></tr>
+                  <tr><td colSpan={13} className="p-4 text-center text-gray-500">No hay eventos registrados</td></tr>
                 )}
                 {eventosRecientes.map(ev => (
-                  <tr key={ev.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
-                    <Td>{formatDate(ev.fecha)}</Td>
-                    <Td className="font-medium">{ev.nombre}</Td>
-                    <Td>{ev.tipo}</Td>
+                  <tr key={ev.evento.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
+                    <Td>{formatDate(ev.evento.fecha_evento)}</Td>
+                    <Td className="font-medium">{ev.evento.nombre_evento}</Td>
+                    <Td>{ev.evento.tipo}</Td>
                     <Td>{ev.asistentesAlumnos || '-'}</Td>
                     <Td>{ev.asistentes}</Td>
                     <Td>{ev.ocupacion}%</Td>
@@ -290,6 +433,15 @@ export default function HomeLugar() {
                         {ev.porcentajeAbonado}%
                       </span>
                     </Td>
+                    <Td>
+                      <button
+                        onClick={() => handleVerDetalle(ev)}
+                        className="p-2 rounded-lg bg-[#246370] hover:bg-[#1d4f5a] dark:bg-[#2a9d8f] dark:hover:bg-[#238276] text-white transition-colors shadow-sm"
+                        title="Ver detalles del evento"
+                      >
+                        <Eye size={16} />
+                      </button>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
@@ -313,6 +465,13 @@ export default function HomeLugar() {
           </div>
         )}
       </section>
+      
+      {/* Modal de detalle de evento */}
+      <DetalleEvento 
+        open={modalDetalleOpen}
+        onClose={handleCloseDetalle}
+        evento={eventoSeleccionado}
+      />
     </div>
   );
 }

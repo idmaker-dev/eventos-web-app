@@ -6,6 +6,9 @@ import guestService from "./guestService";
 import userService from "./userService";
 import whatsappService from "./whatsappService";
 import codigoVerificacionService from "./codigoVerificacionService";
+import layoutService from "./layoutService";
+import layoutEventoService from "./layoutEventoService";
+import asignacionService from "./asignacionService";
 
 export {
   httpService,
@@ -15,6 +18,9 @@ export {
   userService,
   whatsappService,
   codigoVerificacionService,
+  layoutService,
+  layoutEventoService,
+  asignacionService,
 };
 
 // También exportar como un objeto por conveniencia
@@ -26,6 +32,9 @@ export const services = {
   user: userService,
   whatsapp: whatsappService,
   codigoVerificacion: codigoVerificacionService,
+  layout: layoutService,
+  layoutEvento: layoutEventoService,
+  asignacion: asignacionService,
 };
 
 export default services;
