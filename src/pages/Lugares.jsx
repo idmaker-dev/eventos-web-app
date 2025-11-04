@@ -1,11 +1,22 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2, Search, Phone, MapPin } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  Phone,
+  MapPin,
+  Settings,
+  Users,
+} from "lucide-react";
 import lugarService from "../services/lugarService";
 import ModalLugar from "../components/Modales/ModalLugar";
 import ConfirmDialog from "../components/Modales/ConfirmDialog";
 import { useNotifications } from "../contexts/NotificationContext";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import { Tooltip } from "../components/ui/Tooltip";
+import ModalInicioAsignacion from "../components/Distribuccion/ModalInicioAsignacion";
+import { useNavigate } from "react-router-dom";
 
 export default function Lugares() {
   const [lugares, setLugares] = useState([]);
@@ -18,8 +29,10 @@ export default function Lugares() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [lugarAEliminar, setLugarAEliminar] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
+  const [isAsignacionModalOpen, setIsAsignacionModalOpen] = useState(false);
+  const [lugarParaAsignacion, setLugarParaAsignacion] = useState(null);
   const { showSuccess, showError } = useNotifications();
+  const navigate = useNavigate();
 
   // Cargar lugares
   const cargarLugares = useCallback(async () => {
@@ -143,6 +156,12 @@ export default function Lugares() {
     }
   };
 
+  // Configurar módulo de asignación para un lugar
+  const handleConfigurarAsignacion = (lugar) => {
+    setLugarParaAsignacion(lugar);
+    setIsAsignacionModalOpen(true);
+  };
+
   return (
     <div className="relative p-6 bg-white dark:bg-[#1e1e1e] rounded-3xl shadow-md">
       {isLoading && <LoadingSpinner overlay size="medium" />}
@@ -158,14 +177,12 @@ export default function Lugares() {
         </div>
         <div className="flex items-center gap-4 mt-4 md:mt-0">
           <Tooltip content="Crear nuevo lugar">
-            
-          <button
-            onClick={handleCrear}
-            className="md:mt-0 inline-flex items-center gap-2 px-1.5 py-1.5 bg-casal text-white font-semibold rounded-full hover:bg-[#5fa090] transition"
-          >
-            <Plus className="w-6 h-6" />
-            
-          </button>
+            <button
+              onClick={handleCrear}
+              className="md:mt-0 inline-flex items-center gap-2 px-1.5 py-1.5 bg-casal text-white font-semibold rounded-full hover:bg-[#5fa090] transition"
+            >
+              <Plus className="w-6 h-6" />
+            </button>
           </Tooltip>
 
           {/* Barra de búsqueda */}
@@ -218,9 +235,9 @@ export default function Lugares() {
                   <tr
                     key={lugar.id}
                     className={`transition ${
-                      index % 2 === 0 
-                        ? 'bg-fondoVs dark:bg-[#1e1e1e] rounded-3xl' 
-                        : 'bg-transparent dark:bg-slate-800/30'
+                      index % 2 === 0
+                        ? "bg-fondoVs dark:bg-[#1e1e1e] rounded-3xl"
+                        : "bg-transparent dark:bg-slate-800/30"
                     } hover:bg-casal/20 dark:hover:bg-casal/50`}
                   >
                     <td className="px-6 py-2 whitespace-nowrap">
@@ -229,9 +246,13 @@ export default function Lugares() {
                       </div>
                     </td>
                     <td className="px-6 py-2">
-                      <div className="text-sm text-gray-700 dark:text-gray-400 max-w-md flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gray-600" />
-                        {lugar.direccion}
+                      <div className="text-sm text-gray-700  dark:text-gray-400 max-w-md flex items-center gap-2">
+                        <div>
+                          <MapPin className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <div>
+                          {lugar.direccion}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-2 whitespace-nowrap">
@@ -242,6 +263,17 @@ export default function Lugares() {
                     </td>
                     <td className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
+                        <Tooltip
+                          content="Configurar Módulo de Asignación"
+                          position="top"
+                        >
+                          <button
+                            onClick={() => handleConfigurarAsignacion(lugar)}
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-Acapulco text-white rounded-full hover:bg-casalds-700 transition"
+                          >
+                            <Users className="w-4 h-4" />
+                          </button>
+                        </Tooltip>
                         <Tooltip content="Editar lugar" position="top">
                           <button
                             onClick={() => handleEditar(lugar)}
@@ -302,6 +334,20 @@ export default function Lugares() {
           }
         }}
         onConfirm={confirmarEliminar}
+      />
+      <ModalInicioAsignacion
+        isOpen={isAsignacionModalOpen}
+        onClose={() => setIsAsignacionModalOpen(false)}
+        direccionEvento={lugarParaAsignacion?.direccion || ""}
+        salonesExistentes={
+          lugarParaAsignacion?.asignaciones?.length > 0
+            ? lugarParaAsignacion.asignaciones
+            : []
+        }
+        onIniciar={() => {
+          setIsAsignacionModalOpen(false);
+          navigate("/admin/asignacion", { state: { skipModal: true } });
+        }}
       />
     </div>
   );

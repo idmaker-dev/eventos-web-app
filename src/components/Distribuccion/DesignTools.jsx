@@ -14,7 +14,6 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { Button } from "@headlessui/react";
-import { Tooltip } from "../ui/Tooltip.jsx";
 
 export default function DesignTools({ agregarElemento }) {
   return (

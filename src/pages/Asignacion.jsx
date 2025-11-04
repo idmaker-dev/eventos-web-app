@@ -4,12 +4,15 @@ import ModalInicioAsignacion from "../components/Distribuccion/ModalInicioAsigna
 import { useSelectedEvent } from "../contexts/SelectedEventContext.jsx";
 import DistribuccionEditor from "../components/Distribuccion/DistribuccionEditor.jsx";
 import DistribuccionMonitor from "../components/Distribuccion/DistribuccionMonitor.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 export default function Asignacion() {
   const { eventoActual } = useSelectedEvent();
   const navigate = useNavigate();
-  const [showModalInicio, setShowModalInicio] = useState(true);
+  const location = useLocation();
+  const skipModal = location.state?.skipModal;
+
+  const [showModalInicio, setShowModalInicio] = useState(!skipModal);
   const [configuracion, setConfiguracion] = useState(null);
 
   // Función para generar lista inicial de invitados

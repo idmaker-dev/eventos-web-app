@@ -5,16 +5,15 @@ import React from "react";
 
 export default function ModalBienvenida({ 
   open, 
-  close, 
-  usuario = { nombre: "María González" },
-  evento = { nombre: "Graduación PREPA TEC", fecha: "23 de Mayo 2026", lugar: "Auditorio Principal" }
+  onClose, 
+  usuario,
+  horario,
+ 
 }) {
   return (
     <Dialog
       open={open}
-      onClose={() => {
-        close();
-      }}
+      onClose={onClose}
       as="div"
       className="relative z-50 focus:outline-none"
     >
@@ -30,7 +29,10 @@ export default function ModalBienvenida({
           >
             <div className="relative bg-gradient-to-r from-casal to-casal/80 p-4">
               <button
-                onClick={close}
+                onClick={() => {
+                  console.log('🚀 Cerrando modal de bienvenida');
+                  onClose();
+                }}
                 className="absolute top-4 right-4 p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-full transition-all duration-200 z-10"
               >
                 <X className="w-5 h-5" />
@@ -42,9 +44,8 @@ export default function ModalBienvenida({
                   <img
                     src="/logop.png"
                     alt="Logo P"
-                    className="object-contain  w-16 h-16"
+                    className="object-contain w-16 h-16"
                   />
-                 
                 </div>
                 
                 <div className="text-white/90 text-sm font-medium">
@@ -52,7 +53,7 @@ export default function ModalBienvenida({
                     ¡Bienvenid@, {usuario.nombre}!
                   </h1>
                   <p className="text-white/90 text-sm font-medium">
-                    Selección de Mesa - {evento.nombre}
+                    Selección de Mesa - Graduación PREPA TEC
                   </p>
                 </div>
               </DialogTitle>
@@ -62,15 +63,15 @@ export default function ModalBienvenida({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-white/90">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-white/70" />
-                    <span className="text-sm font-medium">{evento.fecha}</span>
+                    <span className="text-sm font-medium">23 de Mayo 2026</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-white/70" />
-                    <span className="text-sm font-medium">{evento.lugar}</span>
+                    <span className="text-sm font-medium">Auditorio Principal</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-white/70" />
-                    <span className="text-sm font-medium">Selección Personal</span>
+                    <span className="text-sm font-medium">Graduación PREPA TEC</span>
                   </div>
                 </div>
               </div>
@@ -95,13 +96,12 @@ export default function ModalBienvenida({
               {/* Texto descriptivo */}
               <div className="space-y-2 text-center">
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
-                  ¡Hora de elegir tu mesa perfecta...! 
+                  ¡Es tu turno de elegir mesa! 
                 </h2>
                 
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 text-left">
                   <p className="text-gray-700 dark:text-gray-200 leading-relaxed mb-3">
-                    Te damos la bienvenida a nuestro sistema de asignación de mesas. 
-                    Aquí podrás:
+                    Ha llegado tu momento de asignación. Aquí podrás:
                   </p>
                   
                   <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
@@ -111,7 +111,7 @@ export default function ModalBienvenida({
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-casal rounded-full"></span>
-                      Seleccionar la mesa que prefieras
+                      Seleccionar la mesa que prefieras (mesas grises disponibles)
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-casal rounded-full"></span>
@@ -119,27 +119,40 @@ export default function ModalBienvenida({
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-casal rounded-full"></span>
-                      Confirmar tu asignación al instante
+                      Confirmar tu asignación antes de que termine el tiempo
                     </li>
                   </ul>
                 </div>
 
-                {/* Tip adicional */}
+                {/* Información del horario */}
                 <div className="bg-casal/5 dark:bg-casal/30 border border-casal/20 dark:border-casal/700 rounded-lg p-3">
                   <p className="text-casal dark:text-casal text-sm">
-                    <strong>Tip:</strong> Las mesas en con asientos color gris tienen espacio disponible para ti. <br /> 
-                    ¡Haz clic en la que más te guste!
+                    <strong>⏰ Tu horario:</strong> {horario.inicio} - {horario.fin} ({horario.duracionMinutos} min)
+                    <br />
+                    Una vez que cierres este modal, tendrás exactamente <strong>{horario.duracionMinutos} minutos</strong> para completar tu selección.
+                  </p>
+                </div>
+
+                {/* Advertencia importante */}
+                <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3">
+                  <p className="text-yellow-800 dark:text-yellow-200 text-sm">
+                    <strong>⚠️ Importante:</strong> Si no completas tu selección en el tiempo asignado, 
+                    regresarás automáticamente a la fila de espera y tendrás que esperar un nuevo turno.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-50 dark:bg-gray-700 px-8 py-2 flex justify-end gap-3">
+            {/* Botón de acción */}
+            <div className="bg-gray-50 dark:bg-gray-700 px-8 py-4 flex justify-end gap-3">
               <Button
-                onClick={close}
+                onClick={() => {
+                  console.log('🚀 Comenzando selección de mesa');
+                  onClose();
+                }}
                 className="px-6 py-3 bg-gradient-to-r from-casal to-casal/80 hover:from-casal/90 hover:to-casal text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 focus:ring-2 focus:ring-casal/50 focus:ring-offset-2"
               >
-                ¡Comenzar a explorar! 
+                ¡Comenzar Selección de Mesa! 
               </Button>
             </div>
           </DialogPanel>

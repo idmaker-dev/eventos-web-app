@@ -13,13 +13,20 @@ import {
   MapPin,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
+  Clock2,
+  Lightbulb,
 } from "lucide-react";
 import { Button } from "@headlessui/react";
 import { Tooltip } from "../ui/Tooltip.jsx";
 import ModalRestricciones from "../Distribuccion/ModalRestricciones.jsx";
 import ModalMesaDetalles from "../Distribuccion/ModalMesaDetalles.jsx";
 
-export default function AsignacionUser() {
+export default function AsignacionUser({
+  temporizadorActivo = false,
+  configuracionUsuario,
+  onCambioEstado,
+}) {
   /* -----------------------
     Constantes
   ----------------------- */
@@ -28,15 +35,22 @@ export default function AsignacionUser() {
   const ZOOM_STEP = 0.1;
   const ZOOM_MIN = 0.1;
   const ZOOM_MAX = 4;
+  const TIEMPO_LIMITE =
+    (configuracionUsuario?.horarioAsignacion?.duracionMinutos || 5) * 60 * 1000;
 
   /* -----------------------
     Estados y refs
   ----------------------- */
+  // Estado del temporizador
+  const [tiempoRestante, setTiempoRestante] = useState(null);
+  const [temporizadorExpiro, setTemporizadorExpiro] = useState(false);
+  const intervalRef = useRef(null);
+
   // Datos del usuario (simulado - en real vendrían de contexto/API)
   const [usuarioActual] = useState({
     id: "user-001",
     nombre: "María González",
-    cantidad: 2, // Trae acompañante
+    cantidad: 4, // Trae acompañante
     necesidadEspecial: false,
     email: "maria.gonzalez@email.com",
     telefono: "+52 555 123 4567",
@@ -152,6 +166,7 @@ export default function AsignacionUser() {
   const [otra, setOtra] = useState("");
   const [pendingAsignacion, setPendingAsignacion] = useState(null);
   const [pendingNombre, setPendingNombre] = useState("");
+  const [tipoMenu, setTipoMenu] = useState("normal");
 
   const [showMesaModal, setShowMesaModal] = useState(false);
   const [mesaSeleccionadaModal, setMesaSeleccionadaModal] = useState(null);
@@ -171,8 +186,17 @@ export default function AsignacionUser() {
     );
     if (asignacionGuardada) {
       try {
-       const asignacion = JSON.parse(asignacionGuardada);
-       setAsignacionActual(asignacion);
+        const asignacion = JSON.parse(asignacionGuardada);
+
+        // Validar que la estructura de datos sea correcta
+        if (!asignacion.personas || !Array.isArray(asignacion.personas)) {
+          console.warn("Estructura de asignación inválida, limpiando datos");
+          localStorage.removeItem(`asignacion-${usuarioActual.id}`);
+          return;
+        }
+
+        setAsignacionActual(asignacion);
+
         setAllElements((prevElements) =>
           prevElements.map((element) => {
             if (
@@ -181,22 +205,35 @@ export default function AsignacionUser() {
             ) {
               // Verificar si el usuario ya está en la mesa para evitar duplicados
               const yaEstaAsignado = (element.assignedGuests || []).some(
-                (guest) => guest.id === usuarioActual.id
+                (guest) => guest.usuarioId === usuarioActual.id
               );
               if (!yaEstaAsignado) {
                 return {
                   ...element,
+                  invitados:
+                    element.invitados +
+                    (asignacion.cantidadTotal || asignacion.personas.length),
                   assignedGuests: [
                     ...(element.assignedGuests || []),
-                    {
-                      id: usuarioActual.id,
-                      nombre: asignacion.nombre,
-                      cantidad: asignacion.cantidad,
-                      restricciones: asignacion.restricciones,
-                      otra: asignacion.otra,
-                      necesidadEspecial: asignacion.necesidadEspecial,
-                      fechaAsignacion: asignacion.fechaFormateada,
-                    },
+                    ...asignacion.personas.map((persona, index) => ({
+                      id: `${usuarioActual.id}-persona-${index + 1}`,
+                      usuarioId: usuarioActual.id,
+                      nombreCompleto: persona.nombre,
+                      tipoMenu: persona.tipoMenu,
+                      restricciones: persona.restricciones,
+                      otraRestriccion: persona.otraRestriccion,
+                      necesidadEspecial: usuarioActual.necesidadEspecial,
+                      fechaAsignacion: new Date(
+                        asignacion.fechaAsignacion
+                      ).toLocaleString("es-ES", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }),
+                      esResponsable: index === 0,
+                    })),
                   ],
                 };
               }
@@ -206,19 +243,61 @@ export default function AsignacionUser() {
         );
       } catch (error) {
         console.error("Error al cargar asignación:", error);
+        // Limpiar datos corruptos
+        localStorage.removeItem(`asignacion-${usuarioActual.id}`);
       }
     }
   }, [usuarioActual.id]);
 
-  // Atajos de teclado
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") resetZoom();
-      if (e.key === "f") fitToView();
+    if (temporizadorActivo && !asignacionActual) {
+      const inicioTemporizador = Date.now();
+      const finTemporizador = inicioTemporizador + TIEMPO_LIMITE;
+
+      localStorage.setItem(
+        "temporizador-inicio",
+        inicioTemporizador.toString()
+      );
+      localStorage.setItem("temporizador-fin", finTemporizador.toString());
+
+      const actualizarTemporizador = () => {
+        const ahora = Date.now();
+        const tiempoRestante = Math.max(0, finTemporizador - ahora);
+        setTiempoRestante(tiempoRestante);
+
+        if (tiempoRestante === 0) {
+          setTemporizadorExpiro(true);
+          clearInterval(intervalRef.current);
+          localStorage.removeItem("temporizador-inicio");
+          localStorage.removeItem("temporizador-fin");
+          if (onCambioEstado) {
+            onCambioEstado("expirada");
+          }
+          setTimeout(() => {
+            //window.location.href = "/login";
+          }, 3000);
+        }
+      };
+
+      actualizarTemporizador();
+      intervalRef.current = setInterval(actualizarTemporizador, 1000);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [zoom, offset, allElements]);
+  }, [temporizadorActivo, asignacionActual, onCambioEstado]);
+
+  const formatearTiempo = (milisegundos) => {
+    if (!milisegundos) return "00:00";
+    const minutos = Math.floor(milisegundos / 60000);
+    const segundos = Math.floor((milisegundos % 60000) / 1000);
+    return `${minutos.toString().padStart(2, "0")}:${segundos
+      .toString()
+      .padStart(2, "0")}`;
+  };
 
   /* -----------------------
      Util / Notificaciones
@@ -346,12 +425,53 @@ export default function AsignacionUser() {
       return;
     }
 
+    if (mesaSeleccionada.invitados === 0) {
+      const validacion = puedeAbrirMesaNueva();
+
+      if (!validacion.puede) {
+        const stats = obtenerEstadisticasOcupacion();
+        let mensajeDetallado = "";
+        if (validacion.razon === "minimo-personas") {
+          mensajeDetallado =
+            `No puedes abrir una mesa nueva aún.\n\n` +
+            `Ocupación actual: ${stats.totalPersonasOcupadas} personas\n` +
+            `Mínimo requerido: 10 personas\n\n` +
+            `Selecciona una mesa que ya tenga invitados asignados.`;
+        } else if (validacion.razon === "espacio-disponible") {
+          const mesasConEspacio = allElements
+            .filter(
+              (el) =>
+                (el.type === "mesa" || el.type === "mesaRectangular") &&
+                el.invitados > 0 &&
+                el.capacidad - el.invitados >= usuarioActual.cantidad
+            )
+            .map(
+              (mesa) =>
+                `Mesa ${mesa.numero} (${
+                  mesa.capacidad - mesa.invitados
+                } lugares)`
+            )
+            .join(", ");
+
+          mensajeDetallado =
+            `No puedes abrir una mesa nueva aún.\n\n` +
+            `Personas ocupadas: ${stats.totalPersonasOcupadas}\n` +
+            `Espacios disponibles: ${stats.espacioTotalDisponible} lugares\n\n` +
+            `Mesas con espacio disponible:\n${mesasConEspacio}\n\n` +
+            `Completa las mesas existentes antes de abrir una nueva.`;
+        }
+
+        mostrarNotificacion(mensajeDetallado, "warning");
+        return;
+      }
+    }
+
     // Validar capacidad disponible
     const espacioDisponible =
       mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
     if (espacioDisponible < usuarioActual.cantidad) {
       mostrarNotificacion(
-        `❌ La Mesa ${numeroMesa} no tiene suficiente espacio.\n\n` +
+        `La Mesa ${numeroMesa} no tiene suficiente espacio.\n\n` +
           `Necesitas: ${usuarioActual.cantidad} lugares\n` +
           `Disponibles: ${espacioDisponible} lugares`,
         "error"
@@ -371,7 +491,7 @@ export default function AsignacionUser() {
 
       if (sillasEspecialesDisponibles === 0) {
         mostrarNotificacion(
-          `❌ La Mesa ${numeroMesa} no tiene sillas especiales.\n\n` +
+          `La Mesa ${numeroMesa} no tiene sillas especiales.\n\n` +
             `Necesitas una silla de accesibilidad 🦽\n` +
             `Busca una mesa con el ícono de accesibilidad.`,
           "error"
@@ -393,34 +513,10 @@ export default function AsignacionUser() {
     setShowRestrModal(true);
   };
 
-  const handleConfirmRestricciones = ({
-    nombre,
-    restricciones: res,
-    otra: otraText,
-  }) => {
+  const handleConfirmRestricciones = ({ personas, cantidadTotal }) => {
     if (!pendingAsignacion) return;
 
     const { usuario, numeroMesa } = pendingAsignacion;
-
-    // Crear objeto de asignación
-    const nuevaAsignacion = {
-      id: `asignacion-${Date.now()}`,
-      usuarioId: usuario.id,
-      numeroMesa,
-      nombre: nombre || usuario.nombre,
-      cantidad: usuario.cantidad,
-      restricciones: res,
-      otra: otraText,
-      necesidadEspecial: usuario.necesidadEspecial,
-      fechaAsignacion: new Date().toISOString(),
-      fechaFormateada: new Date().toLocaleString("es-ES", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
 
     // Actualizar la mesa con la información del usuario asignado
     setAllElements((prevElements) =>
@@ -431,18 +527,27 @@ export default function AsignacionUser() {
         ) {
           return {
             ...element,
-            invitados: element.invitados + usuario.cantidad,
+
+            invitados: element.invitados + cantidadTotal,
             assignedGuests: [
               ...(element.assignedGuests || []),
-              {
-                id: usuario.id,
-                nombre: nombre || usuario.nombre,
-                cantidad: usuario.cantidad,
-                restricciones: res,
-                otra: otraText,
+              ...personas.map((persona, index) => ({
+                id: `${usuario.id}-persona-${index + 1}`,
+                usuarioId: usuario.id,
+                nombreCompleto: persona.nombre,
+                tipoMenu: persona.tipoMenu,
+                restricciones: persona.restricciones,
+                otraRestriccion: persona.otraRestriccion,
                 necesidadEspecial: usuario.necesidadEspecial,
-                fechaAsignacion: nuevaAsignacion.fechaFormateada,
-              },
+                fechaAsignacion: new Date().toLocaleString("es-ES", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+                esResponsable: index === 0, // La primera persona es el responsable
+              })),
             ],
           };
         }
@@ -450,18 +555,45 @@ export default function AsignacionUser() {
       })
     );
 
-    // Guardar asignación
-    setAsignacionActual(nuevaAsignacion);
+    // Crear objeto de asignación para guardar
+    const asignacionData = {
+      id: `asignacion-${Date.now()}`,
+      usuarioId: usuario.id,
+      numeroMesa,
+      cantidadTotal,
+      personas: personas,
+      fechaAsignacion: new Date().toISOString(),
+      fechaFormateada: new Date().toLocaleString("es-ES", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+
     localStorage.setItem(
-      `asignacion-${usuario.id}`,
-      JSON.stringify(nuevaAsignacion)
+      `asignacion-${usuarioActual.id}`,
+      JSON.stringify(asignacionData)
     );
 
+    // Actualizar el estado de asignación actual
+    setAsignacionActual(asignacionData);
+
+    // Detener temporizador al confirmar asignación
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    localStorage.removeItem("temporizador-inicio");
+    localStorage.removeItem("temporizador-fin");
+    setTiempoRestante(null);
+
     mostrarNotificacion(
-      `✅ ¡Asignación confirmada!\n\n` +
+      `¡Asignación confirmada!\n\n` +
         `Mesa: ${numeroMesa}\n` +
-        `Nombre: ${nombre || usuario.nombre}\n` +
-        `Personas: ${usuario.cantidad}`,
+        `Personas registradas: ${cantidadTotal}\n` +
+        `Responsable: ${personas[0]?.nombre}\n\n` +
+        `${temporizadorActivo ? "⏱️ Temporizador detenido" : ""}`,
       "success"
     );
 
@@ -469,6 +601,10 @@ export default function AsignacionUser() {
     setShowRestrModal(false);
     setPendingAsignacion(null);
     setPendingNombre("");
+
+    if (onCambioEstado) {
+      onCambioEstado("completada");
+    }
   };
 
   const cancelarAsignacion = () => {
@@ -476,8 +612,18 @@ export default function AsignacionUser() {
 
     const confirmar = window.confirm(
       "¿Estás seguro de que deseas cancelar tu asignación?\n\n" +
-        "Perderás tu lugar en la mesa y tendrás que seleccionar otra."
+        `Perderás tu lugar en la Mesa ${asignacionActual.numeroMesa} para ${
+          asignacionActual.cantidadTotal || usuarioActual.cantidad
+        } ${
+          (asignacionActual.cantidadTotal || usuarioActual.cantidad) === 1
+            ? "persona"
+            : "personas"
+        }.\n\n` +
+        "Tendrás que seleccionar otra mesa y configurar nuevamente la información de todos los invitados."
     );
+
+    if (!confirmar) return;
+
     // Remover al usuario de la mesa
     setAllElements((prevElements) =>
       prevElements.map((element) => {
@@ -487,9 +633,14 @@ export default function AsignacionUser() {
         ) {
           return {
             ...element,
-            invitados: Math.max(0, element.invitados - usuarioActual.cantidad),
+
+            invitados: Math.max(
+              0,
+              element.invitados -
+                (asignacionActual.cantidadTotal || usuarioActual.cantidad)
+            ),
             assignedGuests: (element.assignedGuests || []).filter(
-              (guest) => guest.id !== usuarioActual.id
+              (guest) => guest.usuarioId !== usuarioActual.id
             ),
           };
         }
@@ -497,14 +648,19 @@ export default function AsignacionUser() {
       })
     );
 
-    if (confirmar) {
-      setAsignacionActual(null);
-      localStorage.removeItem(`asignacion-${usuarioActual.id}`);
-      mostrarNotificacion(
-        "Asignación cancelada. Puedes seleccionar otra mesa.",
-        "info"
-      );
-    }
+    setAsignacionActual(null);
+    localStorage.removeItem(`asignacion-${usuarioActual.id}`);
+    mostrarNotificacion(
+      `Asignación cancelada exitosamente.\n\n` +
+        `Mesa ${asignacionActual.numeroMesa} liberada.\n` +
+        `${asignacionActual.cantidadTotal || usuarioActual.cantidad} ${
+          (asignacionActual.cantidadTotal || usuarioActual.cantidad) === 1
+            ? "lugar liberado"
+            : "lugares liberados"
+        }.\n\n` +
+        `Puedes seleccionar otra mesa ahora.`,
+      "info"
+    );
   };
 
   /* -----------------------
@@ -535,8 +691,24 @@ export default function AsignacionUser() {
   const MesaInteractiva = ({ element }) => {
     const esMiMesa = asignacionActual?.numeroMesa === element.numero;
     const espacioDisponible = element.capacidad - element.invitados;
-    const puedeSeleccionar =
-      !asignacionActual && espacioDisponible >= usuarioActual.cantidad;
+
+    let puedeSeleccionar = false;
+    if (!asignacionActual && espacioDisponible >= usuarioActual.cantidad) {
+      if (element.invitados > 0) {
+        // Mesa con invitados - siempre seleccionable si hay espacio
+        puedeSeleccionar = true;
+      } else {
+        // Mesa vacía - verificar reglas
+        const validacion = puedeAbrirMesaNueva();
+        puedeSeleccionar = validacion.puede;
+      }
+    }
+
+    const esSugerida = sugerenciasMesas.some(
+      (mesa) => mesa.numero === element.numero
+    );
+    const posicionSugerencia =
+      sugerenciasMesas.findIndex((mesa) => mesa.numero === element.numero) + 1;
 
     return (
       <div
@@ -545,6 +717,13 @@ export default function AsignacionUser() {
         }`}
         onClick={() => puedeSeleccionar && seleccionarMesa(element.numero)}
       >
+        {esSugerida && !asignacionActual && (
+          <div className="absolute -top-2 -right-2 z-10">
+            <div className="bg-casal text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold animate-pulse">
+              {posicionSugerencia}
+            </div>
+          </div>
+        )}
         <Mesa
           numeroMesa={element.numero}
           invitadosAsignados={element.invitados}
@@ -554,6 +733,7 @@ export default function AsignacionUser() {
           onDoubleClick={() => openMesaModal(element.numero)}
           destacada={esMiMesa}
           disponible={puedeSeleccionar}
+          sugerida={esSugerida}
           className={esMiMesa ? "ring-4 ring-green-400 ring-opacity-60" : ""}
         />
       </div>
@@ -566,6 +746,12 @@ export default function AsignacionUser() {
     const puedeSeleccionar =
       !asignacionActual && espacioDisponible >= usuarioActual.cantidad;
 
+    const esSugerida = sugerenciasMesas.some(
+      (mesa) => mesa.numero === element.numero
+    );
+    const posicionSugerencia =
+      sugerenciasMesas.findIndex((mesa) => mesa.numero === element.numero) + 1;
+
     return (
       <div
         className={`pointer-events-auto ${
@@ -573,6 +759,14 @@ export default function AsignacionUser() {
         }`}
         onClick={() => puedeSeleccionar && seleccionarMesa(element.numero)}
       >
+        {/* Indicador de sugerencia */}
+        {esSugerida && !asignacionActual && (
+          <div className="absolute -top-2 -right-2 z-10">
+            <div className="bg-casal text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold animate-pulse">
+              {posicionSugerencia}
+            </div>
+          </div>
+        )}
         <MesaRectangular
           numeroMesa={element.numero}
           invitadosAsignados={element.invitados}
@@ -582,6 +776,7 @@ export default function AsignacionUser() {
           onDoubleClick={() => openMesaModal(element.numero)}
           destacada={esMiMesa}
           disponible={puedeSeleccionar}
+          sugerida={esSugerida}
           className={esMiMesa ? "ring-4 ring-green-400 ring-opacity-60" : ""}
         />
       </div>
@@ -644,6 +839,154 @@ export default function AsignacionUser() {
     }
   };
 
+  if (temporizadorExpiro) {
+    return (
+      <div className="bg-fondoVs min-h-screen flex items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
+          <div className="text-6xl mb-4">⏰</div>
+          <h2 className="text-2xl font-bold text-red-600 mb-4">
+            ¡Tiempo Agotado!
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Se acabó el tiempo para seleccionar tu mesa.
+            <br />
+            Serás redirigido al login automáticamente.
+          </p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-casal mx-auto"></div>
+        </div>
+      </div>
+    );
+  }
+
+  /* -----------------------
+    Lógica de sugerencias y validaciones
+  ----------------------- */
+  const obtenerEstadisticasOcupacion = () => {
+    const mesasConInvitados = allElements.filter(
+      (el) =>
+        (el.type === "mesa" || el.type === "mesaRectangular") &&
+        el.invitados > 0
+    );
+
+    const totalPersonasOcupadas = mesasConInvitados.reduce(
+      (total, mesa) => total + mesa.invitados,
+      0
+    );
+
+    const espacioTotalDisponible = mesasConInvitados.reduce(
+      (total, mesa) => total + (mesa.capacidad - mesa.invitados),
+      0
+    );
+
+    return {
+      totalPersonasOcupadas,
+      espacioTotalDisponible,
+      mesasConInvitados: mesasConInvitados.length,
+      totalMesas: allElements.filter(
+        (el) => el.type === "mesa" || el.type === "mesaRectangular"
+      ).length,
+    };
+  };
+
+  const puedeAbrirMesaNueva = () => {
+    const stats = obtenerEstadisticasOcupacion();
+
+    // Regla 1: Si hay menos de 10 personas total, NO puede abrir mesa nueva
+    if (stats.totalPersonasOcupadas < 10) {
+      return {
+        puede: false,
+        razon: "minimo-personas",
+        mensaje: `Solo hay ${stats.totalPersonasOcupadas} personas ocupadas. Se necesitan al menos 10 personas antes de abrir una mesa nueva.`,
+      };
+    }
+
+    // Regla 2: Si aún hay espacio disponible en mesas ocupadas, NO puede abrir mesa nueva
+    if (stats.espacioTotalDisponible >= usuarioActual.cantidad) {
+      return {
+        puede: false,
+        razon: "espacio-disponible",
+        mensaje: `Aún hay ${stats.espacioTotalDisponible} lugares disponibles en mesas ocupadas. Debes llenar estos espacios primero.`,
+      };
+    }
+
+    // Puede abrir mesa nueva
+    return {
+      puede: true,
+      razon: "sin-espacio",
+      mensaje:
+        "Puedes abrir una mesa nueva porque no hay suficiente espacio en las mesas ocupadas.",
+    };
+  };
+
+  /* -----------------------
+    Lógica de sugerencias
+  ----------------------- */
+  const obtenerSugerenciasMesas = () => {
+    if (asignacionActual) return [];
+
+    const stats = obtenerEstadisticasOcupacion();
+    const puedeAbrirNueva = puedeAbrirMesaNueva();
+
+    const mesasDisponibles = allElements
+      .filter((el) => {
+        if (!(el.type === "mesa" || el.type === "mesaRectangular"))
+          return false;
+        if (el.capacidad - el.invitados < usuarioActual.cantidad) return false;
+
+        // Si la mesa está vacía, verificar si puede abrirla
+        if (el.invitados === 0 && !puedeAbrirNueva.puede) return false;
+
+        return true;
+      })
+      .map((mesa) => ({
+        ...mesa,
+        espacioDisponible: mesa.capacidad - mesa.invitados,
+        porcentajeOcupado: (mesa.invitados / mesa.capacidad) * 100,
+        // Validar sillas especiales
+        tieneSillaEspecial: usuarioActual.necesidadEspecial
+          ? Array.isArray(mesa.sillasEspeciales)
+            ? mesa.sillasEspeciales.length > 0
+            : mesa.sillasEspeciales > 0
+          : true,
+        esMesaNueva: mesa.invitados === 0,
+      }))
+      .filter((mesa) => mesa.tieneSillaEspecial);
+
+    // Ordenar por prioridad:
+    // 1. Mesas con invitados primero
+    // 2. Mesas más ocupadas
+    // 3. Espacio más justo
+    const mesasOrdenadas = mesasDisponibles.sort((a, b) => {
+      // Priorizar mesas con invitados sobre mesas vacías
+      if (a.esMesaNueva && !b.esMesaNueva) return 1;
+      if (!a.esMesaNueva && b.esMesaNueva) return -1;
+
+      // Si ambas tienen invitados, priorizar la más ocupada
+      if (a.invitados !== b.invitados) {
+        return b.invitados - a.invitados;
+      }
+
+      // Si tienen la misma ocupación, priorizar espacio más justo
+      return a.espacioDisponible - b.espacioDisponible;
+    });
+
+    return mesasOrdenadas.slice(0, 3);
+  };
+
+  const sugerenciasMesas = obtenerSugerenciasMesas();
+
+  const puedeSeleccionarMesaVacia = () => {
+    const validacion = puedeAbrirMesaNueva();
+    return validacion.puede;
+  };
+
+  const limpiarEstados = () => {
+    setRestricciones({});
+    // setOtraRestriccion("");
+    // setNombrePersona("");
+    setTipoMenu("normal");
+  };
+
   return (
     <div className="bg-fondoVs min-h-screen max-w-7xl mx-auto px-4 sm:px-2 lg:px-8">
       <div className="py-4">
@@ -653,11 +996,35 @@ export default function AsignacionUser() {
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
               <User className="w-8 h-8 text-casal" />
               Selección de Mesa
+              {tiempoRestante !== null && !asignacionActual && (
+                <div className="ml-4 flex items-center gap-2">
+                  <div
+                    className={`px-3 py-1 rounded-full font-mono text-lg font-bold ${
+                      tiempoRestante < 300000
+                        ? "bg-red-100 text-red-800 border border-red-300"
+                        : tiempoRestante < 600000
+                        ? "bg-yellow-100 text-yellow-800 border border-yellow-300"
+                        : "bg-green-100 text-green-800 border border-green-300"
+                    }`}
+                  >
+                    <Clock2 className="w-4 h-4 inline mr-1" />{" "}
+                    {formatearTiempo(tiempoRestante)}
+                  </div>
+                </div>
+              )}
             </h1>
-            <p className="text-gray-600 mt-2">
-              Elige tu mesa para el evento y especifica tus preferencias
-              alimenticias
-            </p>
+            <div className="text-gray-600 mt-2">
+              <p>
+                Elige tu mesa para el evento y especifica tus preferencias
+                alimenticias
+              </p>
+              {tiempoRestante !== null && !asignacionActual && (
+                <div className="block flex gap-2 items-center text-sm text-orange-600 font-medium mt-1">
+                  <AlertTriangle className="h-4 w-4"></AlertTriangle> Tienes{" "}
+                  {formatearTiempo(tiempoRestante)} para completar tu asignación
+                </div>
+              )}
+            </div>
           </div>
 
           {asignacionActual && (
@@ -747,14 +1114,107 @@ export default function AsignacionUser() {
                   </div>
                 </div>
               )}
+              {!asignacionActual && sugerenciasMesas.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  {(() => {
+                    const stats = obtenerEstadisticasOcupacion();
+                    return (
+                      <div className="mb-3 p-2 bg-gray-50 border border-gray-200 rounded text-xs">
+                        <div className="grid grid-cols-2 gap-2 text-center">
+                          <div>
+                            <div className="font-semibold text-gray-800">
+                              {stats.totalPersonasOcupadas}
+                            </div>
+                            <div className="text-gray-600">Personas</div>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-800">
+                              {stats.espacioTotalDisponible}
+                            </div>
+                            <div className="text-gray-600">Espacios libres</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-casal" />
+                    Mesas Sugeridas para Ti
+                  </h4>
+                  <div className="space-y-2">
+                    {sugerenciasMesas.map((mesa, index) => (
+                      <div
+                        key={mesa.numero}
+                        className="flex items-center justify-between p-2 bg-fondoVs border border-casalds-700 rounded cursor-pointer hover:bg-casalds-600/80 transition-colors group"
+                        onClick={() => seleccionarMesa(mesa.numero)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="bg-casal text-white group-hover:border group-hover:border-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                            {index + 1}
+                          </div>
+                          <span className="font-medium text-gray-800 group-hover:text-gray-100">
+                            Mesa {mesa.numero}
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-600 group-hover:text-gray-100">
+                          {mesa.espacioDisponible} lugares libres
+                          {mesa.invitados > 0 && (
+                            <span className="ml-1 text-casal group-hover:text-gray-200">
+                              ({mesa.invitados} ocupados)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 p-2 flex gap-2 bg-blue-50 border border-blue-200 rounded">
+                    <div>
+                      <Lightbulb className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <p className="text-xs text-blue-700">
+                      <strong>Sugerencia:</strong> Las mesas marcadas con
+                      números son las más convenientes para ti.
+                      {/* {!puedeSeleccionarMesaVacia() &&
+                        " Debes completar estas mesas antes de elegir una vacía."} */}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-6 p-3 bg-casal/5 border border-casal rounded-lg">
                 <p className="text-sm text-casal">
                   {!asignacionActual ? (
                     <>
-                      <AlertCircle className="w-4 h-4 inline mr-1" />
-                      Haz clic en una mesa disponible para seleccionarla. Las
-                      mesas con asiento grises tienen espacio suficiente para ti.
+                      {(() => {
+                        const stats = obtenerEstadisticasOcupacion();
+                        const validacion = puedeAbrirMesaNueva();
+
+                        if (tiempoRestante !== null) {
+                          return (
+                            <>
+                              <Clock2 className="w-4 h-4 inline mr-2" />
+                              <strong>
+                                {formatearTiempo(tiempoRestante)}
+                              </strong>{" "}
+                              restantes.
+                              <br />
+                              {!validacion.puede && (
+                                <>
+                                  <br />
+                                  <AlertCircle className="w-4 h-4 inline mr-1" />
+                                  <strong>Restricción:</strong>{" "}
+                                  {stats.totalPersonasOcupadas < 10
+                                    ? `Solo ${stats.totalPersonasOcupadas}/10 personas. No puedes abrir mesas nuevas.`
+                                    : `Hay ${stats.espacioTotalDisponible} lugares disponibles. Completa las mesas ocupadas primero.`}
+                                </>
+                              )}
+                            </>
+                          );
+                        } else {
+                          return "Haz clic en una mesa disponible para seleccionarla. Las mesas con asientos grises tienen espacio suficiente para ti.";
+                        }
+                      })()}
                     </>
                   ) : (
                     <>
@@ -852,15 +1312,22 @@ export default function AsignacionUser() {
             <div className="mt-4 text-sm text-gray-700 bg-gray-50 px-4 py-3 rounded-lg border border-gray-200">
               <div className="flex flex-col md:flex-row items-center justify-center gap-8 text-center">
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-green-200 border border-green-400 rounded"></div>
+                  <div className="w-4 h-4 bg-gray-200 border border-gray-400 rounded"></div>
                   <span>Mesa disponible para ti</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">1</span>
+                  </div>
+                  <span>Mesas sugeridas (prioridad)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-200 border border-blue-400 rounded"></div>
                   <div className="w-4 h-4 bg-yellow-200 border border-yellow-400 rounded"></div>
                   <span>Mesa con poco espacio</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-red-200 border border-red-400 rounded"></div>
+                  <div className="w-4 h-4 bg-green-200 border border-green-400 rounded"></div>
                   <span>Mesa llena</span>
                 </div>
                 {asignacionActual && (
@@ -882,6 +1349,7 @@ export default function AsignacionUser() {
           onClose={() => {
             setShowRestrModal(false);
             setPendingAsignacion(null);
+            limpiarEstados();
           }}
           invitado={pendingAsignacion?.usuario}
           mesaNumero={pendingAsignacion?.numeroMesa}
@@ -891,6 +1359,8 @@ export default function AsignacionUser() {
           setOtra={setOtra}
           nombre={pendingNombre}
           setNombre={setPendingNombre}
+          tipoMenu={tipoMenu}
+          setTipoMenu={setTipoMenu}
           onConfirm={handleConfirmRestricciones}
           isUserMode={true}
         />

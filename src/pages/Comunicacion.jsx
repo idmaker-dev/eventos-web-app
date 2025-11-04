@@ -2,6 +2,7 @@ import { Input } from "@headlessui/react";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from '@headlessui/react'
 import clsx from "clsx";
 import CrearCuestionarioPages from "../components/Comunicacion/CrearCuestionarioPages";
+import Tickets from "../components/Comunicacion/Tickets";
 import React from "react";
 import { useOutletContext } from "react-router-dom";
 
@@ -27,7 +28,7 @@ export default function Comunicacion() {
                 </div>
             </div>
             <div className="">
-                <TabGroup defaultIndex={2}>
+                <TabGroup defaultIndex={3}>
                     <TabList className="flex gap-4">
                         <Tab className={({ selected }) =>
                             clsx(
@@ -55,6 +56,21 @@ export default function Comunicacion() {
                         </Tab>
                         <Tab className={({ selected }) =>
                             clsx(
+                                "rounded-full text-sm/6 font-semibold flex  items-center ",
+                                "focus:outline-none transition",
+                                selected
+                                    ? "bg-casal text-white shadow dark:bg-casal"
+                                    : "hover:bg-white/15 text-grey dark:text-gray-600 bg-porcelain"
+                            )
+                        }>
+                            <p className="px-3 py-1">Tickets </p>
+
+                            <div className="flex justify-center items-center me-1 w-6 h-6 text-xs font-medium bg-towerGray text-white rounded-full">
+                                6
+                            </div>
+                        </Tab>
+                        <Tab className={({ selected }) =>
+                            clsx(
                                 "rounded-full px-3 py-1 text-sm/6 font-semibold",
                                 "focus:outline-none transition",
                                 selected
@@ -73,6 +89,9 @@ export default function Comunicacion() {
                                 <div className="p-6 h-[80vh] flex items-center justify-center    bg-white dark:bg-fodoBlack rounded-3xl shadow-md">
                                     <p className="text-gray-500 dark:text-gray-200 text-7xl -rotate-12">Página en construcción...</p>
                                 </div>
+                            </TabPanel>
+                             <TabPanel className={clsx("rounded-3xl border dark:border-gray-700 ")}>
+                                <Tickets></Tickets>
                             </TabPanel>
                             <TabPanel className={clsx("rounded-xl border-2")}>
                                  <CrearCuestionarioPages />
