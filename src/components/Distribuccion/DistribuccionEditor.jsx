@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -16,6 +16,7 @@ import DraggableElement from "./DraggableElement.jsx";
 import DesignTools from "./DesignTools.jsx";
 import StatsPanel from "./StatsPanel.jsx";
 import ModalSillasEspeciales from "./ModalSillasEspeciales.jsx";
+import ModalAgregarMesasMultiples from "./ModalAgregarMesasMultiples.jsx";
 
 export default function DistribuccionEditor({
   allElements,
@@ -28,6 +29,10 @@ export default function DistribuccionEditor({
   setLayoutFinal,
   invitados,
   setInvitados,
+  onGuardarLayout,
+  esLugar = true,
+  lugar = null,
+  configuracion = null,
 }) {
   console.log("🔍 DistribuccionEditor recibió:", {
     allElementsLength: allElements?.length || 0,
@@ -46,6 +51,20 @@ export default function DistribuccionEditor({
   const [showModalSillas, setShowModalSillas] = useState(false);
   const [tipoMesaModal, setTipoMesaModal] = useState("");
   const [capacidadMesaModal, setCapacidadMesaModal] = useState(8);
+  const [showModalMesasMultiples, setShowModalMesasMultiples] = useState(false);
+  
+  // Selección múltiple
+  const [selectedElements, setSelectedElements] = useState([]);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectionStart, setSelectionStart] = useState(null);
+  const [selectionEnd, setSelectionEnd] = useState(null);
+
+  // Control de transformaciones
+  const [rotationInput, setRotationInput] = useState(0);
+  const [scaleInput, setScaleInput] = useState(100);
+  const [widthInput, setWidthInput] = useState(100);
+  const [heightInput, setHeightInput] = useState(100);
+  const [lockAspectRatio, setLockAspectRatio] = useState(true);
 
   // ZOOM & FULLSCREEN modal
   const [zoom, setZoom] = useState(1);
@@ -57,14 +76,64 @@ export default function DistribuccionEditor({
   const isPanningRef = useRef(false);
   const panLastRef = useRef({ x: 0, y: 0 });
 
-  const CANVAS_WIDTH = 4000;
-  const CANVAS_HEIGHT = 2400;
+  const [canvasDimensions, setCanvasDimensions] = useState({
+    width: 4000,
+    height: 2400
+  });
   const ZOOM_STEP = 0.1;
   const ZOOM_MIN = 0.1;
   const ZOOM_MAX = 4;
 
   const openDesignModal = () => setShowDesignModal(true);
   const closeDesignModal = () => setShowDesignModal(false);
+  
+  // Calcular dimensiones del canvas basadas en el contenido
+  const calcularDimensionesCanvas = useCallback(() => {
+    if (allElements.length === 0) {
+      return { width: 5000, height: 2400 };
+    }
+
+    let maxX = 0;
+    let maxY = 0;
+    const margen = 500; // Margen adicional
+
+    allElements.forEach((el) => {
+      if (el.position) {
+        maxX = Math.max(maxX, el.position.x);
+        maxY = Math.max(maxY, el.position.y);
+      }
+    });
+
+    return {
+      width: Math.max(5000, maxX + margen),
+      height: Math.max(2400, maxY + margen),
+    };
+  }, [allElements]);
+
+  // Actualizar dimensiones del canvas cuando cambian los elementos
+  useEffect(() => {
+    const newDimensions = calcularDimensionesCanvas();
+    setCanvasDimensions(newDimensions);
+  }, [allElements, calcularDimensionesCanvas]);
+
+  // Actualizar valores de controles cuando cambia la selección
+  useEffect(() => {
+    if (selectedElements.length > 0) {
+      const firstSelected = allElements.find(el => el.id === selectedElements[0]);
+      if (firstSelected) {
+        setRotationInput(firstSelected.rotation || 0);
+        
+        const scale = firstSelected.scale || 1;
+        const scaleX = firstSelected.scaleX || scale;
+        const scaleY = firstSelected.scaleY || scale;
+        
+        setScaleInput(Math.round(scale * 100));
+        setWidthInput(Math.round(scaleX * 100));
+        setHeightInput(Math.round(scaleY * 100));
+      }
+    }
+  }, [selectedElements, allElements]);
+  
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -74,8 +143,71 @@ export default function DistribuccionEditor({
     useSensor(KeyboardSensor)
   );
 
+  // Atajos de teclado para selección y rotación
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl+A o Cmd+A: Seleccionar todos los elementos
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault();
+        selectAllMesas();
+      }
+      // Escape: Limpiar selección
+      if (e.key === 'Escape') {
+        clearSelection();
+      }
+      // Delete o Backspace: Eliminar mesas seleccionadas (con confirmación)
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElements.length > 0) {
+        e.preventDefault();
+        const confirmar = window.confirm(
+          `¿Deseas eliminar ${selectedElements.length} mesa${selectedElements.length > 1 ? 's' : ''}?`
+        );
+        if (confirmar) {
+          eliminarElementosSeleccionados();
+        }
+      }
+      // R: Rotar elementos seleccionados (Shift+R para antihorario)
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        const antihorario = e.shiftKey;
+        if (selectedElements.length > 0) {
+          rotarElementosSeleccionados(antihorario);
+        }
+      }
+      // Flechas del teclado: Mover elementos seleccionados
+      if (selectedElements.length > 0 && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        const incremento = e.shiftKey ? 20 : 10; // Shift+Flecha = movimiento más rápido
+        let deltaX = 0;
+        let deltaY = 0;
+
+        switch (e.key) {
+          case 'ArrowUp':
+            deltaY = -incremento;
+            break;
+          case 'ArrowDown':
+            deltaY = incremento;
+            break;
+          case 'ArrowLeft':
+            deltaX = -incremento;
+            break;
+          case 'ArrowRight':
+            deltaX = incremento;
+            break;
+          default:
+            break;
+        }
+
+        moverElementosSeleccionados(deltaX, deltaY);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedElements]);
+
   // Zoom functions
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  // const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const zoomIn = () =>
     setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)));
   const zoomOut = () =>
@@ -124,6 +256,8 @@ export default function DistribuccionEditor({
           id: `barra-${nuevoContador}`,
           type: "barra",
           position: posicionAleatoria,
+          rotation: 0,
+          scale: 1,
         };
         break;
       case "buffet":
@@ -131,6 +265,8 @@ export default function DistribuccionEditor({
           id: `buffet-${nuevoContador}`,
           type: "buffet",
           position: posicionAleatoria,
+          rotation: 0,
+          scale: 1,
         };
         break;
       case "escenario":
@@ -138,6 +274,8 @@ export default function DistribuccionEditor({
           id: `escenario-${nuevoContador}`,
           type: "escenario",
           position: posicionAleatoria,
+          rotation: 0,
+          scale: 1,
         };
         break;
       case "entrada":
@@ -145,6 +283,8 @@ export default function DistribuccionEditor({
           id: `entrada-${nuevoContador}`,
           type: "entrada",
           position: posicionAleatoria,
+          rotation: 0,
+          scale: 1,
         };
         break;
       case "pistaBaileRedonda":
@@ -152,6 +292,8 @@ export default function DistribuccionEditor({
           id: `pista-redonda-${nuevoContador}`,
           type: "pistaBaileRedonda",
           position: posicionAleatoria,
+          rotation: 0,
+          scale: 1,
         };
         break;
       case "pistaBaileRectangular":
@@ -159,6 +301,17 @@ export default function DistribuccionEditor({
           id: `pista-rect-${nuevoContador}`,
           type: "pistaBaileRectangular",
           position: posicionAleatoria,
+          rotation: 0,
+          scale: 1,
+        };
+        break;
+      case "pistaBaileCuadrada":
+        nuevoElemento = {
+          id: `pista-cuad-${nuevoContador}`,
+          type: "pistaBaileCuadrada",
+          position: posicionAleatoria,
+          rotation: 0,
+          scale: 1,
         };
         break;
       default:
@@ -271,12 +424,266 @@ export default function DistribuccionEditor({
     }
   };
 
+  // Selección múltiple
+  const toggleElementSelection = (elementId, event) => {
+    const element = allElements.find((el) => el.id === elementId);
+    // Verificar que el elemento existe
+    if (!element) {
+      return;
+    }
+
+    if (event?.ctrlKey || event?.metaKey) {
+      // Ctrl+Click: agregar/quitar de selección
+      setSelectedElements((prev) =>
+        prev.includes(elementId)
+          ? prev.filter((id) => id !== elementId)
+          : [...prev, elementId]
+      );
+    } else {
+      // Click normal: seleccionar solo este
+      setSelectedElements([elementId]);
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedElements([]);
+  };
+
+  const selectAllMesas = () => {
+    // Seleccionar todos los elementos (no solo mesas)
+    const todosIds = allElements.map((el) => el.id);
+    setSelectedElements(todosIds);
+  };
+
+  // Rotación de elementos
+  // Función individual (disponible para uso futuro)
+  // const rotarElemento = (elementId, antihorario = false) => {
+  //   setAllElements((prev) =>
+  //     prev.map((el) => {
+  //       if (el.id === elementId) {
+  //         const rotacionActual = el.rotation || 0;
+  //         const incremento = antihorario ? -90 : 90;
+  //         let nuevaRotacion = (rotacionActual + incremento) % 360;
+  //         if (nuevaRotacion < 0) nuevaRotacion += 360;
+  //         return { ...el, rotation: nuevaRotacion };
+  //       }
+  //       return el;
+  //     })
+  //   );
+  //   setLayoutGuardado(false);
+  // };
+
+  const rotarElementosSeleccionados = (antihorario = false) => {
+    if (selectedElements.length === 0) return;
+    
+    setAllElements((prev) =>
+      prev.map((el) => {
+        if (selectedElements.includes(el.id)) {
+          const rotacionActual = el.rotation || 0;
+          const incremento = antihorario ? -90 : 90;
+          let nuevaRotacion = (rotacionActual + incremento) % 360;
+          if (nuevaRotacion < 0) nuevaRotacion += 360;
+          return { ...el, rotation: nuevaRotacion };
+        }
+        return el;
+      })
+    );
+    setLayoutGuardado(false);
+  };
+
+  // Establecer rotación exacta para elementos seleccionados
+  const setRotacionElementosSeleccionados = (angulo) => {
+    if (selectedElements.length === 0) return;
+    
+    let anguloNormalizado = angulo % 360;
+    if (anguloNormalizado < 0) anguloNormalizado += 360;
+    
+    setAllElements((prev) =>
+      prev.map((el) => {
+        if (selectedElements.includes(el.id)) {
+          return { ...el, rotation: anguloNormalizado };
+        }
+        return el;
+      })
+    );
+    setLayoutGuardado(false);
+  };
+
+  // Cambiar escala de elementos seleccionados
+  const setEscalaElementosSeleccionados = (escala) => {
+    if (selectedElements.length === 0) return;
+    
+    const escalaValida = Math.max(0.1, Math.min(5, escala)); // Entre 10% y 500%
+    
+    setAllElements((prev) =>
+      prev.map((el) => {
+        if (selectedElements.includes(el.id)) {
+          return { ...el, scale: escalaValida };
+        }
+        return el;
+      })
+    );
+    setLayoutGuardado(false);
+  };
+
+  // Cambiar ancho de elementos seleccionados
+  const setAnchoElementosSeleccionados = (porcentaje) => {
+    if (selectedElements.length === 0) return;
+    
+    const anchoValido = Math.max(10, Math.min(500, porcentaje));
+    
+    setAllElements((prev) =>
+      prev.map((el) => {
+        if (selectedElements.includes(el.id)) {
+          const nuevoWidth = anchoValido / 100;
+          if (lockAspectRatio) {
+            // Mantener proporción
+            return { ...el, scale: nuevoWidth };
+          } else {
+            // Cambiar solo ancho
+            return { ...el, scaleX: nuevoWidth };
+          }
+        }
+        return el;
+      })
+    );
+    setLayoutGuardado(false);
+  };
+
+  // Cambiar alto de elementos seleccionados
+  const setAltoElementosSeleccionados = (porcentaje) => {
+    if (selectedElements.length === 0) return;
+    
+    const altoValido = Math.max(10, Math.min(500, porcentaje));
+    
+    setAllElements((prev) =>
+      prev.map((el) => {
+        if (selectedElements.includes(el.id)) {
+          const nuevoHeight = altoValido / 100;
+          if (lockAspectRatio) {
+            // Mantener proporción
+            return { ...el, scale: nuevoHeight };
+          } else {
+            // Cambiar solo alto
+            return { ...el, scaleY: nuevoHeight };
+          }
+        }
+        return el;
+      })
+    );
+    setLayoutGuardado(false);
+  };
+
+  const moverElementosSeleccionados = (deltaX, deltaY) => {
+    if (selectedElements.length === 0) return;
+    
+    setAllElements((prev) =>
+      prev.map((el) => {
+        if (selectedElements.includes(el.id)) {
+          return {
+            ...el,
+            position: {
+              x: Math.max(0, el.position.x + deltaX),
+              y: Math.max(0, el.position.y + deltaY),
+            },
+          };
+        }
+        return el;
+      })
+    );
+    setLayoutGuardado(false);
+  };
+
+  const eliminarElementosSeleccionados = () => {
+    if (selectedElements.length === 0) return;
+
+    // Verificar si alguna mesa tiene invitados asignados
+    const mesasConInvitados = allElements.filter(
+      (el) => selectedElements.includes(el.id) && el.invitados > 0
+    );
+
+    if (mesasConInvitados.length > 0) {
+      const nombresMesas = mesasConInvitados
+        .map((mesa) => `Mesa ${mesa.numero} (${mesa.invitados} invitados)`)
+        .join('\n');
+      alert(
+        `No se pueden eliminar las siguientes mesas porque tienen invitados asignados:\n\n${nombresMesas}`
+      );
+      return;
+    }
+
+    // Filtrar los elementos a eliminar
+    const idsAEliminar = new Set(selectedElements);
+    const elementosFiltrados = allElements.filter((el) => !idsAEliminar.has(el.id));
+
+    // Reorganizar números de mesas
+    const mesas = elementosFiltrados.filter(
+      (el) => el.type === "mesa" || el.type === "mesaRectangular"
+    );
+
+    // Renumerar mesas en orden
+    const mesasRenumeradas = mesas
+      .sort((a, b) => a.numero - b.numero)
+      .map((mesa, index) => ({
+        ...mesa,
+        numero: index + 1,
+        id: mesa.type === "mesa" ? `mesa-${index + 1}` : `mesa-rect-${index + 1}`,
+      }));
+
+    // Combinar mesas renumeradas con otros elementos
+    const otrosElementos = elementosFiltrados.filter(
+      (el) => el.type !== "mesa" && el.type !== "mesaRectangular"
+    );
+
+    setAllElements([...mesasRenumeradas, ...otrosElementos]);
+
+    // Actualizar contadores
+    const contadoresMesa = {};
+    mesasRenumeradas.forEach((mesa) => {
+      contadoresMesa[mesa.type] = (contadoresMesa[mesa.type] || 0) + 1;
+    });
+
+    setContadores((prev) => ({
+      ...prev,
+      mesa: contadoresMesa.mesa || 0,
+      mesaRectangular: contadoresMesa.mesaRectangular || 0,
+    }));
+
+    clearSelection();
+    setLayoutGuardado(false);
+  };
+
+  // Verificar si hay intersección con rectángulo de selección (disponible para uso futuro)
+  // const isInSelectionRect = (elementPos) => {
+  //   if (!selectionStart || !selectionEnd) return false;
+
+  //   const minX = Math.min(selectionStart.x, selectionEnd.x);
+  //   const maxX = Math.max(selectionStart.x, selectionEnd.x);
+  //   const minY = Math.min(selectionStart.y, selectionEnd.y);
+  //   const maxY = Math.max(selectionStart.y, selectionEnd.y);
+
+  //   return (
+  //     elementPos.x >= minX &&
+  //     elementPos.x <= maxX &&
+  //     elementPos.y >= minY &&
+  //     elementPos.y <= maxY
+  //   );
+  // };
+
   // DnD Handlers
   const handleDragStart = (event) => {
     const { active } = event;
     setActiveId(active.id);
     const element = allElements.find((el) => el.id === active.id);
     setActiveElement(element);
+
+    // Si el elemento arrastrado está en la selección, mover todos
+    if (selectedElements.includes(active.id)) {
+      // Ya está seleccionado, se moverán todos juntos
+    } else {
+      // No está seleccionado, limpiar selección
+      setSelectedElements([]);
+    }
   };
 
   const handleDragEnd = (event) => {
@@ -291,18 +698,23 @@ export default function DistribuccionEditor({
 
     setAllElements((prev) =>
       prev.map((element) => {
-        if (element.id === draggedElementId) {
+        // Si hay elementos seleccionados y este es uno de ellos, moverlos todos
+        if (selectedElements.length > 0 && selectedElements.includes(element.id)) {
           return {
             ...element,
             position: {
-              x: Math.max(
-                0,
-                Math.min(1600 - 100, element.position.x + adjDeltaX)
-              ),
-              y: Math.max(
-                0,
-                Math.min(800 - 100, element.position.y + adjDeltaY)
-              ),
+              x: Math.max(0, element.position.x + adjDeltaX),
+              y: Math.max(0, element.position.y + adjDeltaY),
+            },
+          };
+        }
+        // Si no hay selección múltiple, mover solo el elemento arrastrado
+        if (element.id === draggedElementId && selectedElements.length === 0) {
+          return {
+            ...element,
+            position: {
+              x: Math.max(0, element.position.x + adjDeltaX),
+              y: Math.max(0, element.position.y + adjDeltaY),
             },
           };
         }
@@ -316,29 +728,105 @@ export default function DistribuccionEditor({
     setActiveElement(null);
   };
 
-  // Canvas pan handlers
+  // Canvas pan handlers y selección por arrastre
   const handleMouseDownCanvas = (e) => {
     if (activeId) return;
-    const startPan =
-      e.button === 1 || e.altKey || e.code === "Space" || e.shiftKey;
-    if (!startPan) return;
-    isPanningRef.current = true;
-    panLastRef.current = { x: e.clientX, y: e.clientY };
-    if (containerRef.current) containerRef.current.style.cursor = "grabbing";
+    if (!canvasRef.current) return; // Validación para evitar error
+
+    const isCanvasBackground = 
+      e.target === e.currentTarget || 
+      e.target === canvasRef.current ||
+      e.target.classList.contains('bg-gray-50') || 
+      e.target.classList.contains('dark:bg-[#1a1a1a]') ||
+      e.target.closest('.absolute.inset-0');
+
+    // Determinar si es pan o selección
+    const startPan = e.button === 1 || e.altKey || e.code === "Space" || e.shiftKey;
+    
+    if (startPan) {
+      // Modo pan (mover canvas)
+      isPanningRef.current = true;
+      panLastRef.current = { x: e.clientX, y: e.clientY };
+      if (containerRef.current) containerRef.current.style.cursor = "grabbing";
+    } else if (isCanvasBackground && !startPan) {
+      // Modo selección por arrastre
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left - offset.x) / zoom;
+      const y = (e.clientY - rect.top - offset.y) / zoom;
+      
+      setIsSelecting(true);
+      setSelectionStart({ x, y });
+      setSelectionEnd({ x, y });
+      
+      // Si no se mantiene Ctrl, limpiar selección previa
+      if (!e.ctrlKey && !e.metaKey) {
+        clearSelection();
+      }
+    }
   };
 
   const handleMouseMoveCanvas = (e) => {
-    if (!isPanningRef.current) return;
-    const dx = (e.clientX - panLastRef.current.x) / zoom;
-    const dy = (e.clientY - panLastRef.current.y) / zoom;
-    panLastRef.current = { x: e.clientX, y: e.clientY };
-    setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+    if (isPanningRef.current) {
+      // Pan mode
+      const dx = (e.clientX - panLastRef.current.x) / zoom;
+      const dy = (e.clientY - panLastRef.current.y) / zoom;
+      panLastRef.current = { x: e.clientX, y: e.clientY };
+      setOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+    } else if (isSelecting && selectionStart && canvasRef.current) {
+      // Selection mode
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left - offset.x) / zoom;
+      const y = (e.clientY - rect.top - offset.y) / zoom;
+      
+      setSelectionEnd({ x, y });
+    }
   };
 
   const handleMouseUpCanvas = () => {
-    if (!isPanningRef.current) return;
-    isPanningRef.current = false;
-    if (containerRef.current) containerRef.current.style.cursor = "default";
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      if (containerRef.current) containerRef.current.style.cursor = "default";
+    } else if (isSelecting) {
+      // Finalizar selección por arrastre
+      if (selectionStart && selectionEnd) {
+        const minX = Math.min(selectionStart.x, selectionEnd.x);
+        const maxX = Math.max(selectionStart.x, selectionEnd.x);
+        const minY = Math.min(selectionStart.y, selectionEnd.y);
+        const maxY = Math.max(selectionStart.y, selectionEnd.y);
+
+        // Seleccionar mesas dentro del rectángulo
+        const mesasEnRectangulo = allElements
+          .filter((el) => {
+            if (el.type !== "mesa" && el.type !== "mesaRectangular") return false;
+            
+            const mesaX = el.position.x;
+            const mesaY = el.position.y;
+            
+            return mesaX >= minX && mesaX <= maxX && mesaY >= minY && mesaY <= maxY;
+          })
+          .map((el) => el.id);
+
+        // Si se mantiene Ctrl, agregar a la selección actual
+        if (window.event?.ctrlKey || window.event?.metaKey) {
+          setSelectedElements((prev) => {
+            const newSelection = [...prev];
+            mesasEnRectangulo.forEach((id) => {
+              if (!newSelection.includes(id)) {
+                newSelection.push(id);
+              }
+            });
+            return newSelection;
+          });
+        } else {
+          // Sin Ctrl, reemplazar selección
+          setSelectedElements(mesasEnRectangulo);
+        }
+      }
+
+      setIsSelecting(false);
+      setSelectionStart(null);
+      setSelectionEnd(null);
+    }
   };
 
   // Fit to view
@@ -370,6 +858,8 @@ export default function DistribuccionEditor({
         capacidad: 8,
         sillasEspeciales: sillasEspeciales,
         position: posicionAleatoria,
+        rotation: 0,
+        scale: 1,
       };
     } else if (tipo === "mesaRectangular") {
       nuevoElemento = {
@@ -380,12 +870,210 @@ export default function DistribuccionEditor({
         capacidad: 10,
         sillasEspeciales: sillasEspeciales,
         position: posicionAleatoria,
+        rotation: 0,
+        scale: 1,
       };
     }
 
     setAllElements((prev) => [...prev, nuevoElemento]);
     setContadores((prev) => ({ ...prev, [tipo]: prev[tipo] + 1 }));
     setShowModalSillas(false);
+  };
+
+  // Agregar mesas múltiples
+  const agregarMesasMultiples = (config) => {
+    const { cantidad, capacidad, tipo, distribucion, direccionNumeracion = "horizontal-derecha-abajo", numeroVuelta = null } = config;
+    console.log('Cantidad: ' + cantidad);
+    
+    const nuevasMesas = [];
+    let numeroInicial = obtenerSiguienteNumeroMesa();
+
+    // Espaciado fijo entre mesas (píxeles)
+    const ESPACIO_HORIZONTAL = 150; // Espacio fijo entre mesas horizontalmente
+    const ESPACIO_VERTICAL = 150;   // Espacio fijo entre filas
+    const MARGEN_INICIAL_X = 300;   // Margen desde el borde izquierdo
+    const MARGEN_INICIAL_Y = 300;   // Margen desde el borde superior
+
+    if (distribucion === "automatica") {
+      // Calcular número óptimo de columnas/filas según dirección
+      const colsIdeal = numeroVuelta != null ? numeroVuelta : Math.ceil(Math.sqrt(cantidad * 1.5)); // Más columnas que filas
+      console.log('ColsIdeal: '+ colsIdeal);
+      
+      const filasTotal = Math.ceil(cantidad / colsIdeal);
+      console.log('FilasTotal: '+ filasTotal);
+      
+
+      // Crear array de posiciones según la dirección
+      const posiciones = [];
+      
+      // Función helper para obtener dirección inversa
+      const obtenerDireccionInversa = (direccion) => {
+        const inversas = {
+          "horizontal-derecha-abajo": "horizontal-izquierda-abajo",
+          "horizontal-izquierda-abajo": "horizontal-derecha-abajo",
+          "horizontal-derecha-arriba": "horizontal-izquierda-arriba",
+          "horizontal-izquierda-arriba": "horizontal-derecha-arriba",
+          "vertical-abajo-derecha": "vertical-abajo-izquierda",
+          "vertical-abajo-izquierda": "vertical-abajo-derecha",
+          "vertical-arriba-derecha": "vertical-arriba-izquierda",
+          "vertical-arriba-izquierda": "vertical-arriba-derecha",
+          "zigzag-horizontal": "zigzag-horizontal",
+          "zigzag-horizontal-arriba": "zigzag-horizontal-arriba",
+          "zigzag-vertical": "zigzag-vertical",
+        };
+        return inversas[direccion] || direccion;
+      };
+      
+      for (let i = 0; i < cantidad; i++) {
+        let columna, fila;
+        const numeroMesa = numeroInicial + i;
+        
+        // Determinar si debemos usar la dirección inversa
+        const usarDireccionInversa = false;//numeroVuelta !== null && numeroMesa > numeroVuelta;
+        
+        // Cuando no hay vuelta, usar i directamente
+        // Cuando hay vuelta, calcular cuántas mesas han pasado desde la vuelta
+        const indiceParaCalculo = usarDireccionInversa 
+          ? (numeroMesa - numeroVuelta - 1) 
+          : i;
+        
+        const direccionActual = usarDireccionInversa ? obtenerDireccionInversa(direccionNumeracion) : direccionNumeracion;
+        
+        switch (direccionActual) {
+          case "horizontal-derecha-abajo":
+            // Izquierda → Derecha, luego abajo (1→2→3, 4→5→6)
+            columna = indiceParaCalculo % colsIdeal;
+            fila = Math.floor(indiceParaCalculo / colsIdeal);
+            break;
+            
+          case "horizontal-izquierda-abajo":
+            // Derecha → Izquierda, luego abajo (3→2→1, 6→5→4)
+            fila = Math.floor(indiceParaCalculo / colsIdeal);
+            columna = (colsIdeal - 1) - (indiceParaCalculo % colsIdeal);
+            break;
+            
+          case "vertical-abajo-derecha":
+            // Arriba → Abajo, luego derecha (1↓2↓3, 4↓5↓6)
+            columna = Math.floor(indiceParaCalculo / filasTotal);
+            fila = indiceParaCalculo % filasTotal;
+            break;
+            
+          case "vertical-arriba-derecha":
+            // Abajo → Arriba, luego derecha (3↑2↑1, 6↑5↑4)
+            columna = Math.floor(indiceParaCalculo / filasTotal);
+            fila = (filasTotal - 1) - (indiceParaCalculo % filasTotal);
+            break;
+            
+          case "zigzag-horizontal":
+            // Zigzag horizontal empezando arriba: 1→2→3, 6←5←4, 7→8→9
+            fila = Math.floor(indiceParaCalculo / colsIdeal);
+            const posEnFila = indiceParaCalculo % colsIdeal;
+            // Si la fila es impar, invertir dirección
+            columna = (fila % 2 === 0) ? posEnFila : (colsIdeal - 1 - posEnFila);
+            break;
+
+          case "zigzag-horizontal-arriba":
+            // Zigzag horizontal empezando abajo: 4→5→6, 3←2←1
+            fila = (filasTotal - 1) - Math.floor(indiceParaCalculo / colsIdeal);
+            const posEnFilaArriba = indiceParaCalculo % colsIdeal;
+            // Si la fila (desde abajo) es impar, invertir dirección
+            const filaDesdeAbajo = Math.floor(indiceParaCalculo / colsIdeal);
+            columna = (filaDesdeAbajo % 2 === 0) ? posEnFilaArriba : (colsIdeal - 1 - posEnFilaArriba);
+            break;
+            
+          case "zigzag-vertical":
+            // Zigzag vertical: 1↓2↓3, 6↑5↑4, 7↓8↓9
+            columna = Math.floor(indiceParaCalculo / filasTotal);
+            const posEnCol = indiceParaCalculo % filasTotal;
+            // Si la columna es impar, invertir dirección
+            fila = (columna % 2 === 0) ? posEnCol : (filasTotal - 1 - posEnCol);
+            break;
+
+          case "horizontal-derecha-arriba":
+            // Izquierda → Derecha, desde abajo hacia arriba (4→5→6, 1→2→3)
+            columna = indiceParaCalculo % colsIdeal;
+            fila = (filasTotal - 1) - Math.floor(indiceParaCalculo / colsIdeal);
+            break;
+
+          case "horizontal-izquierda-arriba":
+            // Derecha → Izquierda, desde abajo hacia arriba (6→5→4, 3→2→1)
+            fila = (filasTotal - 1) - Math.floor(indiceParaCalculo / colsIdeal);
+            columna = (colsIdeal - 1) - (indiceParaCalculo % colsIdeal);
+            break;
+
+          case "vertical-abajo-izquierda":
+            // Arriba → Abajo, desde derecha hacia izquierda (4↓5↓6, 1↓2↓3)
+            columna = (colsIdeal - 1) - Math.floor(indiceParaCalculo / filasTotal);
+            fila = indiceParaCalculo % filasTotal;
+            break;
+
+          case "vertical-arriba-izquierda":
+            // Abajo → Arriba, desde derecha hacia izquierda (6↑5↑4, 3↑2↑1)
+            columna = (colsIdeal - 1) - Math.floor(indiceParaCalculo / filasTotal);
+            fila = (filasTotal - 1) - (indiceParaCalculo % filasTotal);
+            break;
+            
+          default:
+            // Por defecto: horizontal izquierda a derecha
+            columna = indiceParaCalculo % colsIdeal;
+            fila = Math.floor(indiceParaCalculo / colsIdeal);
+        }
+        
+        posiciones.push({
+          columna,
+          fila,
+          numeroMesa,
+          position: {
+            x: MARGEN_INICIAL_X + (columna * ESPACIO_HORIZONTAL),
+            y: MARGEN_INICIAL_Y + (fila * ESPACIO_VERTICAL),
+          }
+        });
+      }
+
+      // Crear las mesas con sus posiciones y números
+      posiciones.forEach((pos) => {
+        const nuevaMesa = {
+          id: tipo === "mesa" ? `mesa-${pos.numeroMesa}` : `mesa-rect-${pos.numeroMesa}`,
+          type: tipo,
+          numero: pos.numeroMesa,
+          invitados: 0,
+          capacidad: capacidad,
+          sillasEspeciales: [],
+          position: pos.position,
+          rotation: 0,
+          scale: 1,
+        };
+
+        nuevasMesas.push(nuevaMesa);
+      });
+    } else {
+      // Modo manual: distribución aleatoria
+      for (let i = 0; i < cantidad; i++) {
+        const nuevaMesa = {
+          id: tipo === "mesa" ? `mesa-${numeroInicial + i}` : `mesa-rect-${numeroInicial + i}`,
+          type: tipo,
+          numero: numeroInicial + i,
+          invitados: 0,
+          capacidad: capacidad,
+          sillasEspeciales: [],
+          position: {
+            x: Math.random() * 3000 + 200,
+            y: Math.random() * 1800 + 200,
+          },
+          rotation: 0,
+          scale: 1,
+        };
+
+        nuevasMesas.push(nuevaMesa);
+      }
+    }
+
+    setAllElements((prev) => [...prev, ...nuevasMesas]);
+    setContadores((prev) => ({
+      ...prev,
+      [tipo]: prev[tipo] + cantidad,
+    }));
+    setShowModalMesasMultiples(false);
   };
 
   // Calcular estadísticas
@@ -460,6 +1148,13 @@ export default function DistribuccionEditor({
 
   // Guardar distribución
   const guardarDistribucion = () => {
+    // Si se proporciona una función personalizada de guardado, usarla
+    if (onGuardarLayout) {
+      onGuardarLayout();
+      return;
+    }
+
+    // Comportamiento por defecto (para mantener compatibilidad)
     const layoutConDatos = {
       elementos: [...allElements],
       contadores: { ...contadores },
@@ -476,9 +1171,25 @@ export default function DistribuccionEditor({
 
   // Render elemento
   const renderElementAdmin = (element) => {
+    const isSelected = selectedElements.includes(element.id);
+    const rotation = element.rotation || 0;
+    const scale = element.scale || 1;
+    const scaleX = element.scaleX || scale;
+    const scaleY = element.scaleY || scale;
+    
+    // Combinar rotación y escala en una sola transformación
+    const transformStyle = { 
+      transform: `rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`,
+      transformOrigin: 'center center'
+    };
+    
     if (element.type === "mesa") {
       return (
-        <div className="relative group">
+        <div 
+          className={`relative group cursor-pointer ${isSelected ? 'ring-4 ring-blue-500 ring-opacity-50 rounded-full' : ''}`}
+          style={transformStyle}
+          onClick={(e) => toggleElementSelection(element.id, e)}
+        >
           <Mesa
             numeroMesa={element.numero}
             invitadosAsignados={element.invitados}
@@ -487,6 +1198,9 @@ export default function DistribuccionEditor({
             invitadosEspeciales={element.invitadosEspeciales || 0}
             onDrop={asignarInvitadosMesa}
           />
+          {isSelected && (
+            <div className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></div>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -502,7 +1216,11 @@ export default function DistribuccionEditor({
 
     if (element.type === "mesaRectangular") {
       return (
-        <div className="relative group">
+        <div 
+          className={`relative group cursor-pointer ${isSelected ? 'ring-4 ring-blue-500 ring-opacity-50 rounded-lg' : ''}`}
+          style={transformStyle}
+          onClick={(e) => toggleElementSelection(element.id, e)}
+        >
           <MesaRectangular
             numeroMesa={element.numero}
             invitadosAsignados={element.invitados}
@@ -511,6 +1229,9 @@ export default function DistribuccionEditor({
             invitadosEspeciales={element.invitadosEspeciales || 0}
             onDrop={asignarInvitadosMesa}
           />
+          {isSelected && (
+            <div className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></div>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -562,6 +1283,14 @@ export default function DistribuccionEditor({
               </span>
             </div>
           );
+        case "pistaBaileCuadrada":
+          return (
+            <div className="w-40 h-40 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold bg-cafe/10 cursor-move rounded-md">
+              <span className="text-cafe text-lg font-bold">
+                Pista de <br /> Baile
+              </span>
+            </div>
+          );
         case "escenario":
           return (
             <div className="border-2 border-separate border-dashed border-gray-300 w-28 h-28 flex flex-col items-center justify-center text-center p-2 rounded-md text-gray-500 dark:text-gray-300 font-semibold bg-white dark:bg-slate-800 shadow cursor-move">
@@ -582,8 +1311,15 @@ export default function DistribuccionEditor({
 
     if (!["mesa-principal"].includes(element.type)) {
       return (
-        <div className="relative group">
+        <div 
+          className={`relative group cursor-pointer ${isSelected ? 'ring-4 ring-blue-500 ring-opacity-50 rounded-lg' : ''}`}
+          style={transformStyle}
+          onClick={(e) => toggleElementSelection(element.id, e)}
+        >
           {elementContent}
+          {isSelected && (
+            <div className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></div>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -596,13 +1332,24 @@ export default function DistribuccionEditor({
         </div>
       );
     }
-    return elementContent;
+    return (
+      <div 
+        className={`relative ${isSelected ? 'ring-4 ring-blue-500 ring-opacity-50 rounded-lg' : ''}`}
+        style={transformStyle}
+        onClick={(e) => toggleElementSelection(element.id, e)}
+      >
+        {elementContent}
+        {isSelected && (
+          <div className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white"></div>
+        )}
+      </div>
+    );
   };
 
   const stats = calcularEstadisticas();
 
   const saveFromModal = () => {
-    guardarDistribucion && guardarDistribucion(); // reutiliza la función existente si está definida
+    guardarDistribucion(); // reutiliza la función existente
     closeDesignModal();
   };
 
@@ -620,7 +1367,7 @@ export default function DistribuccionEditor({
             <div className="flex items-center gap-4">
               <div>
                 <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                  Módulo de Asignación - Gestionar Layout
+                  Módulo de Distribución - Gestionar Layout
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
                   Diseño y Gestión de Asientos
@@ -628,6 +1375,138 @@ export default function DistribuccionEditor({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
+              {selectedElements.length > 0 && (
+                <>
+                  <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-1">
+                    <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                      {selectedElements.length} elemento{selectedElements.length > 1 ? 's' : ''} seleccionado{selectedElements.length > 1 ? 's' : ''}
+                    </span>
+                    <button
+                      onClick={() => rotarElementosSeleccionados(false)}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-sm font-medium flex items-center gap-1"
+                      title="Rotar 90° (R)"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      +90°
+                    </button>
+                    <button
+                      onClick={clearSelection}
+                      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-sm font-medium"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
+
+                  {/* Panel de Transformaciones */}
+                  <div className="flex items-center gap-2 bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-700 rounded-lg px-3 py-1">
+                    {/* Rotación Exacta */}
+                    <div className="flex items-center gap-1">
+                      <label className="text-xs font-medium text-purple-700 dark:text-purple-300">Rotación:</label>
+                      <input
+                        type="number"
+                        value={rotationInput}
+                        onChange={(e) => setRotationInput(Number(e.target.value))}
+                        onBlur={() => setRotacionElementosSeleccionados(rotationInput)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setRotacionElementosSeleccionados(rotationInput);
+                          }
+                        }}
+                        className="w-16 px-2 py-1 text-xs border border-purple-300 dark:border-purple-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                        min="0"
+                        max="359"
+                        step="1"
+                      />
+                      <span className="text-xs text-purple-600 dark:text-purple-400">°</span>
+                    </div>
+
+                    {/* Escala */}
+                    <div className="flex items-center gap-1 border-l border-purple-300 dark:border-purple-600 pl-2">
+                      <label className="text-xs font-medium text-purple-700 dark:text-purple-300">Escala:</label>
+                      <input
+                        type="number"
+                        value={scaleInput}
+                        onChange={(e) => setScaleInput(Number(e.target.value))}
+                        onBlur={() => setEscalaElementosSeleccionados(scaleInput / 100)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setEscalaElementosSeleccionados(scaleInput / 100);
+                          }
+                        }}
+                        className="w-16 px-2 py-1 text-xs border border-purple-300 dark:border-purple-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                        min="10"
+                        max="500"
+                        step="5"
+                      />
+                      <span className="text-xs text-purple-600 dark:text-purple-400">%</span>
+                    </div>
+
+                    {/* Bloquear proporción */}
+                    <button
+                      onClick={() => setLockAspectRatio(!lockAspectRatio)}
+                      className={`text-xs px-2 py-1 rounded ${
+                        lockAspectRatio 
+                          ? 'bg-purple-200 dark:bg-purple-700 text-purple-800 dark:text-purple-200' 
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      }`}
+                      title={lockAspectRatio ? "Proporción bloqueada" : "Proporción libre"}
+                    >
+                      {lockAspectRatio ? "🔒" : "🔓"}
+                    </button>
+
+                    {/* Ancho y Alto (solo si proporción está desbloqueada) */}
+                    {!lockAspectRatio && (
+                      <>
+                        <div className="flex items-center gap-1 border-l border-purple-300 dark:border-purple-600 pl-2">
+                          <label className="text-xs font-medium text-purple-700 dark:text-purple-300">Ancho:</label>
+                          <input
+                            type="number"
+                            value={widthInput}
+                            onChange={(e) => setWidthInput(Number(e.target.value))}
+                            onBlur={() => setAnchoElementosSeleccionados(widthInput)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                setAnchoElementosSeleccionados(widthInput);
+                              }
+                            }}
+                            className="w-16 px-2 py-1 text-xs border border-purple-300 dark:border-purple-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            min="10"
+                            max="500"
+                            step="5"
+                          />
+                          <span className="text-xs text-purple-600 dark:text-purple-400">%</span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs font-medium text-purple-700 dark:text-purple-300">Alto:</label>
+                          <input
+                            type="number"
+                            value={heightInput}
+                            onChange={(e) => setHeightInput(Number(e.target.value))}
+                            onBlur={() => setAltoElementosSeleccionados(heightInput)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                setAltoElementosSeleccionados(heightInput);
+                              }
+                            }}
+                            className="w-16 px-2 py-1 text-xs border border-purple-300 dark:border-purple-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            min="10"
+                            max="500"
+                            step="5"
+                          />
+                          <span className="text-xs text-purple-600 dark:text-purple-400">%</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+              <Button
+                onClick={selectAllMesas}
+                className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-lg font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
+              >
+                Seleccionar Todo
+              </Button>
               {!layoutGuardado && (
                 <Button
                   onClick={guardarDistribucion}
@@ -643,12 +1522,17 @@ export default function DistribuccionEditor({
           <div className="block md:flex md:justify-between lg:justify-between gap-10 px-4 pb-4 mt-6">
             <div className="dark:text-gray-100 mb-4 md:mb-0">
               <h3 className="text-xl font-semibold">
-                Plano del Salón - "Jardín Romántico"
+                {lugar?.nombre || "Plano del Salón"}
+                {configuracion?.modo === "editar" && configuracion?.configuracion?.nombre && (
+                  <span className="text-gray-600 dark:text-gray-400 font-normal">
+                    {" - "}{configuracion.configuracion.nombre}
+                  </span>
+                )}
               </h3>
             </div>
             <div>
               <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
-                Evento: "Graduación ITESM 2025"
+                {esLugar ? "Modo Lugar" : "Modo Evento"}
               </h3>
             </div>
             <div className="relative flex items-center gap-3">
@@ -656,15 +1540,30 @@ export default function DistribuccionEditor({
                 <Button className="size-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer">
                   <BadgeQuestionMark />
                 </Button>
-                <div className="absolute w-72 -right-6 top-20 -translate-y-1/2 px-3 py-2 bg-white border dark:bg-gray-600 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                <div className="absolute w-80 -right-6 top-20 -translate-y-1/2 px-3 py-2 bg-white border dark:bg-gray-600 text-white text-sm rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
                   <p className="text-sm text-yellow-800 dark:text-gray-200">
-                    <strong>Instrucciones:</strong> Arrastra los elementos para
-                    posicionarlos. Haz hover sobre cualquier elemento y presiona
-                    "×" para eliminarlo. Guarda el layout cuando esté listo.
+                    <strong>Instrucciones:</strong><br/>
+                    • Arrastra elementos para moverlos<br/>
+                    • Click para seleccionar<br/>
+                    • Ctrl+Click para selección múltiple<br/>
+                    • <strong>Arrastra en espacio vacío para seleccionar área</strong><br/>
+                    • Ctrl+A: Seleccionar todos los elementos<br/>
+                    • <strong>Flechas ←↑→↓: Mover (pixel a pixel)</strong><br/>
+                    • <strong>Shift+Flechas: Mover rápido (10px)</strong><br/>
+                    • <strong>R: Rotar 90°</strong><br/>
+                    • Shift+R: Rotar antihorario<br/>
+                    • <strong>Panel morado: Rotación exacta y escala</strong><br/>
+                    • <strong>🔒: Bloquear/desbloquear proporción</strong><br/>
+                    • Esc: Limpiar selección<br/>
+                    • Delete: Eliminar seleccionadas<br/>
+                    • Hover + "×" para eliminar individual
                   </p>
                 </div>
               </div>
-              <DesignTools agregarElemento={agregarElemento} />
+              <DesignTools 
+                agregarElemento={agregarElemento} 
+                onAgregarMesasMultiples={() => setShowModalMesasMultiples(true)}
+              />
             </div>
           </div>
 
@@ -685,10 +1584,10 @@ export default function DistribuccionEditor({
                 <div
                   className="relative bg-gray-50 dark:bg-[#1a1a1a] overflow-hidden"
                   style={{
-                    height: `${CANVAS_HEIGHT}px`,
-                    minHeight: `${CANVAS_HEIGHT}px`,
-                    minWidth: `${CANVAS_WIDTH}px`,
-                    width: `${CANVAS_WIDTH}px`,
+                    height: `${canvasDimensions.height}px`,
+                    minHeight: `${canvasDimensions.height}px`,
+                    minWidth: `${canvasDimensions.width}px`,
+                    width: `${canvasDimensions.width}px`,
                   }}
                 >
                   <div
@@ -697,8 +1596,8 @@ export default function DistribuccionEditor({
                     style={{
                       transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
                       transformOrigin: "0 0",
-                      width: `${CANVAS_WIDTH}px`,
-                      height: `${CANVAS_HEIGHT}px`,
+                      width: `${canvasDimensions.width}px`,
+                      height: `${canvasDimensions.height}px`,
                     }}
                   >
                     {allElements.map((element) => (
@@ -728,16 +1627,37 @@ export default function DistribuccionEditor({
                       backgroundSize: "40px 40px",
                     }}
                   />
+                  
+                  {/* Rectángulo de selección */}
+                  {isSelecting && selectionStart && selectionEnd && (
+                    <div
+                      className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-none"
+                      style={{
+                        left: `${Math.min(selectionStart.x, selectionEnd.x)}px`,
+                        top: `${Math.min(selectionStart.y, selectionEnd.y)}px`,
+                        width: `${Math.abs(selectionEnd.x - selectionStart.x)}px`,
+                        height: `${Math.abs(selectionEnd.y - selectionStart.y)}px`,
+                      }}
+                    />
+                  )}
                 </div>
               </div>
 
               <div className="bg-blue-50 dark:bg-[#1a1a1a] border-t border-blue-200 px-4 py-2">
                 <div className="flex justify-between items-center text-xs text-blue-600">
                   <span className="font-medium">
-                    ↔ Scroll horizontal | ↕ Scroll vertical para navegar
+                    {isSelecting 
+                      ? "🔵 Seleccionando mesas..." 
+                      : isPanningRef.current 
+                      ? "✋ Moviendo vista..." 
+                      : "↔ Scroll horizontal | ↕ Scroll vertical para navegar"}
                   </span>
                   <span className="text-blue-500">
-                    Modo Gestionar - Edición completa
+                    {isSelecting 
+                      ? "Arrastrando para seleccionar"
+                      : selectedElements.length > 0
+                      ? `${selectedElements.length} mesa${selectedElements.length > 1 ? 's' : ''} seleccionada${selectedElements.length > 1 ? 's' : ''}`
+                      : "Modo Gestionar - Edición completa"}
                   </span>
                   <div className="inline-flex items-center gap-2 ml-3">
                     <Button
@@ -780,7 +1700,13 @@ export default function DistribuccionEditor({
 
         <DragOverlay>
           {activeElement ? (
-            <div className="opacity-75 transform scale-105">
+            <div 
+              className="opacity-70 cursor-grabbing"
+              style={{ 
+                transform: 'scale(1)',
+                pointerEvents: 'none'
+              }}
+            >
               {renderElementAdmin(activeElement)}
             </div>
           ) : null}
@@ -800,7 +1726,30 @@ export default function DistribuccionEditor({
                 </div>
                 <div className="flex items-center justify-between w-full ml-4">
                   <div className="flex items-center gap-2">
-                    <DesignTools agregarElemento={agregarElemento} />
+                    <DesignTools 
+                      agregarElemento={agregarElemento}
+                      onAgregarMesasMultiples={() => setShowModalMesasMultiples(true)}
+                    />
+                    {selectedElements.length > 0 && (
+                      <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-1">
+                        <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                          {selectedElements.length} mesa{selectedElements.length > 1 ? 's' : ''}
+                        </span>
+                        <button
+                          onClick={() => rotarElementosSeleccionados(false)}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-sm font-medium flex items-center gap-1"
+                          title="Rotar 90° (R)"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={clearSelection}
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 text-sm font-medium"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -856,10 +1805,10 @@ export default function DistribuccionEditor({
                 <div
                   className="relative bg-gray-50 dark:bg-[#0f172a] w-full h-full"
                   style={{
-                    height: `${CANVAS_HEIGHT}px`,
-                    minHeight: `${CANVAS_HEIGHT}px`,
-                    minWidth: `${CANVAS_WIDTH}px`,
-                    width: `${CANVAS_WIDTH}px`,
+                    height: `${canvasDimensions.height}px`,
+                    minHeight: `${canvasDimensions.height}px`,
+                    minWidth: `${canvasDimensions.width}px`,
+                    width: `${canvasDimensions.width}px`,
                   }}
                 >
                   <div
@@ -868,8 +1817,8 @@ export default function DistribuccionEditor({
                     style={{
                       transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
                       transformOrigin: "0 0",
-                      width: `${CANVAS_WIDTH}px`,
-                      height: `${CANVAS_HEIGHT}px`,
+                      width: `${canvasDimensions.width}px`,
+                      height: `${canvasDimensions.height}px`,
                     }}
                   >
                     {allElements.map((element) => (
@@ -899,6 +1848,19 @@ export default function DistribuccionEditor({
                       backgroundSize: "40px 40px",
                     }}
                   />
+                  
+                  {/* Rectángulo de selección en modal fullscreen */}
+                  {isSelecting && selectionStart && selectionEnd && (
+                    <div
+                      className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-none"
+                      style={{
+                        left: `${Math.min(selectionStart.x, selectionEnd.x)}px`,
+                        top: `${Math.min(selectionStart.y, selectionEnd.y)}px`,
+                        width: `${Math.abs(selectionEnd.x - selectionStart.x)}px`,
+                        height: `${Math.abs(selectionEnd.y - selectionStart.y)}px`,
+                      }}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -912,6 +1874,12 @@ export default function DistribuccionEditor({
         onConfirm={confirmarMesaConSillas}
         tipoMesa={tipoMesaModal}
         capacidadMesa={capacidadMesaModal}
+      />
+
+      <ModalAgregarMesasMultiples
+        isOpen={showModalMesasMultiples}
+        onClose={() => setShowModalMesasMultiples(false)}
+        onConfirm={agregarMesasMultiples}
       />
     </div>
   );

@@ -60,6 +60,9 @@ export default function Asignacion() {
     buffet: 1,
     escenario: 1,
     entrada: 1,
+    pistaBaileRedonda: 0,
+    pistaBaileRectangular: 0,
+    pistaBaileCuadrada: 0,
   });
 
   const handleCloseModal = () => {

@@ -24,6 +24,7 @@ import Lugares from "../../pages/Lugares"
 import Usuarios from "../../pages/Usuarios"
 import Asignacion from "../../pages/Asignacion"
 import AsignacionUser from "../../pages/AsignacionUser"
+import ConfiguracionLayout from "../../pages/ConfiguracionLayout"
 // import Comunicacion from "../../pages/Comunicacion"
 
 /* Componentes de protección de rutas */
@@ -78,6 +79,7 @@ export default function AppRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="pagos" element={<Pagos />} />
         <Route path="lugares" element={<Lugares />} />
+        <Route path="configuracion-layout" element={<ConfiguracionLayout />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="chat" element={<Comunicacion />} />
         <Route path="signalr-test" element={<SignalRTest />} />

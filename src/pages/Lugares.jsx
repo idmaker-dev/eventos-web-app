@@ -15,7 +15,7 @@ import ConfirmDialog from "../components/Modales/ConfirmDialog";
 import { useNotifications } from "../contexts/NotificationContext";
 import LoadingSpinner from "../components/ui/LoadingSpinner";
 import { Tooltip } from "../components/ui/Tooltip";
-import ModalInicioAsignacion from "../components/Distribuccion/ModalInicioAsignacion";
+import ModalConfiguracionLugar from "../components/Distribuccion/ModalConfiguracionLugar";
 import { useNavigate } from "react-router-dom";
 
 export default function Lugares() {
@@ -335,18 +335,22 @@ export default function Lugares() {
         }}
         onConfirm={confirmarEliminar}
       />
-      <ModalInicioAsignacion
+      <ModalConfiguracionLugar
         isOpen={isAsignacionModalOpen}
-        onClose={() => setIsAsignacionModalOpen(false)}
-        direccionEvento={lugarParaAsignacion?.direccion || ""}
-        salonesExistentes={
-          lugarParaAsignacion?.asignaciones?.length > 0
-            ? lugarParaAsignacion.asignaciones
-            : []
-        }
-        onIniciar={() => {
+        onClose={() => {
           setIsAsignacionModalOpen(false);
-          navigate("/admin/asignacion", { state: { skipModal: true } });
+          setLugarParaAsignacion(null);
+        }}
+        lugar={lugarParaAsignacion}
+        onIniciar={(configuracion) => {
+          setIsAsignacionModalOpen(false);
+          // Navegar a la página de diseño/editor de configuración
+          navigate("/admin/configuracion-layout", { 
+            state: { 
+              lugar: lugarParaAsignacion,
+              configuracion: configuracion
+            } 
+          });
         }}
       />
     </div>
