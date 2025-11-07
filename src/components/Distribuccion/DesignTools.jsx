@@ -6,7 +6,7 @@ import {
   DoorOpen,
   RectangleHorizontal,
   SquareDashed,
-  SquareDashedTopSolid,
+  Square,
   ChevronDown,
   Grid3x3,
 } from "lucide-react";
@@ -94,7 +94,7 @@ export default function DesignTools({ agregarElemento, onAgregarMesasMultiples }
               onClick={() => agregarElemento("escenario")}
               className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <SquareDashedTopSolid className="size-4 fill-white/30" />
+              <Square className="size-4 fill-white/30" />
               Escenario
             </Button>
           </MenuItem>

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import DistribuccionAdmin from "../components/Distribuccion/DistribuccionAdmin.jsx";
 import ModalInicioAsignacion from "../components/Distribuccion/ModalInicioAsignacion.jsx";
 import { useSelectedEvent } from "../contexts/SelectedEventContext.jsx";
 import DistribuccionEditor from "../components/Distribuccion/DistribuccionEditor.jsx";
 import DistribuccionMonitor from "../components/Distribuccion/DistribuccionMonitor.jsx";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useLayoutEvento } from "../hooks/useLayoutEvento";
+import { useLayouts } from "../hooks/useLayouts";
+import { useNotifications } from "../contexts/NotificationContext";
 
 export default function Asignacion() {
   const { eventoActual } = useSelectedEvent();
@@ -14,6 +16,7 @@ export default function Asignacion() {
 
   const [showModalInicio, setShowModalInicio] = useState(!skipModal);
   const [configuracion, setConfiguracion] = useState(null);
+  const [nombreSalon, setNombreSalon] = useState("");
 
   // Función para generar lista inicial de invitados
   const getInvitadosIniciales = () => [
@@ -65,413 +68,242 @@ export default function Asignacion() {
     pistaBaileCuadrada: 0,
   });
 
+  // Hooks para obtener datos del backend
+  const eventoId = eventoActual?.id;
+  const lugarId = eventoActual?.lugar?.id;
+
+  console.log("🔍 Asignacion - eventoId:", eventoId, "lugarId:", lugarId);
+
+  const {
+    layout: layoutEvento,
+    isLoading: loadingLayoutEvento,
+    asignarConfiguracionBase,
+    cargarLayout,
+    guardarLayoutPersonalizado,
+  } = useLayoutEvento(eventoId);
+
+  const {
+    configuraciones: layoutsDisponibles,
+    isLoading: loadingLayouts,
+  } = useLayouts(lugarId);
+
+  console.log("📊 Layouts disponibles desde hook:", layoutsDisponibles);
+
+  const { showSuccess, showError } = useNotifications();
+
+  const [invitados, setInvitados] = useState(getInvitadosIniciales());
+  const [configuraciones, setConfiguraciones] = useState([]);
+  const [tieneLayoutAsignado, setTieneLayoutAsignado] = useState(false);
+  const [layoutActual, setLayoutActual] = useState(null);
+  const [isLoadingModal, setIsLoadingModal] = useState(true);
+
   const handleCloseModal = () => {
     navigate(-1);
   };
 
-  const [invitados, setInvitados] = useState(getInvitadosIniciales());
-
-  // Datos mock de salones existentes por evento
-  const getSalonesExistentes = (evento) => {
-    console.log("🔍 Buscando salones para evento:", evento?.nombre_evento);
-    
-    // Verificar si es el evento de prueba
-    if (evento?.nombre_evento === "EVENTO DE PRUEBA") {
-      return [
-          {
-          id: "salon-1",
-          nombre: "Configuración Poliforum Principal",
-          descripcion: "Layout tradicional con mesas redondas",
-          totalMesas: 12,
-          direccion: "Tuxtla gutierrez",
-          elementos: [
-            {
-              id: "mesa-1",
-              type: "mesa",
-              numero: 1,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 100, y: 100 },
-            },
-            {
-              id: "mesa-2",
-              type: "mesa",
-              numero: 2,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 200, y: 100 },
-            },
-            {
-              id: "mesa-3",
-              type: "mesa",
-              numero: 3,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 300, y: 100 },
-            },
-            {
-              id: "mesa-4",
-              type: "mesa",
-              numero: 4,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 400, y: 100 },
-            },
-            {
-              id: "mesa-5",
-              type: "mesa",
-              numero: 5,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 100, y: 200 },
-            },
-            {
-              id: "mesa-6",
-              type: "mesa",
-              numero: 6,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 200, y: 200 },
-            },
-            {
-              id: "mesa-7",
-              type: "mesa",
-              numero: 7,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 300, y: 200 },
-            },
-            {
-              id: "mesa-8",
-              type: "mesa",
-              numero: 8,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 400, y: 200 },
-            },
-            {
-              id: "mesa-9",
-              type: "mesa",
-              numero: 9,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 100, y: 300 },
-            },
-            {
-              id: "mesa-10",
-              type: "mesa",
-              numero: 10,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 200, y: 300 },
-            },
-            {
-              id: "mesa-11",
-              type: "mesa",
-              numero: 11,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 300, y: 300 },
-            },
-            {
-              id: "mesa-12",
-              type: "mesa",
-              numero: 12,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 400, y: 300 },
-            },
-            { id: "entrada-1", type: "entrada", position: { x: 50, y: 150 } },
-            { id: "barra-1", type: "barra", position: { x: 50, y: 250 } },
-            {
-              id: "mesa-principal",
-              type: "mesa-principal",
-              position: { x: 250, y: 50 },
-            },
-            {
-              id: "pista-redonda-1",
-              type: "pistaBaileRedonda",
-              position: { x: 250, y: 250 },
-            },
-            {
-              id: "escenario-1",
-              type: "escenario",
-              position: { x: 450, y: 150 },
-            },
-            { id: "buffet-1", type: "buffet", position: { x: 450, y: 250 } },
-          ],
-        },
-        {
-          id: "salon-2",
-          nombre: "Configuración Graduación Poliforum",
-          descripcion: "Layout con mesas rectangulares y escenario central",
-          totalMesas: 8,
-          direccion: "Tuxtla gutierrez",
-          elementos: [
-            {
-              id: "mesa-rect-1",
-              type: "mesaRectangular",
-              numero: 1,
-              invitados: 0,
-              capacidad: 10,
-              position: { x: 80, y: 80 },
-            },
-            {
-              id: "mesa-rect-2",
-              type: "mesaRectangular",
-              numero: 2,
-              invitados: 0,
-              capacidad: 10,
-              position: { x: 300, y: 80 },
-            },
-            {
-              id: "mesa-rect-3",
-              type: "mesaRectangular",
-              numero: 3,
-              invitados: 0,
-              capacidad: 10,
-              position: { x: 80, y: 200 },
-            },
-            {
-              id: "mesa-rect-4",
-              type: "mesaRectangular",
-              numero: 4,
-              invitados: 0,
-              capacidad: 10,
-              position: { x: 300, y: 200 },
-            },
-            {
-              id: "mesa-rect-5",
-              type: "mesaRectangular",
-              numero: 5,
-              invitados: 0,
-              capacidad: 10,
-              position: { x: 80, y: 320 },
-            },
-            {
-              id: "mesa-rect-6",
-              type: "mesaRectangular",
-              numero: 6,
-              invitados: 0,
-              capacidad: 10,
-              position: { x: 300, y: 320 },
-            },
-            {
-              id: "mesa-rect-7",
-              type: "mesaRectangular",
-              numero: 7,
-              invitados: 0,
-              capacidad: 10,
-              position: { x: 80, y: 440 },
-            },
-            {
-              id: "mesa-rect-8",
-              type: "mesaRectangular",
-              numero: 8,
-              invitados: 0,
-              capacidad: 10,
-              position: { x: 300, y: 440 },
-            },
-            {
-              id: "mesa-principal",
-              type: "mesa-principal",
-              position: { x: 190, y: 40 },
-            },
-            {
-              id: "escenario-central",
-              type: "escenario",
-              position: { x: 190, y: 260 },
-            },
-            { id: "buffet-1", type: "buffet", position: { x: 450, y: 200 } },
-            { id: "barra-1", type: "barra", position: { x: 20, y: 200 } },
-          ],
-        },
-      ];
+  // Cargar configuraciones disponibles del lugar
+  useEffect(() => {
+    console.log("🔄 useEffect configuraciones - layoutsDisponibles:", layoutsDisponibles);
+    if (layoutsDisponibles && layoutsDisponibles.length > 0) {
+      setConfiguraciones(layoutsDisponibles);
+      console.log("✅ Configuraciones cargadas en estado:", layoutsDisponibles.length);
+    } else {
+      console.log("⚠️ No hay layoutsDisponibles o está vacío");
     }
+  }, [layoutsDisponibles]);
 
-    // Buscar por dirección para otros eventos
-    const direccion = evento?.lugar?.direccion;
-    const salonesDisponibles = {
+  // Verificar si el evento ya tiene un layout asignado
+  useEffect(() => {
+    const verificarLayoutExistente = async () => {
+      setIsLoadingModal(true);
       
-
-      "Jardín Romántico, Calle Principal 123": [
-        {
-          id: "salon-1",
-          nombre: "Configuración Boda Clásica",
-          descripcion: "Layout tradicional con mesas redondas",
-          totalMesas: 8,
-          direccion: "Jardín Romántico, Calle Principal 123",
-          elementos: [
-            {
-              id: "mesa-1",
-              type: "mesa",
-              numero: 1,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 50, y: 50 },
-            },
-            {
-              id: "mesa-2",
-              type: "mesa",
-              numero: 2,
-              invitados: 0,
-              capacidad: 8,
-              position: { x: 50, y: 150 },
-            },
-            {
-              id: "mesa-principal",
-              type: "mesa-principal",
-              position: { x: 350, y: 50 },
-            },
-          ],
-        },
-        {
-          id: "salon-2",
-          nombre: "Configuración Graduación",
-          descripcion: "Layout con mesas rectangulares y escenario central",
-          totalMesas: 6,
-          direccion: "Jardín Romántico, Calle Principal 123",
-          elementos: [
-            // ... elementos diferentes
-          ],
-        },
-      ],
+      if (layoutEvento) {
+        console.log("✅ Layout de evento encontrado:", layoutEvento);
+        
+        // Verificar si realmente tiene configuración asignada
+        const tieneConfig = layoutEvento.tiene_configuracion === true || 
+                           (layoutEvento.elementos && layoutEvento.elementos.length > 0) ||
+                           layoutEvento.configuracion_lugar_base_id;
+        
+        console.log("🔍 ¿Tiene configuración?", tieneConfig);
+        setTieneLayoutAsignado(tieneConfig);
+        setLayoutActual(tieneConfig ? layoutEvento : null);
+      } else {
+        console.log("ℹ️ No hay layout asignado para este evento");
+        setTieneLayoutAsignado(false);
+        setLayoutActual(null);
+      }
+      
+      setIsLoadingModal(false);
     };
 
-    // console.log("🏛️ Salones encontrados por dirección:", salonesDisponibles[direccion]?.length || 0);
-    return salonesDisponibles[direccion] || [];
-  };
-
-  // Elementos iniciales para salón vacío
-  const elementosVacios = [
-    {
-      id: "mesa-principal",
-      type: "mesa-principal",
-      position: { x: 250, y: 50 },
-    },
-  ];
-
-  const handleIniciarAsignacion = (config) => {
-    // console.log("🚀 Configuración recibida:", config);
-    setConfiguracion(config);
-
-    if (config.modo === "monitor") {
-      const salon = config.salon;
-      // console.log("📺 Modo monitor - Salon:", salon);
-      setAllElements(salon.elementos || []);
-      setLayoutGuardado(true);
-      setLayoutFinal(salon);
-    } else if (config.modo === "crear") {
-      if (config.tipoCreacion === "vacio") {
-        // console.log("🏗️ Creando salón vacío - Solo mesa principal");
-        localStorage.removeItem("layoutSalon");
-        setAllElements([...elementosVacios]);
-        // console.log(
-        //   "📋 Elementos cargados (vacío):",
-        //   elementosVacios.length,
-        //   "elementos"
-        // );
-        setInvitados(getInvitadosIniciales());
-        setContadores({
-          mesa: 0,
-          mesaRectangular: 0,
-          barra: 0,
-          buffet: 0,
-          escenario: 0,
-          entrada: 0,
-        });
-        setLayoutGuardado(false);
-        setLayoutFinal(null);
-      } else if (config.tipoCreacion === "basado") {
-        const salonBase = config.salonBase;
-        // console.log("📋 Usando salón como base:", salonBase.nombre);
-        const elementosLimpios = salonBase.elementos.map((elemento) => {
-          if (elemento.type === "mesa" || elemento.type === "mesaRectangular") {
-            return {
-              ...elemento,
-              invitados: 0,
-              invitadosEspeciales: 0,
-              assignedGuests: [],
-            };
-          }
-          return elemento;
-        });
-        setAllElements([...elementosLimpios]);
-        // console.log("📋 Elementos cargados (base):", elementosLimpios.length, "elementos");
-        setInvitados(getInvitadosIniciales());
-        const contadoresCalculados = calcularContadores(elementosLimpios);
-        setContadores(contadoresCalculados);
-        setLayoutGuardado(false);
-        setLayoutFinal(null);
-      }
+    if (eventoId && !loadingLayoutEvento) {
+      verificarLayoutExistente();
     }
+  }, [eventoId, layoutEvento, loadingLayoutEvento]);
 
-    setShowModalInicio(false);
-    // console.log("✅ Modal cerrado, configuración guardada");
-  };
-
-  const calcularContadores = (elementos) => {
-    const contadores = {
+  // Función auxiliar para calcular contadores basados en elementos
+  const calcularContadoresDesdeElementos = (elementos) => {
+    const nuevosContadores = {
       mesa: 0,
       mesaRectangular: 0,
       barra: 0,
       buffet: 0,
       escenario: 0,
       entrada: 0,
+      pistaBaileRedonda: 0,
+      pistaBaileRectangular: 0,
+      pistaBaileCuadrada: 0,
     };
 
     elementos.forEach((elemento) => {
       if (elemento.type === "mesa") {
-        contadores.mesa = Math.max(contadores.mesa, elemento.numero || 0);
+        nuevosContadores.mesa = Math.max(nuevosContadores.mesa, elemento.numero || 0);
       } else if (elemento.type === "mesaRectangular") {
-        contadores.mesaRectangular = Math.max(
-          contadores.mesaRectangular,
+        nuevosContadores.mesaRectangular = Math.max(
+          nuevosContadores.mesaRectangular,
           elemento.numero || 0
         );
-      } else if (contadores.hasOwnProperty(elemento.type)) {
-        contadores[elemento.type]++;
+      } else if (nuevosContadores.hasOwnProperty(elemento.type)) {
+        nuevosContadores[elemento.type]++;
       }
     });
 
-    return contadores;
+    return nuevosContadores;
   };
 
-  // Cargar layout guardado al iniciar (solo si no se mostró el modal)
-  useEffect(() => {
-    if (!showModalInicio && !configuracion) {
-      const layoutGuardadoLocal = localStorage.getItem("layoutSalon");
-      if (layoutGuardadoLocal) {
-        try {
-          const layout = JSON.parse(layoutGuardadoLocal);
-          setLayoutFinal(layout);
+  const handleIniciarAsignacion = async (config) => {
+    console.log("🚀 Configuración recibida:", config);
+    setConfiguracion(config);
+
+    try {
+      let elementosCargados = [];
+
+      if (config.modo === "monitor") {
+        // Modo monitor: solo visualización
+        console.log("📺 Modo monitor");
+        const result = await cargarLayout();
+        if (result && result.success) {
+          elementosCargados = result.data?.layout?.elementos || [];
+          console.log("📋 Elementos cargados para monitor:", elementosCargados.length);
+          setAllElements(elementosCargados);
+          setNombreSalon(result.data?.layout?.configuracion_lugar_base_nombre || "");
+          setContadores(calcularContadoresDesdeElementos(elementosCargados));
           setLayoutGuardado(true);
-          setAllElements(layout.elementos || []);
-          setContadores(layout.contadores || contadores);
-          // console.log("💾 Layout cargado desde localStorage");
-        } catch (error) {
-          console.error("Error al cargar layout guardado:", error);
+          setLayoutFinal(result.data?.layout);
+        } else {
+          showError("No se pudo cargar el layout del evento");
+          return;
         }
-      } else {
-        console.log(" No hay layout guardado en localStorage");
+      } else if (config.modo === "seleccionar") {
+        // Seleccionar configuración base
+        console.log("🎯 Seleccionando configuración:", config.configuracionId);
+        const resultado = await asignarConfiguracionBase(config.configuracionId);
+        
+        if (resultado && resultado.success) {
+          showSuccess("Configuración asignada correctamente");
+          
+          // Esperar un momento para que el backend procese
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const result = await cargarLayout();
+          if (result && result.success) {
+            elementosCargados = result.data?.layout?.elementos || [];
+            console.log("📋 Elementos cargados tras asignación:", elementosCargados.length, elementosCargados);
+            setAllElements(elementosCargados);
+            setNombreSalon(result.data?.layout?.configuracion_lugar_base_nombre || "");
+            setContadores(calcularContadoresDesdeElementos(elementosCargados));
+            setLayoutGuardado(false);
+            setLayoutFinal(null);
+            setInvitados(getInvitadosIniciales());
+          } else {
+            showError("No se pudo cargar el layout asignado");
+            return;
+          }
+        } else {
+          showError(resultado?.error || "Error al asignar configuración");
+          return;
+        }
+      } else if (config.modo === "personalizar") {
+        // Personalizar el layout actual
+        console.log("✏️ Modo personalizar");
+        const result = await cargarLayout();
+        console.log("🔍 Resultado de cargarLayout():", result);
+        
+        if (result && result.success) {
+          elementosCargados = result.data?.layout?.elementos || [];
+          console.log("📋 Elementos cargados para personalizar:", elementosCargados.length);
+          console.log("📦 Estructura completa del layout:", result.data?.layout);
+          console.log("🎨 Elementos individuales:", elementosCargados);
+          
+          setAllElements(elementosCargados);
+          setContadores(calcularContadoresDesdeElementos(elementosCargados));
+          setNombreSalon(result.data?.layout?.configuracion_lugar_base_nombre || "");
+          setLayoutGuardado(false);
+          setLayoutFinal(null);
+          setInvitados(getInvitadosIniciales());
+        } else {
+          console.error("❌ Error al cargar layout:", result);
+          showError("No se pudo cargar el layout para personalizar");
+          return;
+        }
+      } else if (config.modo === "reseleccionar") {
+        // Volver a seleccionar (se maneja desde el modal)
+        console.log("🔄 Modo reseleccionar - volviendo al modal");
+        setTieneLayoutAsignado(false);
+        return; // No cerrar el modal aún
       }
-    } else {
-      console.log("No cargando localStorage - Modal activo o configuración existente");
+
+      setShowModalInicio(false);
+      console.log("✅ Modal cerrado, configuración guardada. Elementos finales:", elementosCargados.length);
+    } catch (error) {
+      console.error("❌ Error al iniciar asignación:", error);
+      showError(error.message || "Error al iniciar la asignación");
     }
-  }, [showModalInicio, configuracion]);
+  };
+
+  const handleGuardarLayout = async (elementos, metadata) => {
+    try {
+      if (!elementos || !Array.isArray(elementos)) {
+        console.error("❌ Elementos inválidos:", elementos);
+        showError("No hay elementos para guardar");
+        return;
+      }
+
+      console.log("💾 Guardando layout personalizado:", elementos.length, "elementos");
+      console.log("📦 Metadata:", metadata);
+      
+      const resultado = await guardarLayoutPersonalizado(elementos, metadata);
+      
+      if (resultado && resultado.success) {
+        showSuccess("Layout guardado correctamente");
+        setLayoutGuardado(true);
+        setLayoutFinal({ elementos, metadata });
+      } else {
+        showError(resultado?.error || "Error al guardar el layout");
+      }
+    } catch (error) {
+      console.error("❌ Error al guardar layout:", error);
+      showError(error.message || "Error al guardar el layout");
+    }
+  };
 
   // Obtener información del evento actual
   const direccionEvento = eventoActual?.lugar?.direccion || "Dirección no especificada";
 
-  
-  const salonesExistentes = getSalonesExistentes(eventoActual);
-
   if (showModalInicio) {
+    console.log("🎭 Renderizando modal con configuraciones:", configuraciones);
+    console.log("📍 Estado modal - tieneLayoutAsignado:", tieneLayoutAsignado, "isLoading:", isLoadingModal || loadingLayouts);
+    
     return (
       <ModalInicioAsignacion
         isOpen={showModalInicio}
         onClose={handleCloseModal}
         direccionEvento={direccionEvento}
-        salonesExistentes={salonesExistentes}
+        configuraciones={configuraciones}
+        tieneLayoutAsignado={tieneLayoutAsignado}
+        layoutActual={layoutActual}
+        isLoading={isLoadingModal || loadingLayouts}
         onIniciar={handleIniciarAsignacion}
       />
     );
@@ -479,24 +311,11 @@ export default function Asignacion() {
 
   return (
     <div className="min-h-screen bg-white rounded-3xl dark:bg-[#2a2a2a]">
-        {/* <DistribuccionAdmin
-        allElements={allElements}
-        setAllElements={setAllElements}
-        contadores={contadores}
-        setContadores={setContadores}
-        layoutGuardado={layoutGuardado}
-        setLayoutGuardado={setLayoutGuardado}
-        layoutFinal={layoutFinal}
-        setLayoutFinal={setLayoutFinal}
-        invitados={invitados}
-        setInvitados={setInvitados}
-        configuracionInicial={configuracion}
-      /> */}
       {configuracion?.modo === "monitor" ? (
         <DistribuccionMonitor
           allElements={allElements}
           setAllElements={setAllElements}
-          salon={configuracion.salon}
+          salon={layoutFinal}
           invitados={invitados}
           setInvitados={setInvitados}
         />
@@ -512,6 +331,9 @@ export default function Asignacion() {
           setLayoutFinal={setLayoutFinal}
           invitados={invitados}
           setInvitados={setInvitados}
+          onGuardarLayout={handleGuardarLayout}
+          esLugar={false}
+          nombreSalon={nombreSalon}
         />
       )}
     </div>

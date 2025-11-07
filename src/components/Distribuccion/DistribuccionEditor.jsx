@@ -17,6 +17,7 @@ import DesignTools from "./DesignTools.jsx";
 import StatsPanel from "./StatsPanel.jsx";
 import ModalSillasEspeciales from "./ModalSillasEspeciales.jsx";
 import ModalAgregarMesasMultiples from "./ModalAgregarMesasMultiples.jsx";
+import ModalRenumerarMesas from "./ModalRenumerarMesas.jsx";
 
 export default function DistribuccionEditor({
   allElements,
@@ -33,6 +34,7 @@ export default function DistribuccionEditor({
   esLugar = true,
   lugar = null,
   configuracion = null,
+  nombreSalon = null,
 }) {
   console.log("🔍 DistribuccionEditor recibió:", {
     allElementsLength: allElements?.length || 0,
@@ -47,12 +49,11 @@ export default function DistribuccionEditor({
   });
 
   const [activeId, setActiveId] = useState(null);
-  const [activeElement, setActiveElement] = useState(null);
   const [showModalSillas, setShowModalSillas] = useState(false);
   const [tipoMesaModal, setTipoMesaModal] = useState("");
   const [capacidadMesaModal, setCapacidadMesaModal] = useState(8);
-  const [modoPersonalizar, setModoPersonalizar] = useState(false);
   const [showModalMesasMultiples, setShowModalMesasMultiples] = useState(false);
+  const [showModalRenumerar, setShowModalRenumerar] = useState(false);
   
   // Selección múltiple
   const [selectedElements, setSelectedElements] = useState([]);
@@ -147,6 +148,20 @@ export default function DistribuccionEditor({
   // Atajos de teclado para selección y rotación
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Ignorar atajos si el usuario está escribiendo en un input, textarea o select
+      const elementoActivo = document.activeElement;
+      const esInputOTextarea = elementoActivo && (
+        elementoActivo.tagName === 'INPUT' ||
+        elementoActivo.tagName === 'TEXTAREA' ||
+        elementoActivo.tagName === 'SELECT' ||
+        elementoActivo.isContentEditable
+      );
+
+      // Solo permitir Escape si está en un input/textarea (para poder salir del campo)
+      if (esInputOTextarea && e.key !== 'Escape') {
+        return; // No procesar otros atajos cuando está escribiendo
+      }
+
       // Ctrl+A o Cmd+A: Seleccionar todos los elementos
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault();
@@ -675,8 +690,6 @@ export default function DistribuccionEditor({
   const handleDragStart = (event) => {
     const { active } = event;
     setActiveId(active.id);
-    const element = allElements.find((el) => el.id === active.id);
-    setActiveElement(element);
 
     // Si el elemento arrastrado está en la selección, mover todos
     if (selectedElements.includes(active.id)) {
@@ -690,7 +703,6 @@ export default function DistribuccionEditor({
   const handleDragEnd = (event) => {
     const { active, delta } = event;
     setActiveId(null);
-    setActiveElement(null);
     if (!delta) return;
 
     const draggedElementId = active.id;
@@ -726,7 +738,6 @@ export default function DistribuccionEditor({
 
   const handleDragCancel = () => {
     setActiveId(null);
-    setActiveElement(null);
   };
 
   // Canvas pan handlers y selección por arrastre
@@ -1077,6 +1088,365 @@ export default function DistribuccionEditor({
     setShowModalMesasMultiples(false);
   };
 
+  // Renumerar mesas manteniendo posiciones
+  const renumerarMesas = (direccion) => {
+    console.log("🔢 Renumerando mesas con dirección:", direccion);
+    
+    // Obtener solo las mesas (redondas y rectangulares)
+    const mesas = allElements.filter(
+      (el) => el.type === "mesa" || el.type === "mesaRectangular"
+    );
+    
+    if (mesas.length === 0) {
+      alert("No hay mesas para renumerar");
+      return;
+    }
+
+    // Ordenar mesas según la dirección seleccionada
+    let mesasOrdenadas = [...mesas];
+    
+    switch (direccion) {
+      case "horizontal-derecha-abajo":
+        // Izquierda a derecha, arriba a abajo
+        mesasOrdenadas.sort((a, b) => {
+          if (Math.abs(a.position.y - b.position.y) < 50) {
+            return a.position.x - b.position.x; // Mismo nivel Y, ordenar por X
+          }
+          return a.position.y - b.position.y; // Diferente Y, ordenar por Y
+        });
+        break;
+        
+      case "horizontal-izquierda-abajo":
+        // Derecha a izquierda, arriba a abajo
+        mesasOrdenadas.sort((a, b) => {
+          if (Math.abs(a.position.y - b.position.y) < 50) {
+            return b.position.x - a.position.x; // Mismo nivel Y, ordenar por X descendente
+          }
+          return a.position.y - b.position.y; // Diferente Y, ordenar por Y
+        });
+        break;
+        
+      case "horizontal-derecha-arriba":
+        // Izquierda a derecha, abajo a arriba
+        mesasOrdenadas.sort((a, b) => {
+          if (Math.abs(a.position.y - b.position.y) < 50) {
+            return a.position.x - b.position.x; // Mismo nivel Y, ordenar por X
+          }
+          return b.position.y - a.position.y; // Diferente Y, ordenar por Y descendente
+        });
+        break;
+        
+      case "horizontal-izquierda-arriba":
+        // Derecha a izquierda, abajo a arriba
+        mesasOrdenadas.sort((a, b) => {
+          if (Math.abs(a.position.y - b.position.y) < 50) {
+            return b.position.x - a.position.x; // Mismo nivel Y, ordenar por X descendente
+          }
+          return b.position.y - a.position.y; // Diferente Y, ordenar por Y descendente
+        });
+        break;
+        
+      case "vertical-abajo-derecha":
+        // Arriba a abajo, izquierda a derecha
+        mesasOrdenadas.sort((a, b) => {
+          if (Math.abs(a.position.x - b.position.x) < 50) {
+            return a.position.y - b.position.y; // Mismo nivel X, ordenar por Y
+          }
+          return a.position.x - b.position.x; // Diferente X, ordenar por X
+        });
+        break;
+        
+      case "vertical-abajo-izquierda":
+        // Arriba a abajo, derecha a izquierda
+        mesasOrdenadas.sort((a, b) => {
+          if (Math.abs(a.position.x - b.position.x) < 50) {
+            return a.position.y - b.position.y; // Mismo nivel X, ordenar por Y
+          }
+          return b.position.x - a.position.x; // Diferente X, ordenar por X descendente
+        });
+        break;
+        
+      case "vertical-arriba-derecha":
+        // Abajo a arriba, izquierda a derecha
+        mesasOrdenadas.sort((a, b) => {
+          if (Math.abs(a.position.x - b.position.x) < 50) {
+            return b.position.y - a.position.y; // Mismo nivel X, ordenar por Y descendente
+          }
+          return a.position.x - b.position.x; // Diferente X, ordenar por X
+        });
+        break;
+        
+      case "vertical-arriba-izquierda":
+        // Abajo a arriba, derecha a izquierda
+        mesasOrdenadas.sort((a, b) => {
+          if (Math.abs(a.position.x - b.position.x) < 50) {
+            return b.position.y - a.position.y; // Mismo nivel X, ordenar por Y descendente
+          }
+          return b.position.x - a.position.x; // Diferente X, ordenar por X descendente
+        });
+        break;
+        
+      case "zigzag-horizontal-derecha-abajo":
+        // Zigzag horizontal: izquierda→derecha (arriba→abajo)
+        // Empieza arriba-izquierda, alterna en cada fila
+        const filasDerechaAbajo = {};
+        mesas.forEach(mesa => {
+          const filaKey = Math.round(mesa.position.y / 50) * 50;
+          if (!filasDerechaAbajo[filaKey]) filasDerechaAbajo[filaKey] = [];
+          filasDerechaAbajo[filaKey].push(mesa);
+        });
+        
+        const filasOrdenadasDerechaAbajo = Object.keys(filasDerechaAbajo)
+          .sort((a, b) => parseFloat(a) - parseFloat(b)) // Arriba → Abajo
+          .map((key, index) => {
+            const mesasFila = filasDerechaAbajo[key];
+            // Alternar: pares izq→der, impares der→izq
+            mesasFila.sort((a, b) => 
+              index % 2 === 0 
+                ? a.position.x - b.position.x 
+                : b.position.x - a.position.x
+            );
+            return mesasFila;
+          });
+        
+        mesasOrdenadas = filasOrdenadasDerechaAbajo.flat();
+        break;
+        
+      case "zigzag-horizontal-izquierda-abajo":
+        // Zigzag horizontal: derecha→izquierda (arriba→abajo)
+        // Empieza arriba-derecha, alterna en cada fila
+        const filasIzquierdaAbajo = {};
+        mesas.forEach(mesa => {
+          const filaKey = Math.round(mesa.position.y / 50) * 50;
+          if (!filasIzquierdaAbajo[filaKey]) filasIzquierdaAbajo[filaKey] = [];
+          filasIzquierdaAbajo[filaKey].push(mesa);
+        });
+        
+        const filasOrdenadasIzquierdaAbajo = Object.keys(filasIzquierdaAbajo)
+          .sort((a, b) => parseFloat(a) - parseFloat(b)) // Arriba → Abajo
+          .map((key, index) => {
+            const mesasFila = filasIzquierdaAbajo[key];
+            // Alternar: pares der→izq, impares izq→der
+            mesasFila.sort((a, b) => 
+              index % 2 === 0 
+                ? b.position.x - a.position.x 
+                : a.position.x - b.position.x
+            );
+            return mesasFila;
+          });
+        
+        mesasOrdenadas = filasOrdenadasIzquierdaAbajo.flat();
+        break;
+        
+      case "zigzag-horizontal-derecha-arriba":
+        // Zigzag horizontal: izquierda→derecha (abajo→arriba)
+        // Empieza abajo-izquierda, alterna en cada fila
+        const filasDerechaArriba = {};
+        mesas.forEach(mesa => {
+          const filaKey = Math.round(mesa.position.y / 50) * 50;
+          if (!filasDerechaArriba[filaKey]) filasDerechaArriba[filaKey] = [];
+          filasDerechaArriba[filaKey].push(mesa);
+        });
+        
+        const filasOrdenadasDerechaArriba = Object.keys(filasDerechaArriba)
+          .sort((a, b) => parseFloat(b) - parseFloat(a)) // Abajo → Arriba
+          .map((key, index) => {
+            const mesasFila = filasDerechaArriba[key];
+            // Alternar: pares izq→der, impares der→izq
+            mesasFila.sort((a, b) => 
+              index % 2 === 0 
+                ? a.position.x - b.position.x 
+                : b.position.x - a.position.x
+            );
+            return mesasFila;
+          });
+        
+        mesasOrdenadas = filasOrdenadasDerechaArriba.flat();
+        break;
+        
+      case "zigzag-horizontal-izquierda-arriba":
+        // Zigzag horizontal: derecha→izquierda (abajo→arriba)
+        // Empieza abajo-derecha, alterna en cada fila
+        const filasIzquierdaArriba = {};
+        mesas.forEach(mesa => {
+          const filaKey = Math.round(mesa.position.y / 50) * 50;
+          if (!filasIzquierdaArriba[filaKey]) filasIzquierdaArriba[filaKey] = [];
+          filasIzquierdaArriba[filaKey].push(mesa);
+        });
+        
+        const filasOrdenadasIzquierdaArriba = Object.keys(filasIzquierdaArriba)
+          .sort((a, b) => parseFloat(b) - parseFloat(a)) // Abajo → Arriba
+          .map((key, index) => {
+            const mesasFila = filasIzquierdaArriba[key];
+            // Alternar: pares der→izq, impares izq→der
+            mesasFila.sort((a, b) => 
+              index % 2 === 0 
+                ? b.position.x - a.position.x 
+                : a.position.x - b.position.x
+            );
+            return mesasFila;
+          });
+        
+        mesasOrdenadas = filasOrdenadasIzquierdaArriba.flat();
+        break;
+        
+      case "zigzag-vertical-abajo-derecha":
+        // Zigzag vertical: arriba→abajo (izquierda→derecha)
+        // Empieza arriba-izquierda, alterna en cada columna
+        const columnasAbajoDerecha = {};
+        mesas.forEach(mesa => {
+          const colKey = Math.round(mesa.position.x / 50) * 50;
+          if (!columnasAbajoDerecha[colKey]) columnasAbajoDerecha[colKey] = [];
+          columnasAbajoDerecha[colKey].push(mesa);
+        });
+        
+        const columnasOrdenadasAbajoDerecha = Object.keys(columnasAbajoDerecha)
+          .sort((a, b) => parseFloat(a) - parseFloat(b)) // Izquierda → Derecha
+          .map((key, index) => {
+            const mesasColumna = columnasAbajoDerecha[key];
+            // Alternar: pares arriba→abajo, impares abajo→arriba
+            mesasColumna.sort((a, b) => 
+              index % 2 === 0 
+                ? a.position.y - b.position.y 
+                : b.position.y - a.position.y
+            );
+            return mesasColumna;
+          });
+        
+        mesasOrdenadas = columnasOrdenadasAbajoDerecha.flat();
+        break;
+        
+      case "zigzag-vertical-abajo-izquierda":
+        // Zigzag vertical: arriba→abajo (derecha→izquierda)
+        // Empieza arriba-derecha, alterna en cada columna
+        const columnasAbajoIzquierda = {};
+        mesas.forEach(mesa => {
+          const colKey = Math.round(mesa.position.x / 50) * 50;
+          if (!columnasAbajoIzquierda[colKey]) columnasAbajoIzquierda[colKey] = [];
+          columnasAbajoIzquierda[colKey].push(mesa);
+        });
+        
+        const columnasOrdenadasAbajoIzquierda = Object.keys(columnasAbajoIzquierda)
+          .sort((a, b) => parseFloat(b) - parseFloat(a)) // Derecha → Izquierda
+          .map((key, index) => {
+            const mesasColumna = columnasAbajoIzquierda[key];
+            // Alternar: pares arriba→abajo, impares abajo→arriba
+            mesasColumna.sort((a, b) => 
+              index % 2 === 0 
+                ? a.position.y - b.position.y 
+                : b.position.y - a.position.y
+            );
+            return mesasColumna;
+          });
+        
+        mesasOrdenadas = columnasOrdenadasAbajoIzquierda.flat();
+        break;
+        
+      case "zigzag-vertical-arriba-derecha":
+        // Zigzag vertical: abajo→arriba (izquierda→derecha)
+        // Empieza abajo-izquierda, alterna en cada columna
+        const columnasArribaDerecha = {};
+        mesas.forEach(mesa => {
+          const colKey = Math.round(mesa.position.x / 50) * 50;
+          if (!columnasArribaDerecha[colKey]) columnasArribaDerecha[colKey] = [];
+          columnasArribaDerecha[colKey].push(mesa);
+        });
+        
+        const columnasOrdenadasArribaDerecha = Object.keys(columnasArribaDerecha)
+          .sort((a, b) => parseFloat(a) - parseFloat(b)) // Izquierda → Derecha
+          .map((key, index) => {
+            const mesasColumna = columnasArribaDerecha[key];
+            // Alternar: pares abajo→arriba, impares arriba→abajo
+            mesasColumna.sort((a, b) => 
+              index % 2 === 0 
+                ? b.position.y - a.position.y 
+                : a.position.y - b.position.y
+            );
+            return mesasColumna;
+          });
+        
+        mesasOrdenadas = columnasOrdenadasArribaDerecha.flat();
+        break;
+        
+      case "zigzag-vertical-arriba-izquierda":
+        // Zigzag vertical: abajo→arriba (derecha→izquierda)
+        // Empieza abajo-derecha, alterna en cada columna
+        const columnasArribaIzquierda = {};
+        mesas.forEach(mesa => {
+          const colKey = Math.round(mesa.position.x / 50) * 50;
+          if (!columnasArribaIzquierda[colKey]) columnasArribaIzquierda[colKey] = [];
+          columnasArribaIzquierda[colKey].push(mesa);
+        });
+        
+        const columnasOrdenadasArribaIzquierda = Object.keys(columnasArribaIzquierda)
+          .sort((a, b) => parseFloat(b) - parseFloat(a)) // Derecha → Izquierda
+          .map((key, index) => {
+            const mesasColumna = columnasArribaIzquierda[key];
+            // Alternar: pares abajo→arriba, impares arriba→abajo
+            mesasColumna.sort((a, b) => 
+              index % 2 === 0 
+                ? b.position.y - a.position.y 
+                : a.position.y - b.position.y
+            );
+            return mesasColumna;
+          });
+        
+        mesasOrdenadas = columnasOrdenadasArribaIzquierda.flat();
+        break;
+        
+      case "espiral-horaria":
+      case "espiral-antihoraria":
+        // Ordenamiento en espiral desde el centro
+        const centroX = mesas.reduce((sum, m) => sum + m.position.x, 0) / mesas.length;
+        const centroY = mesas.reduce((sum, m) => sum + m.position.y, 0) / mesas.length;
+        
+        mesasOrdenadas.sort((a, b) => {
+          const distA = Math.sqrt(Math.pow(a.position.x - centroX, 2) + Math.pow(a.position.y - centroY, 2));
+          const distB = Math.sqrt(Math.pow(b.position.x - centroX, 2) + Math.pow(b.position.y - centroY, 2));
+          
+          if (Math.abs(distA - distB) < 30) {
+            // Misma distancia al centro, ordenar por ángulo
+            const anguloA = Math.atan2(a.position.y - centroY, a.position.x - centroX);
+            const anguloB = Math.atan2(b.position.y - centroY, b.position.x - centroX);
+            return direccion === "espiral-horaria" 
+              ? anguloA - anguloB 
+              : anguloB - anguloA;
+          }
+          return distA - distB; // Ordenar por distancia
+        });
+        break;
+        
+      default:
+        // Por defecto: horizontal derecha-abajo
+        mesasOrdenadas.sort((a, b) => {
+          if (Math.abs(a.position.y - b.position.y) < 50) {
+            return a.position.x - b.position.x;
+          }
+          return a.position.y - b.position.y;
+        });
+    }
+
+    // Asignar nuevos números manteniendo las posiciones y propiedades
+    const mesasRenumeradas = mesasOrdenadas.map((mesa, index) => ({
+      ...mesa,
+      numero: index + 1,
+      id: mesa.type === "mesa" ? `mesa-${index + 1}` : `mesa-rect-${index + 1}`,
+    }));
+
+    // Obtener otros elementos (no mesas)
+    const otrosElementos = allElements.filter(
+      (el) => el.type !== "mesa" && el.type !== "mesaRectangular"
+    );
+
+    // Actualizar elementos
+    setAllElements([...mesasRenumeradas, ...otrosElementos]);
+    setLayoutGuardado(false);
+    
+    console.log("✅ Mesas renumeradas:", mesasRenumeradas.length);
+    alert(`✅ ${mesasRenumeradas.length} mesas renumeradas correctamente`);
+    setShowModalRenumerar(false);
+  };
+
   // Calcular estadísticas
   const calcularEstadisticas = () => {
     const mesas = allElements.filter(
@@ -1149,20 +1519,24 @@ export default function DistribuccionEditor({
 
   // Guardar distribución
   const guardarDistribucion = () => {
+    const metadata = {
+      contadores: { ...contadores },
+      fechaCreacion: new Date().toISOString(),
+      totalMesas: allElements.filter(
+        (el) => el.type === "mesa" || el.type === "mesaRectangular"
+      ).length,
+    };
+
     // Si se proporciona una función personalizada de guardado, usarla
     if (onGuardarLayout) {
-      onGuardarLayout();
+      onGuardarLayout(allElements, metadata);
       return;
     }
 
     // Comportamiento por defecto (para mantener compatibilidad)
     const layoutConDatos = {
       elementos: [...allElements],
-      contadores: { ...contadores },
-      fechaCreacion: new Date().toISOString(),
-      totalMesas: allElements.filter(
-        (el) => el.type === "mesa" || el.type === "mesaRectangular"
-      ).length,
+      ...metadata,
     };
     setLayoutFinal(layoutConDatos);
     setLayoutGuardado(true);
@@ -1357,10 +1731,10 @@ export default function DistribuccionEditor({
   return (
     <div className="min-h-screen">
       <DndContext
-        sensors={modoPersonalizar ? sensors : undefined}
-        onDragStart={modoPersonalizar ? handleDragStart : undefined}
-        onDragEnd={modoPersonalizar ? handleDragEnd : undefined}
-        onDragCancel={modoPersonalizar ? handleDragCancel : undefined}
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
         <div className="p-4">
           {/* Header */}
@@ -1508,6 +1882,14 @@ export default function DistribuccionEditor({
               >
                 Seleccionar Todo
               </Button>
+              <Button
+                onClick={() => setShowModalRenumerar(true)}
+                className="flex items-center gap-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-200 py-2 px-4 rounded-lg font-semibold hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-all duration-200 border border-purple-300 dark:border-purple-700"
+                title="Renumerar mesas manteniendo sus posiciones"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Renumerar Mesas
+              </Button>
               {!layoutGuardado && (
                 <Button
                   onClick={guardarDistribucion}
@@ -1523,7 +1905,7 @@ export default function DistribuccionEditor({
           <div className="block md:flex md:justify-between lg:justify-between gap-10 px-4 pb-4 mt-6">
             <div className="dark:text-gray-100 mb-4 md:mb-0">
               <h3 className="text-xl font-semibold">
-                {lugar?.nombre || "Plano del Salón"}
+                { esLugar ? lugar?.nombre || "Plano del Salón" : nombreSalon || "Plano del Evento"}
                 {configuracion?.modo === "editar" && configuracion?.configuracion?.nombre && (
                   <span className="text-gray-600 dark:text-gray-400 font-normal">
                     {" - "}{configuracion.configuracion.nombre}
@@ -1606,6 +1988,7 @@ export default function DistribuccionEditor({
                         key={element.id}
                         id={element.id}
                         data={element}
+                        zoom={zoom}
                         style={{
                           position: "absolute",
                           left: `${element.position.x}px`,
@@ -1616,6 +1999,19 @@ export default function DistribuccionEditor({
                         {renderElementAdmin(element)}
                       </DraggableElement>
                     ))}
+                    
+                    {/* Rectángulo de selección */}
+                    {isSelecting && selectionStart && selectionEnd && (
+                      <div
+                        className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-none"
+                        style={{
+                          left: `${Math.min(selectionStart.x, selectionEnd.x)}px`,
+                          top: `${Math.min(selectionStart.y, selectionEnd.y)}px`,
+                          width: `${Math.abs(selectionEnd.x - selectionStart.x)}px`,
+                          height: `${Math.abs(selectionEnd.y - selectionStart.y)}px`,
+                        }}
+                      />
+                    )}
                   </div>
 
                   <div
@@ -1628,19 +2024,6 @@ export default function DistribuccionEditor({
                       backgroundSize: "40px 40px",
                     }}
                   />
-                  
-                  {/* Rectángulo de selección */}
-                  {isSelecting && selectionStart && selectionEnd && (
-                    <div
-                      className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-none"
-                      style={{
-                        left: `${Math.min(selectionStart.x, selectionEnd.x)}px`,
-                        top: `${Math.min(selectionStart.y, selectionEnd.y)}px`,
-                        width: `${Math.abs(selectionEnd.x - selectionStart.x)}px`,
-                        height: `${Math.abs(selectionEnd.y - selectionStart.y)}px`,
-                      }}
-                    />
-                  )}
                 </div>
               </div>
 
@@ -1700,17 +2083,8 @@ export default function DistribuccionEditor({
         </div>
 
         <DragOverlay>
-          {activeElement ? (
-            <div 
-              className="opacity-70 cursor-grabbing"
-              style={{ 
-                transform: 'scale(1)',
-                pointerEvents: 'none'
-              }}
-            >
-              {renderElementAdmin(activeElement)}
-            </div>
-          ) : null}
+          {/* Ghost image desactivada para permitir drag preciso con zoom */}
+          {null}
         </DragOverlay>
         {/* MODAL DE DISEÑO FULLSCREEN */}
         {showDesignModal && (
@@ -1827,6 +2201,7 @@ export default function DistribuccionEditor({
                         key={element.id}
                         id={element.id}
                         data={element}
+                        zoom={zoom}
                         style={{
                           position: "absolute",
                           left: element.position.x,
@@ -1837,6 +2212,19 @@ export default function DistribuccionEditor({
                         {renderElementAdmin(element)}
                       </DraggableElement>
                     ))}
+                    
+                    {/* Rectángulo de selección en modal fullscreen */}
+                    {isSelecting && selectionStart && selectionEnd && (
+                      <div
+                        className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-none"
+                        style={{
+                          left: `${Math.min(selectionStart.x, selectionEnd.x)}px`,
+                          top: `${Math.min(selectionStart.y, selectionEnd.y)}px`,
+                          width: `${Math.abs(selectionEnd.x - selectionStart.x)}px`,
+                          height: `${Math.abs(selectionEnd.y - selectionStart.y)}px`,
+                        }}
+                      />
+                    )}
                   </div>
 
                   <div
@@ -1849,19 +2237,6 @@ export default function DistribuccionEditor({
                       backgroundSize: "40px 40px",
                     }}
                   />
-                  
-                  {/* Rectángulo de selección en modal fullscreen */}
-                  {isSelecting && selectionStart && selectionEnd && (
-                    <div
-                      className="absolute border-2 border-blue-500 bg-blue-500/10 pointer-events-none"
-                      style={{
-                        left: `${Math.min(selectionStart.x, selectionEnd.x)}px`,
-                        top: `${Math.min(selectionStart.y, selectionEnd.y)}px`,
-                        width: `${Math.abs(selectionEnd.x - selectionStart.x)}px`,
-                        height: `${Math.abs(selectionEnd.y - selectionStart.y)}px`,
-                      }}
-                    />
-                  )}
                 </div>
               </div>
             </div>
@@ -1881,6 +2256,12 @@ export default function DistribuccionEditor({
         isOpen={showModalMesasMultiples}
         onClose={() => setShowModalMesasMultiples(false)}
         onConfirm={agregarMesasMultiples}
+      />
+
+      <ModalRenumerarMesas
+        isOpen={showModalRenumerar}
+        onClose={() => setShowModalRenumerar(false)}
+        onConfirm={renumerarMesas}
       />
     </div>
   );
