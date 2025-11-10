@@ -28,7 +28,7 @@ export default function Comunicacion() {
                 </div>
             </div>
             <div className="">
-                <TabGroup defaultIndex={3}>
+                <TabGroup defaultIndex={2}>
                     <TabList className="flex gap-4">
                         <Tab className={({ selected }) =>
                             clsx(
@@ -54,7 +54,7 @@ export default function Comunicacion() {
                                 3
                             </div>
                         </Tab>
-                        <Tab className={({ selected }) =>
+                        {/* <Tab className={({ selected }) =>
                             clsx(
                                 "rounded-full text-sm/6 font-semibold flex  items-center ",
                                 "focus:outline-none transition",
@@ -68,7 +68,7 @@ export default function Comunicacion() {
                             <div className="flex justify-center items-center me-1 w-6 h-6 text-xs font-medium bg-towerGray text-white rounded-full">
                                 6
                             </div>
-                        </Tab>
+                        </Tab> */}
                         <Tab className={({ selected }) =>
                             clsx(
                                 "rounded-full px-3 py-1 text-sm/6 font-semibold",
@@ -90,9 +90,9 @@ export default function Comunicacion() {
                                     <p className="text-gray-500 dark:text-gray-200 text-7xl -rotate-12">Página en construcción...</p>
                                 </div>
                             </TabPanel>
-                             <TabPanel className={clsx("rounded-3xl border dark:border-gray-700 ")}>
+                             {/* <TabPanel className={clsx("rounded-3xl border dark:border-gray-700 ")}>
                                 <Tickets></Tickets>
-                            </TabPanel>
+                            </TabPanel> */}
                             <TabPanel className={clsx("rounded-xl border-2")}>
                                  <CrearCuestionarioPages />
                             </TabPanel>
