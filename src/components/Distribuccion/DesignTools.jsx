@@ -6,16 +6,13 @@ import {
   DoorOpen,
   RectangleHorizontal,
   SquareDashed,
-  SquareDashedTopSolid,
+  Square,
   ChevronDown,
-  Scan,
-  Minus,
-  Plus,
-  RotateCcw,
+  Grid3x3,
 } from "lucide-react";
 import { Button } from "@headlessui/react";
 
-export default function DesignTools({ agregarElemento }) {
+export default function DesignTools({ agregarElemento, onAgregarMesasMultiples }) {
   return (
     <div className="top-24 right-2 w-62 text-right flex items-center gap-3">
       <Menu>
@@ -67,6 +64,15 @@ export default function DesignTools({ agregarElemento }) {
           </MenuItem>
           <MenuItem>
             <Button
+              onClick={() => agregarElemento("pistaBaileCuadrada")}
+              className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <SquareDashed className="size-4 fill-white/50" />
+              Pista Cuadrada
+            </Button>
+          </MenuItem>
+          <MenuItem>
+            <Button
               onClick={() => agregarElemento("barra")}
               className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
@@ -88,7 +94,7 @@ export default function DesignTools({ agregarElemento }) {
               onClick={() => agregarElemento("escenario")}
               className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <SquareDashedTopSolid className="size-4 fill-white/30" />
+              <Square className="size-4 fill-white/30" />
               Escenario
             </Button>
           </MenuItem>
@@ -99,6 +105,18 @@ export default function DesignTools({ agregarElemento }) {
             >
               <DoorOpen className="size-4 fill-white/30" />
               Entrada
+            </Button>
+          </MenuItem>
+          
+          <div className="my-1 h-px bg-gray-200 dark:bg-gray-600" />
+          
+          <MenuItem>
+            <Button
+              onClick={onAgregarMesasMultiples}
+              className="group flex w-full items-center gap-2 rounded-lg px-3 py-1.5 data-focus:bg-white/10 hover:bg-gray-100 dark:hover:bg-gray-700 bg-casal/10 dark:bg-casal/20 font-semibold"
+            >
+              <Grid3x3 className="size-4" />
+              Agregar Mesas Múltiples
             </Button>
           </MenuItem>
         </MenuItems>

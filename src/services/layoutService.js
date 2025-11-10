@@ -7,8 +7,8 @@ import EnvConfig from "../utils/config";
  */
 class LayoutService {
   constructor() {
-    this.baseUrl = "/api/lugares";
-    this.configUrl = "/api/configuraciones";
+    this.baseUrl = "/lugares";
+    this.configUrl = "/configuraciones";
   }
 
   /**
@@ -235,9 +235,8 @@ class LayoutService {
       }
 
       const response = await httpService.put(
-        `${this.configUrl}/${configId}`,
-        datosActualizados,
-        { params: { lugar_id: lugarId } }
+        `${this.configUrl}/${configId}?lugar_id=${lugarId}`,
+        datosActualizados
       );
 
       if (EnvConfig.DEBUG_MODE) {
@@ -432,7 +431,10 @@ class LayoutService {
       "entrada",
       "barra",
       "pistaBaileRedonda",
+      "pistaRedonda",
       "pistaBaileCuadrada",
+      "pistaBaileRectangular",
+      "pistaRectangular",
       "escenario",
       "buffet",
       "cocina",

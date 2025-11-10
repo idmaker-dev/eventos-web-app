@@ -7,7 +7,7 @@ import EnvConfig from "../utils/config";
  */
 class LayoutEventoService {
   constructor() {
-    this.baseUrl = "/api/eventos";
+    this.baseUrl = "/eventos";
   }
 
   /**

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 
-export default function DraggableElement({ id, children, data, style = {} }) {
+export default function DraggableElement({ id, children, data, style = {}, zoom = 1 }) {
   const {
     attributes,
     listeners,
@@ -15,8 +15,8 @@ export default function DraggableElement({ id, children, data, style = {} }) {
 
   const draggableStyle = {
     ...style,
-    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-    opacity: isDragging ? 0.5 : 1,
+    transform: transform ? `translate3d(${transform.x / zoom}px, ${transform.y / zoom}px, 0)` : undefined,
+    opacity: isDragging ? 0.8 : 1,
     zIndex: isDragging ? 1000 : style.zIndex || 1,
   };
 
