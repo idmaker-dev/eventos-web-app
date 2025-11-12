@@ -158,23 +158,27 @@ export const ticketsData = [
     ],
     chat: [
       {
-        remitente: "María Fernanda",
+        remitente: "Cliente",
+        nombre: "María Fernanda",
         texto: "Hola, tengo un problema para obtener mis boletos.",
         hora: "1 mayo 2025, 10:40 AM",
       },
       {
         remitente: "Soporte",
+        nombre: "Soporte",
         texto: "Hola, te ayudo enseguida. ¿Podrías darme tu número de ticket?",
         hora: "1 mayo 2025, 10:42 AM",
       },
       {
-        remitente: "María Fernanda",
+        remitente: "Cliente",
+        nombre: "María Fernanda",
         texto:
           "Sí, es el ticket 2025 5533001644, y solicité 3 boletos adicionales.",
         hora: "1 mayo 2025, 10:43 AM",
       },
       {
         remitente: "Soporte",
+        nombre: "Soporte",
         texto:
           "Gracias, los boletos adicionales fueron confirmados. Puedes verificarlos en tu registro.",
         hora: "1 mayo 2025, 10:45 AM",
@@ -327,12 +331,14 @@ export const ticketsData = [
     ],
     chat: [
       {
-        remitente: "Luis",
+        remitente: "Cliente",
+        nombre: "Luis Alberto",
         texto: "¿Cuándo es el evento?",
         hora: "01/07/2024, 10:05 AM",
       },
       {
         remitente: "Soporte",
+        nombre: "Soporte",
         texto: "El 10 de julio a las 20:00 hrs.",
         hora: "01/07/2024, 10:06 AM",
       },
@@ -456,12 +462,14 @@ export const ticketsData = [
     ],
     chat: [
       {
-        remitente: "Andrea",
+        remitente: "Cliente",
+        nombre: "Andrea Sofía Martínez",
         texto: "¿Cuándo debo pagar?",
         hora: "02/07/2024, 11:05 AM",
       },
       {
         remitente: "Soporte",
+        nombre: "Soporte",
         texto: "Antes del 20 de julio.",
         hora: "02/07/2024, 11:06 AM",
       },
@@ -551,12 +559,14 @@ export const ticketsData = [
     ],
     chat: [
       {
-        remitente: "Jorge",
+        remitente: "Cliente",
+        nombre: "Jorge Enrique",
         texto: "¿Dónde es el taller?",
         hora: "03/07/2024, 12:05 PM",
       },
       {
         remitente: "Soporte",
+        nombre: "Soporte",
         texto: "En Laboratorio 2.",
         hora: "03/07/2024, 12:06 PM",
       },
