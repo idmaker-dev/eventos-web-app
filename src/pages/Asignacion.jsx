@@ -305,6 +305,7 @@ export default function Asignacion() {
         layoutActual={layoutActual}
         isLoading={isLoadingModal || loadingLayouts}
         onIniciar={handleIniciarAsignacion}
+        eventoId={eventoActual?.id}
       />
     );
   }

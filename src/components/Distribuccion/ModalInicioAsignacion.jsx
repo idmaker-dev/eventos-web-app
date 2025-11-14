@@ -1,5 +1,8 @@
-import React, { useState } from "react";
-import { X, Monitor, Paintbrush, RotateCw, Loader2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { X, Monitor, Paintbrush, RotateCw, Loader2, Calendar, Users } from "lucide-react";
+import ModalConfiguracionTurnos from "../Turnos/ModalConfiguracionTurnos";
+import turnosService from "../../services/turnosService";
+import { useNotifications } from "../../contexts/NotificationContext";
 
 export default function ModalInicioAsignacion({
   isOpen,
@@ -10,9 +13,44 @@ export default function ModalInicioAsignacion({
   layoutActual = null,
   isLoading = false,
   onIniciar,
+  eventoId = null, // Nuevo prop para turnos
 }) {
+  const { showSuccess, showError } = useNotifications();
   const [seleccion, setSeleccion] = useState(null);
   const [configuracionSeleccionada, setConfiguracionSeleccionada] = useState(null);
+  
+  // Estado para turnos
+  const [showConfiguracionTurnos, setShowConfiguracionTurnos] = useState(false);
+  const [configuracionTurnos, setConfiguracionTurnos] = useState(null);
+  const [loadingTurnos, setLoadingTurnos] = useState(false);
+
+  /**
+   * Cargar configuración de turnos si existe
+   */
+  const cargarConfiguracionTurnos = React.useCallback(async () => {
+    if (!eventoId) return;
+    
+    setLoadingTurnos(true);
+    try {
+      const response = await turnosService.obtenerConfiguracion(eventoId);
+      if (response.success && response.data) {
+        setConfiguracionTurnos(response.data);
+      } else {
+        setConfiguracionTurnos(null);
+      }
+    } catch (error) {
+      console.error('Error al cargar configuración de turnos:', error);
+      setConfiguracionTurnos(null);
+    } finally {
+      setLoadingTurnos(false);
+    }
+  }, [eventoId]);
+
+  useEffect(() => {
+    if (isOpen && eventoId && tieneLayoutAsignado) {
+      cargarConfiguracionTurnos();
+    }
+  }, [isOpen, eventoId, tieneLayoutAsignado, cargarConfiguracionTurnos]);
 
   if (!isOpen) return null;
 
@@ -23,9 +61,39 @@ export default function ModalInicioAsignacion({
   };
 
   const tieneConfiguraciones = configuraciones.length > 0;
+  const tieneConfiguracionTurnos = configuracionTurnos !== null && configuracionTurnos?.estado !== 'ELIMINADO';
   
   console.log("🎭 ModalInicioAsignacion - configuraciones recibidas:", configuraciones);
   console.log("📊 tieneConfiguraciones:", tieneConfiguraciones, "length:", configuraciones.length);
+  console.log("🎟️ Configuración de turnos:", configuracionTurnos);
+
+  /**
+   * Generar turnos manualmente (cuando ya existe configuración)
+   */
+  const handleGenerarTurnos = async () => {
+    if (!eventoId) {
+      showError("Error: No se encontró el ID del evento");
+      return;
+    }
+
+    setLoadingTurnos(true);
+    try {
+      const response = await turnosService.generarTurnos(eventoId);
+      if (response.success) {
+        showSuccess(
+          `Turnos generados exitosamente: ${response.data?.turnos_generados || 0} turnos creados`
+        );
+        await cargarConfiguracionTurnos(); // Recargar configuración
+      } else {
+        showError(response.error || "Error al generar turnos");
+      }
+    } catch (error) {
+      console.error("Error al generar turnos:", error);
+      showError("Error al generar turnos. Por favor, intente nuevamente.");
+    } finally {
+      setLoadingTurnos(false);
+    }
+  };
 
   const handleContinuar = () => {
     // Usuario recurrente - tiene layout asignado
@@ -44,6 +112,12 @@ export default function ModalInicioAsignacion({
         setConfiguracionSeleccionada(null);
         // Cambiar el flujo a modo primera vez
         return;
+      } else if (seleccion === "configurar-turnos") {
+        setShowConfiguracionTurnos(true);
+      } else if (seleccion === "monitorear-selecciones") {
+        onIniciar({
+          modo: "monitorear-selecciones",
+        });
       }
     } 
     // Primera vez - seleccionar configuración
@@ -54,6 +128,15 @@ export default function ModalInicioAsignacion({
           configuracionId: configuracionSeleccionada.id,
         });
       }
+    }
+  };
+
+  const handleConfiguracionTurnosClose = async (saved) => {
+    setShowConfiguracionTurnos(false);
+    if (saved) {
+      // Recargar configuración de turnos
+      await cargarConfiguracionTurnos();
+      showSuccess('Configuración de turnos actualizada');
     }
   };
 
@@ -174,6 +257,123 @@ export default function ModalInicioAsignacion({
                       </div>
                     </div>
                   </button>
+
+                  {/* Separador */}
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-4 pt-4">
+                    <h4 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
+                      Sistema de Turnos
+                    </h4>
+                    {loadingTurnos ? (
+                      <div className="text-center py-4">
+                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-casal" />
+                        <p className="mt-2 text-xs text-gray-500">Cargando...</p>
+                      </div>
+                    ) : tieneConfiguracionTurnos ? (
+                      // Ya existe configuración de turnos
+                      <>
+                        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3 mb-3">
+                          <p className="text-blue-600 dark:text-blue-400 text-sm">
+                            ✓ Sistema de turnos configurado
+                          </p>
+                        </div>
+                        
+                        <button
+                          onClick={() => setSeleccion("monitorear-selecciones")}
+                          className={`w-full p-4 border-2 rounded-lg transition-all duration-200 text-left ${
+                            seleccion === "monitorear-selecciones"
+                              ? "border-casal bg-casal/10"
+                              : "border-gray-200 dark:border-gray-600 hover:border-casal/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Users className="w-8 h-8 text-casal" />
+                            <div>
+                              <h5 className="font-semibold text-gray-800 dark:text-white">
+                                Monitorear Selecciones
+                              </h5>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Ver el proceso de selección de mesas por turnos
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                        
+                        <button
+                          onClick={() => setSeleccion("configurar-turnos")}
+                          className={`w-full mt-2 p-4 border-2 rounded-lg transition-all duration-200 text-left ${
+                            seleccion === "configurar-turnos"
+                              ? "border-casal bg-casal/10"
+                              : "border-gray-200 dark:border-gray-600 hover:border-casal/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Calendar className="w-8 h-8 text-casal" />
+                            <div>
+                              <h5 className="font-semibold text-gray-800 dark:text-white">
+                                Reconfigurar Sistema de Turnos
+                              </h5>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Modificar configuración de turnos y períodos de selección
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                        
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <button
+                            onClick={handleGenerarTurnos}
+                            disabled={loadingTurnos}
+                            className="w-full p-3 border-2 border-[#246370] text-[#246370] dark:border-[#2a9d8f] dark:text-[#2a9d8f] rounded-lg text-sm hover:bg-[#246370]/10 dark:hover:bg-[#2a9d8f]/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
+                          >
+                            {loadingTurnos ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Generando turnos...
+                              </>
+                            ) : (
+                              <>
+                                <RotateCw className="w-4 h-4" />
+                                Generar Turnos Ahora
+                              </>
+                            )}
+                          </button>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                            Genera turnos sin abrir el modal de configuración
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      // No hay configuración de turnos
+                      <>
+                        <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-3 mb-3">
+                          <p className="text-yellow-600 dark:text-yellow-400 text-sm">
+                            Sistema de turnos no configurado
+                          </p>
+                        </div>
+                        
+                        <button
+                          onClick={() => setSeleccion("configurar-turnos")}
+                          className={`w-full p-4 border-2 rounded-lg transition-all duration-200 text-left ${
+                            seleccion === "configurar-turnos"
+                              ? "border-casal bg-casal/10"
+                              : "border-gray-200 dark:border-gray-600 hover:border-casal/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Calendar className="w-8 h-8 text-casal" />
+                            <div>
+                              <h5 className="font-semibold text-gray-800 dark:text-white">
+                                Configurar Proceso de Selección
+                              </h5>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                Configurar turnos para que los invitados seleccionen sus mesas
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -270,6 +470,16 @@ export default function ModalInicioAsignacion({
           </button>
         </div>
       </div>
+
+      {/* Modal de Configuración de Turnos */}
+      {showConfiguracionTurnos && (
+        <ModalConfiguracionTurnos
+          isOpen={showConfiguracionTurnos}
+          onClose={handleConfiguracionTurnosClose}
+          eventoId={eventoId}
+          configuracionExistente={configuracionTurnos}
+        />
+      )}
     </div>
   );
 }

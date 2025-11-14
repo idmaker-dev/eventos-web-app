@@ -19,7 +19,32 @@ export default function ModalMesaDetalles({
 }) {
   if (!isOpen || !mesa) return null;
 
-  const assigned = mesa.assignedGuests || [];
+  // ✅ Adaptador: Convertir datos del backend (disponibilidad) al formato legacy
+  let assigned = mesa.assignedGuests || [];
+  
+  // Si hay disponibilidad del backend, convertir al formato esperado
+  if (mesa.disponibilidad?.asientos_ocupados_ids && mesa.disponibilidad.asientos_ocupados_ids.length > 0) {
+    const invitadoPrincipal = mesa.disponibilidad.invitados_asignados?.[0];
+    
+    // Convertir asientos_ocupados_ids al formato assignedGuests
+    assigned = mesa.disponibilidad.asientos_ocupados_ids.map((asiento, index) => ({
+      id: `asiento-${asiento.asiento_id}`,
+      usuarioId: invitadoPrincipal?.invitado_id || 'unknown',
+      nombreCompleto: asiento.nombre_comensal?.trim() || `Invitado ${asiento.asiento_numero}`,
+      tipoMenu: asiento.tipo_menu || 'normal',
+      restricciones: Array.isArray(asiento.restricciones_dieteticas) 
+        ? asiento.restricciones_dieteticas.reduce((acc, r) => ({ ...acc, [r]: true }), {})
+        : {},
+      otraRestriccion: asiento.notas?.trim() || '',
+      necesidadEspecial: false,
+      fechaAsignacion: new Date().toLocaleDateString('es-ES', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
+      esResponsable: index === 0
+    }));
+  }
 
   // Agrupar personas por usuario responsable
   const gruposUsuarios = assigned.reduce((grupos, persona) => {
@@ -72,7 +97,7 @@ export default function ModalMesaDetalles({
             <div className="text-sm text-gray-500 flex gap-4 items-center">
               <div className="flex gap-2 items-center">
                 <Users className="w-4 h-4" />
-                {mesa.invitados || 0} / {mesa.capacidad} ocupados
+                {mesa.disponibilidad?.asientos_ocupados || mesa.invitados || 0} / {mesa.capacidad} ocupados
               </div>
               {mesa.sillasEspeciales?.length > 0 && (
                 <>
@@ -153,7 +178,7 @@ export default function ModalMesaDetalles({
                               <div>
                                 <h5 className="font-bold text-gray-800 flex items-center gap-2">
                                   <Crown className="w-4 h-4 text-yellow-600" />
-                                  Reserva de: {responsable.nombreCompleto}
+                                  Reserva de: {mesa.disponibilidad?.invitados_asignados?.[0]?.invitado_nombre || responsable.nombreCompleto}
                                 </h5>
                                 <p className="text-sm text-gray-600">
                                   {personas.length}{" "}

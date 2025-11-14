@@ -115,6 +115,53 @@ class LayoutEventoService {
   }
 
   /**
+   * Obtener disponibilidad de mesas del evento
+   * @param {string} eventoId - ID del evento
+   * @returns {Promise<Object>} Layout con información de disponibilidad de cada mesa
+   */
+  async obtenerDisponibilidad(eventoId) {
+    try {
+      if (EnvConfig.DEBUG_MODE) {
+        console.log(
+          "🔄 Obteniendo disponibilidad de mesas del evento:",
+          eventoId
+        );
+      }
+
+      if (!eventoId) {
+        throw new Error("eventoId es requerido");
+      }
+
+      const response = await httpService.get(
+        `${this.baseUrl}/${eventoId}/seleccion-mesas/disponibilidad`
+      );
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("✅ Disponibilidad obtenida:", response);
+      }
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || "Disponibilidad obtenida exitosamente",
+      };
+    } catch (error) {
+      if (EnvConfig.DEBUG_MODE) {
+        console.error("❌ Error al obtener disponibilidad:", error);
+      }
+
+      return {
+        success: false,
+        error:
+          error.userMessage ||
+          error.message ||
+          "Error al obtener disponibilidad",
+        details: error,
+      };
+    }
+  }
+
+  /**
    * Personalizar layout de un evento
    * @param {string} eventoId - ID del evento
    * @param {Array} elementos - Array de elementos personalizados

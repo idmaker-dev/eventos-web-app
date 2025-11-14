@@ -19,6 +19,7 @@ export const SignalRProvider = ({ children }) => {
   // Referencia para manejar callbacks
   const dashboardUpdateCallbackRef = useRef(null);
   const pagoCompletadoCallbackRef = useRef(null);
+  const monitorCallbackRef = useRef(null); // Callback para actualización de monitor
   const intentosConexionRef = useRef(0);
   const conectandoRef = useRef(false); // Flag para evitar conexiones simultáneas
   const ultimoIntentoRef = useRef(0); // Timestamp del último intento
@@ -163,6 +164,32 @@ export const SignalRProvider = ({ children }) => {
       registrarEventoPago('pagoCompletado');
       registrarEventoPago('pagocompletado');
 
+      // Escuchar evento de mesa seleccionada para monitor
+      newConnection.on('mesaSeleccionada', (data) => {
+        if (EnvConfig.DEBUG_MODE) {
+          console.log('🪑 Notificación recibida: mesaSeleccionada');
+          console.log('🪑 Datos de la mesa:', JSON.stringify(data, null, 2));
+        }
+
+        // Agregar notificación al estado
+        const nuevaNotificacion = {
+          tipo: 'mesa_seleccionada',
+          mensaje: 'Mesa seleccionada por invitado',
+          data,
+          timestamp: new Date().toISOString(),
+        };
+
+        setNotificaciones(prev => [nuevaNotificacion, ...prev]);
+
+        // Ejecutar callback de monitor si existe
+        if (monitorCallbackRef.current) {
+          console.log('🔔 [SignalR] Ejecutando callback de monitor');
+          monitorCallbackRef.current(data);
+        } else if (EnvConfig.DEBUG_MODE) {
+          console.log('ℹ️ [SignalR] Callback de monitor no activo (no estás en el modo Monitor)');
+        }
+      });
+
       // Listener genérico para debug
       newConnection.onreceive = (data) => {
         if (EnvConfig.DEBUG_MODE) {
@@ -261,6 +288,16 @@ export const SignalRProvider = ({ children }) => {
     pagoCompletadoCallbackRef.current = null;
   }, []);
 
+  // Función para registrar callback de monitor (mesas seleccionadas)
+  const registrarCallbackMonitor = useCallback((callback) => {
+    monitorCallbackRef.current = callback;
+  }, []);
+
+  // Función para desregistrar callback de monitor
+  const desregistrarCallbackMonitor = useCallback(() => {
+    monitorCallbackRef.current = null;
+  }, []);
+
   // Función para obtener información de estado
   const obtenerEstadoConexion = useCallback(() => {
     return {
@@ -286,6 +323,8 @@ export const SignalRProvider = ({ children }) => {
     desregistrarCallbackDashboard,
     registrarCallbackPagoCompletado,
     desregistrarCallbackPagoCompletado,
+    registrarCallbackMonitor,
+    desregistrarCallbackMonitor,
     obtenerEstadoConexion,
   };
 

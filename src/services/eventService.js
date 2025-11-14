@@ -233,6 +233,37 @@ class EventService {
       };
     }
   }
+
+  /**
+   * Obtener invitados con turnos pendientes por evento
+   * Estos son invitados que aún no han completado su selección de mesas
+   *
+   * @param {string} eventId - ID del evento
+   * @returns {Promise<Object>} - Lista de invitados pendientes con su información de turno
+   */
+  async getInvitadosPendientes(eventId) {
+    try {
+      // TODO: Endpoint pendiente de implementación en backend
+      // Por ahora retornamos estructura esperada vacía
+      const response = await httpService.get(
+        `/eventos/${eventId}/turnos/invitados-pendientes`
+      );
+
+      return {
+        success: true,
+        data: response.data || response,
+        invitados: response.data?.invitados || [],
+      };
+    } catch (error) {
+      console.error("Error al obtener invitados pendientes:", error);
+      return {
+        success: false,
+        error: error.userMessage || "Error al cargar invitados pendientes",
+        data: null,
+        invitados: [],
+      };
+    }
+  }
 }
 
 // Crear instancia singleton
