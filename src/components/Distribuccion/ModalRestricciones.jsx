@@ -97,18 +97,8 @@ export default function ModalRestricciones({
     setPersonaActual(index);
   };
 
-  // Validar si todos los nombres están completos
-  const todosLosNombresCompletos = () => {
-    return datosPersonas.every((persona) => persona.nombre.trim() !== "");
-  };
-
-  // Confirmar asignación
+  // Confirmar asignación (nombre ahora es opcional)
   const handleConfirmar = () => {
-    if (!todosLosNombresCompletos()) {
-      alert("Por favor, completa el nombre de todas las personas.");
-      return;
-    }
-
     onConfirm({
       personas: datosPersonas,
       cantidadTotal: cantidadPersonas,
@@ -219,19 +209,14 @@ export default function ModalRestricciones({
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Nombre completo{" "}
               {cantidadPersonas > 1 && `(Persona ${personaActual + 1})`}
+              <span className="text-xs font-normal text-gray-500 ml-2">(opcional)</span>
             </label>
             <input
               value={personaActualData.nombre || ""}
               onChange={(e) => handleNombreChange(e.target.value)}
               className="block w-full rounded-lg border-2 border-gray-200 dark:border-gray-700 px-4 py-3 dark:text-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
-              placeholder={`Nombre de la persona ${personaActual + 1}`}
-              required
+              placeholder={`Nombre de la persona ${personaActual + 1} (opcional)`}
             />
-            {!personaActualData.nombre?.trim() && (
-              <p className="text-xs text-red-500 mt-1">
-                Este campo es obligatorio
-              </p>
-            )}
           </div>
 
           {/* Tipo de Menú */}
@@ -421,17 +406,9 @@ export default function ModalRestricciones({
             </Button>
             <Button
               onClick={handleConfirmar}
-              disabled={!todosLosNombresCompletos()}
-              className="px-6 py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 rounded-lg bg-purple-500 text-white hover:bg-purple-600 font-medium transition-colors"
             >
-              {todosLosNombresCompletos()
-                ? `Guardar ${cantidadPersonas} ${
-                    cantidadPersonas === 1 ? "persona" : "personas"
-                  }`
-                : `Faltan ${
-                    cantidadPersonas -
-                    datosPersonas.filter((p) => p.nombre?.trim()).length
-                  } nombres`}
+              Guardar {cantidadPersonas} {cantidadPersonas === 1 ? "persona" : "personas"}
             </Button>
           </div>
         </div>

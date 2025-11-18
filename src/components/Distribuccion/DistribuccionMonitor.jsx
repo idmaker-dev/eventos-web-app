@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   Minus,
   Plus,
@@ -15,6 +15,10 @@ import MesaRectangular from "./MesaRectangular.jsx";
 import StatsPanel from "./StatsPanel.jsx";
 import ModalMesaDetalles from "./ModalMesaDetalles.jsx";
 import ModalRestricciones from "./ModalRestricciones.jsx";
+import { useSignalRMonitor } from "../../hooks/useSignalRMonitor";
+import { useSelectedEvent } from "../../contexts/SelectedEventContext";
+import { useDisponibilidadMesas } from "../../hooks/useDisponibilidadMesas";
+import eventService from "../../services/eventService";
 
 export default function DistribuccionMonitor({
   allElements,
@@ -23,8 +27,16 @@ export default function DistribuccionMonitor({
   invitados,
   setInvitados,
 }) {
+  const { eventoActual } = useSelectedEvent();
+  
+  // Hook para obtener disponibilidad de mesas con toda la información de ocupación
+  const {
+    elementos: elementosConDisponibilidad,
+    cargarDisponibilidad,
+    isLoading: cargandoDisponibilidad,
+  } = useDisponibilidadMesas(eventoActual?.id, false);
   // ZOOM controls
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.3); // 30% zoom inicial
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [showMesaModal, setShowMesaModal] = useState(false);
   const [mesaSeleccionadaModal, setMesaSeleccionadaModal] = useState(null);
@@ -36,6 +48,8 @@ export default function DistribuccionMonitor({
     invitados || []
   );
   const [guardando, setGuardando] = useState(false);
+  const [invitadosPendientes, setInvitadosPendientes] = useState([]);
+  const [cargandoDatos, setCargandoDatos] = useState(false);
 
   const openDesignModal = () => setShowDesignModal(true);
   const closeDesignModal = () => setShowDesignModal(false);
@@ -61,6 +75,7 @@ export default function DistribuccionMonitor({
   const ZOOM_STEP = 0.1;
   const ZOOM_MIN = 0.1;
   const ZOOM_MAX = 4;
+  const ZOOM_DEFAULT = 0.3; // 30%
 
   // Zoom functions
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -69,7 +84,7 @@ export default function DistribuccionMonitor({
   const zoomOut = () =>
     setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)));
   const resetZoom = () => {
-    setZoom(1);
+    setZoom(ZOOM_DEFAULT);
     setOffset({ x: 0, y: 0 });
   };
 
@@ -94,6 +109,95 @@ export default function DistribuccionMonitor({
       }
     }, 5000);
   };
+
+  // 🔄 Función para actualizar datos del monitor
+  const actualizarDatosMonitor = useCallback(async () => {
+    if (!eventoActual?.id || cargandoDatos) {
+      return;
+    }
+
+    console.log('🔄 [Monitor] Actualizando datos del monitor...');
+    setCargandoDatos(true);
+
+    try {
+      // 1. Cargar disponibilidad actualizada (incluye layout + ocupación de mesas)
+      const resultadoDisponibilidad = await cargarDisponibilidad();
+      if (resultadoDisponibilidad?.success) {
+        const elementosActualizados = resultadoDisponibilidad.data?.layout?.elementos || [];
+        console.log('✅ [Monitor] Layout actualizado:', elementosActualizados.length, 'elementos');
+        console.log('✅ [Monitor] Elementos con disponibilidad:', elementosActualizados.filter(e => e.disponibilidad).length);
+        
+        // Log de tipos de elementos para debugging
+        const tiposElementos = elementosActualizados.reduce((acc, el) => {
+          acc[el.type] = (acc[el.type] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('📊 [Monitor] Tipos de elementos:', tiposElementos);
+        
+        setAllElements(elementosActualizados);
+      }
+
+      // 2. Cargar estado de invitados con turnos
+      const resultadoEstado = await eventService.getEstadoInvitados(eventoActual.id);
+      if (resultadoEstado?.success) {
+        // Invitados en curso: están seleccionando mesa ahora
+        const invitadosEnCurso = resultadoEstado.porEstado?.en_curso || [];
+        console.log('✅ [Monitor] Invitados en curso:', invitadosEnCurso.length);
+        console.log('📊 [Monitor] Estadísticas:', resultadoEstado.estadisticas);
+        
+        setInvitadosPendientes(invitadosEnCurso);
+      }
+
+      console.log('✅ [Monitor] Actualización completa');
+    } catch (error) {
+      console.error('❌ [Monitor] Error al actualizar datos:', error);
+    } finally {
+      setCargandoDatos(false);
+    }
+  }, [eventoActual?.id, cargarDisponibilidad, setAllElements, cargandoDatos]);
+
+  // 📡 Callback para cuando se selecciona una mesa (SignalR)
+  const handleMesaSeleccionada = useCallback(async (data) => {
+    console.log('🔔 [Monitor] Mesa seleccionada:', data);
+    console.log('🔔 [Monitor] Evento actual:', eventoActual?.id);
+    console.log('🔔 [Monitor] Evento del mensaje:', data.eventoId);
+
+    // Verificar que la notificación es para este evento
+    if (data.eventoId !== eventoActual?.id) {
+      console.log('ℹ️ [Monitor] Notificación para otro evento, ignorando');
+      return;
+    }
+
+    const mesasSeleccionadas = data.mesasSeleccionadas || [];
+
+    // Mostrar notificación visual
+    //dentro de cada mesa seleccionada hay un campo mesa_id
+    mostrarNotificacion(
+      `🔔 Mesas seleccionadas: ${mesasSeleccionadas.map(m => m.mesa_id).join(", ")}`,
+      'info'
+    );
+
+    // Actualizar datos del monitor
+    await actualizarDatosMonitor();
+  }, [eventoActual?.id, actualizarDatosMonitor]);
+
+  // 🔌 Integrar hook de SignalR
+  useSignalRMonitor(handleMesaSeleccionada);
+
+  // 📊 Sincronizar elementos cuando se carguen desde el hook
+  useEffect(() => {
+    if (elementosConDisponibilidad && elementosConDisponibilidad.length > 0) {
+      console.log('🔄 [Monitor] Sincronizando elementos desde hook:', elementosConDisponibilidad.length);
+      setAllElements(elementosConDisponibilidad);
+    }
+  }, [elementosConDisponibilidad, setAllElements]);
+
+  // 📊 Cargar datos iniciales al montar componente
+  useEffect(() => {
+    actualizarDatosMonitor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Función para asignar invitados a mesa
   const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
     const mesaSeleccionada = allElements.find(
@@ -439,12 +543,28 @@ export default function DistribuccionMonitor({
 
   // Render elemento (sin botones de eliminar)
   const renderElementMonitor = (element) => {
+    // Aplicar transformaciones del layout (rotation, scale)
+    const rotation = element.rotation || 0;
+    const scale = element.scale || 1;
+    const scaleX = element.scaleX || scale;
+    const scaleY = element.scaleY || scale;
+    
+    const transformStyle = { 
+      transform: `rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`,
+      transformOrigin: 'center center'
+    };
+
     if (element.type === "mesa") {
+      // Obtener invitados asignados desde disponibilidad (backend actualizado) o fallback a element.invitados
+      const invitadosAsignados = element.disponibilidad 
+        ? element.disponibilidad.asientos_ocupados 
+        : element.invitados;
+      
       return (
-        <div className="relative cursor-pointer">
+        <div className="relative cursor-pointer" style={transformStyle}>
           <Mesa
             numeroMesa={element.numero}
-            invitadosAsignados={element.invitados}
+            invitadosAsignados={invitadosAsignados}
             capacidadMaxima={element.capacidad}
             sillasEspeciales={element.sillasEspeciales || []}
             invitadosEspeciales={element.invitadosEspeciales || 0}
@@ -457,11 +577,16 @@ export default function DistribuccionMonitor({
     }
 
     if (element.type === "mesaRectangular") {
+      // Obtener invitados asignados desde disponibilidad (backend actualizado) o fallback a element.invitados
+      const invitadosAsignados = element.disponibilidad 
+        ? element.disponibilidad.asientos_ocupados 
+        : element.invitados;
+      
       return (
-        <div className="relative cursor-pointer">
+        <div className="relative cursor-pointer" style={transformStyle}>
           <MesaRectangular
             numeroMesa={element.numero}
-            invitadosAsignados={element.invitados}
+            invitadosAsignados={invitadosAsignados}
             capacidadMaxima={element.capacidad}
             sillasEspeciales={element.sillasEspeciales || []}
             invitadosEspeciales={element.invitadosEspeciales || 0}
@@ -473,59 +598,76 @@ export default function DistribuccionMonitor({
       );
     }
 
-    // Renderizar otros elementos (sin botones de eliminar)
-    switch (element.type) {
-      case "entrada":
-        return (
-          <div className="rounded px-6 py-1 rotate-90 border flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold bg-gray-50 dark:bg-slate-800 whitespace-nowrap">
-            Entrada
-          </div>
-        );
-      case "barra":
-        return (
-          <div className="border-2 border-separate border-dashed border-gray-300 w-24 h-24 flex items-center justify-center text-center p-2 rounded-md text-gray-500 dark:text-gray-300 font-semibold bg-white dark:bg-slate-800 shadow">
-            Barra
-          </div>
-        );
-      case "mesa-principal":
-        return (
-          <div className="rounded px-6 py-3 w-48 border-separate border-2 border-dashed text-center text-gray-600 dark:text-gray-300 font-semibold bg-gray-50 dark:bg-slate-800">
-            Mesa principal <br />
-            <span className="text-gray-500 text-sm italic">Ana y Juan</span>
-          </div>
-        );
-      case "pistaBaileRedonda":
-        return (
-          <div className="w-40 h-40 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold bg-cafe/10 rounded-full">
-            <span className="text-cafe text-lg font-bold">
-              Pista de <br /> Baile
-            </span>
-          </div>
-        );
-      case "pistaBaileRectangular":
-        return (
-          <div className="w-64 h-28 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold bg-cafe/10 rounded-lg">
-            <span className="text-cafe text-lg font-bold">
-              Pista de <br /> Baile
-            </span>
-          </div>
-        );
-      case "escenario":
-        return (
-          <div className="border-2 border-separate border-dashed border-gray-300 w-28 h-28 flex flex-col items-center justify-center text-center p-2 rounded-md text-gray-500 dark:text-gray-300 font-semibold bg-white dark:bg-slate-800">
-            <p>ESCENARIO</p>
-            <p className="text-xs mt-1">DJ Música</p>
-          </div>
-        );
-      case "buffet":
-        return (
-          <div className="border-2 border-separate border-dashed border-gray-300 w-28 h-20 flex items-center justify-center text-center p-2 rounded-md text-gray-500 dark:text-gray-300 font-semibold bg-white dark:bg-slate-800">
+    // Renderizar otros elementos (sin botones de eliminar) con transformaciones
+    const elementContent = (() => {
+      switch (element.type) {
+        case "entrada":
+          return (
+            <div className="rounded px-6 py-1 rotate-90 border flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold bg-gray-50 dark:bg-slate-800 whitespace-nowrap">
+              Entrada
+            </div>
+          );
+        case "barra":
+          return (
+            <div className="border-2 border-separate border-dashed border-gray-300 w-24 h-24 flex items-center justify-center text-center p-2 rounded-md text-gray-500 dark:text-gray-300 font-semibold bg-white dark:bg-slate-800 shadow">
+              Barra
+            </div>
+          );
+        case "mesa-principal":
+          return (
+            <div className="rounded px-6 py-3 w-48 border-separate border-2 border-dashed text-center text-gray-600 dark:text-gray-300 font-semibold bg-gray-50 dark:bg-slate-800">
+              Mesa principal <br />
+              <span className="text-gray-500 text-sm italic">Ana y Juan</span>
+            </div>
+          );
+        case "pistaBaileRedonda":
+          return (
+            <div className="w-40 h-40 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold bg-cafe/10 rounded-full">
+              <span className="text-cafe text-lg font-bold">
+                Pista de <br /> Baile
+              </span>
+            </div>
+          );
+        case "pistaBaileRectangular":
+          return (
+            <div className="w-64 h-28 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold bg-cafe/10 rounded-lg">
+              <span className="text-cafe text-lg font-bold">
+                Pista de <br /> Baile
+              </span>
+            </div>
+          );
+        case "pistaBaileCuadrada":
+          return (
+            <div className="w-40 h-40 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 dark:text-gray-300 font-semibold bg-cafe/10 rounded-md">
+              <span className="text-cafe text-lg font-bold">
+                Pista de <br /> Baile
+              </span>
+            </div>
+          );
+        case "escenario":
+          return (
+            <div className="border-2 border-separate border-dashed border-gray-300 w-28 h-28 flex flex-col items-center justify-center text-center p-2 rounded-md text-gray-500 dark:text-gray-300 font-semibold bg-white dark:bg-slate-800">
+              <p>ESCENARIO</p>
+              <p className="text-xs mt-1">DJ Música</p>
+            </div>
+          );
+        case "buffet":
+          return (
+            <div className="border-2 border-separate border-dashed border-gray-300 w-28 h-20 flex items-center justify-center text-center p-2 rounded-md text-gray-500 dark:text-gray-300 font-semibold bg-white dark:bg-slate-800">
             BUFFET
           </div>
         );
-      default:
-        return null;
-    }
+        default:
+          return null;
+      }
+    })();
+
+    // Envolver el contenido con las transformaciones
+    return (
+      <div style={transformStyle}>
+        {elementContent}
+      </div>
+    );
   };
 
   const stats = calcularEstadisticas();
@@ -574,8 +716,68 @@ export default function DistribuccionMonitor({
         {/* Contenedor principal con lista de invitados y plano */}
         <div className="flex flex-col xl:flex-row gap-6 mt-6">
           {/* Lista de Invitados */}
-          <div className="w-full xl:w-80 flex-shrink-0">
-            <div className="bg-fondoVs dark:bg-[#1a1a1a] py-6 px-3 rounded-lg shadow-sm">
+          <div className="w-full xl:w-80 flex-shrink-0 space-y-4">
+            {/* 📡 Panel de Invitados Pendientes (Tiempo Real) */}
+            <div className="bg-fondoVs dark:bg-[#1a1a1a] py-6 px-3 rounded-lg shadow-sm border-2 border-blue-200 dark:border-blue-800">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xl font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  Seleccionando Mesa
+                  <span className="text-sm text-gray-500 font-normal">
+                    ({invitadosPendientes.length})
+                  </span>
+                </p>
+                {cargandoDatos && (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                )}
+              </div>
+
+              <div className="max-h-[16rem] overflow-y-auto">
+                {invitadosPendientes.length > 0 ? (
+                  <ul className="space-y-2">
+                    {invitadosPendientes.map((turno) => (
+                      <li 
+                        key={turno.invitado_id}
+                        className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">
+                              Turno #{turno.turno_numero}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {turno.detalle}
+                            </p>
+                            {turno.tiene_seleccion && (
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                ✓ Mesa seleccionada
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    <p className="text-sm">
+                      No hay invitados seleccionando mesa en este momento
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                  <span>💡</span>
+                  Invitados que están eligiendo su mesa en tiempo real
+                </p>
+              </div>
+            </div>
+
+            {/* Panel de Invitados sin Asignar */}
+            {/* <div className="bg-fondoVs dark:bg-[#1a1a1a] py-6 px-3 rounded-lg shadow-sm">
               <p className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-300 flex items-center justify-between gap-2">
                 Invitados sin Asignar
                 <span className="text-sm text-gray-500 font-normal">
@@ -609,7 +811,7 @@ export default function DistribuccionMonitor({
                   lugares.
                 </p>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Plano del Salón */}
