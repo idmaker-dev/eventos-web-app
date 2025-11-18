@@ -137,13 +137,15 @@ export default function DistribuccionMonitor({
         setAllElements(elementosActualizados);
       }
 
-      // 2. Cargar invitados pendientes
-      const resultadoInvitados = await eventService.getInvitadosPendientes(eventoActual.id);
-      if (resultadoInvitados?.success) {
-        const invitadosPend = resultadoInvitados.invitados || [];
-        console.log('✅ [Monitor] Invitados pendientes:', invitadosPend.length);
-        setInvitadosPendientes(invitadosPend);
-        setInvitadosSinAsignar(invitadosPend);
+      // 2. Cargar estado de invitados con turnos
+      const resultadoEstado = await eventService.getEstadoInvitados(eventoActual.id);
+      if (resultadoEstado?.success) {
+        // Invitados en curso: están seleccionando mesa ahora
+        const invitadosEnCurso = resultadoEstado.porEstado?.en_curso || [];
+        console.log('✅ [Monitor] Invitados en curso:', invitadosEnCurso.length);
+        console.log('📊 [Monitor] Estadísticas:', resultadoEstado.estadisticas);
+        
+        setInvitadosPendientes(invitadosEnCurso);
       }
 
       console.log('✅ [Monitor] Actualización completa');
@@ -193,6 +195,7 @@ export default function DistribuccionMonitor({
   // 📊 Cargar datos iniciales al montar componente
   useEffect(() => {
     actualizarDatosMonitor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Función para asignar invitados a mesa
@@ -732,23 +735,25 @@ export default function DistribuccionMonitor({
               <div className="max-h-[16rem] overflow-y-auto">
                 {invitadosPendientes.length > 0 ? (
                   <ul className="space-y-2">
-                    {invitadosPendientes.map((invitado) => (
+                    {invitadosPendientes.map((turno) => (
                       <li 
-                        key={invitado.id}
+                        key={turno.invitado_id}
                         className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg"
                       >
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                           <div className="flex-1">
                             <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">
-                              {invitado.nombre}
+                              Turno #{turno.turno_numero}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {invitado.numeroAcompanantes > 0 
-                                ? `Con ${invitado.numeroAcompanantes} acompañante${invitado.numeroAcompanantes > 1 ? 's' : ''}`
-                                : 'Sin acompañantes'
-                              }
+                              {turno.detalle}
                             </p>
+                            {turno.tiene_seleccion && (
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                ✓ Mesa seleccionada
+                              </p>
+                            )}
                           </div>
                         </div>
                       </li>
