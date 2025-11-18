@@ -233,6 +233,39 @@ class EventService {
       };
     }
   }
+
+  /**
+   * Obtener estado de invitados y turnos por evento
+   * Incluye estadísticas y lista de invitados agrupados por estado
+   *
+   * @param {string} eventId - ID del evento
+   * @returns {Promise<Object>} - Estado completo de invitados con turnos
+   */
+  async getEstadoInvitados(eventId) {
+    try {
+      const response = await httpService.get(
+        `/eventos/${eventId}/seleccion-mesas/estado-invitados`
+      );
+
+      return {
+        success: true,
+        data: response.data || response,
+        estadisticas: response.data?.estadisticas || {},
+        invitados: response.data?.invitados || [],
+        porEstado: response.data?.por_estado || {},
+      };
+    } catch (error) {
+      console.error("Error al obtener estado de invitados:", error);
+      return {
+        success: false,
+        error: error.userMessage || "Error al cargar estado de invitados",
+        data: null,
+        estadisticas: {},
+        invitados: [],
+        porEstado: {},
+      };
+    }
+  }
 }
 
 // Crear instancia singleton

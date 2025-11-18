@@ -91,7 +91,7 @@ export default function AppRoutes() {
       <Route path="/PortalPagos/:invitadoId" element={<PortalPagos />} />
       <Route path="/Checkout/:invitadoId" element={<Checkout />} />
       <Route path="/pago-tarjeta/:invitadoId" element={<PagoTarjeta />} />
-      <Route path="/asignacion-user" element={<AsignacionUser />} />
+      <Route path="/asignacion-user/:eventoId/:invitadoId" element={<AsignacionUser />} />
       
       {/* Ruta para lector QR - Accesible sin autenticación para personal del evento */}
       <Route path="/lector-qr/:eventoId" element={<LectorQRPage />} />
