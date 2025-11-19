@@ -519,7 +519,7 @@ export default function ModalEspera({ open, usuario, horario }) {
                   <div className="w-full max-w-4xl bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                     <div className="aspect-[4/3] bg-gray-100 rounded-lg flex items-center justify-center relative overflow-hidden">
                       <div>
-                        <p>En elaboración</p>
+                        <p className="text-3xl text-gray-400">En elaboración</p>
                       </div>
                     </div>
 
