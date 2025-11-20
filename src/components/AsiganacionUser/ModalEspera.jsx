@@ -1,16 +1,27 @@
 import { Button, Dialog, DialogPanel } from "@headlessui/react";
-import { Clock, Users, Calendar, UserCircle, Eye, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
-import React, { useState, useEffect } from "react";
+import { Clock, Calendar, UserCircle, ChevronLeft, ChevronRight, Save, X, Minus, Plus, RotateCcw } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useDisponibilidadMesas } from "../../hooks/useDisponibilidadMesas";
+import { useSignalRInvitado } from "../../hooks/useSignalRInvitado";
+import Mesa from "../Distribuccion/Mesa.jsx";
+import MesaRectangular from "../Distribuccion/MesaRectangular.jsx";
 import "./css/style.css";
 
-export default function ModalEspera({ open, usuario, horario }) {
+export default function ModalEspera({ 
+  open, 
+  usuario, 
+  horario,
+  eventoId,
+  invitadoId,
+  configuracionPrevia,
+  onGuardarConfiguracion 
+}) {
   const [tiempoRestante, setTiempoRestante] = useState(0);
   const [horaActual, setHoraActual] = useState(new Date());
   const [mostrarAjustes, setMostrarAjustes] = useState(false);
   const [configuracionAsientos, setConfiguracionAsientos] = useState({
-    mesaSeleccionada: 14,
-    boletosDisponibles: 12,
-    personas: [{ id: 1, nombre: "", activa: true }],
+    boletosDisponibles: usuario?.cantidad_personas || usuario?.cantidad || 1,
+    personas: [{ id: 1, nombre: usuario?.nombre_completo || usuario?.nombre || "", activa: true }],
     restriccionesAlimentarias: {
       vegetariano: false,
       vegano: false,
@@ -20,6 +31,59 @@ export default function ModalEspera({ open, usuario, horario }) {
     tipoMenu: "normal",
     restriccionEspecifica: "",
   });
+  
+  // Estados para configuración y SignalR
+  const [configuracionGuardada, setConfiguracionGuardada] = useState(false);
+  const [guardandoConfiguracion, setGuardandoConfiguracion] = useState(false);
+  
+  // Estados para el canvas de mesas
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const containerRef = useRef(null);
+  const canvasRef = useRef(null);
+  
+  // Hook para obtener disponibilidad de mesas
+  const {
+    elementos: elementosConDisponibilidad,
+    estadisticas,
+    loading: loadingMesas,
+    refrescar: refrescarDisponibilidad,
+    disponibilidad
+  } = useDisponibilidadMesas(eventoId, true);
+  
+  // Debug: Ver estructura de datos
+  useEffect(() => {
+    if (disponibilidad) {
+      console.log("📊 Disponibilidad completa:", disponibilidad);
+      console.log("📋 Elementos:", elementosConDisponibilidad);
+      console.log("📈 Estadísticas:", estadisticas);
+    }
+  }, [disponibilidad, elementosConDisponibilidad, estadisticas]);
+  
+  // Callback para actualizaciones de SignalR
+  const handleMesaSeleccionada = useCallback(async (data) => {
+    console.log("🪑 [ModalEspera] Mesa seleccionada detectada:", data);
+    await refrescarDisponibilidad();
+  }, [refrescarDisponibilidad]);
+  
+  // Hook de SignalR para invitados (solo registra callback, no conecta)
+  const { conectado } = useSignalRInvitado(handleMesaSeleccionada);
+  
+  // Cargar disponibilidad inicial cuando el modal se abre
+  useEffect(() => {
+    if (open && eventoId) {
+      console.log("🔄 Cargando disponibilidad inicial al abrir modal de espera");
+      refrescarDisponibilidad();
+    }
+  }, [open, eventoId, refrescarDisponibilidad]);
+  
+  // Cargar configuración previa si existe
+  useEffect(() => {
+    if (configuracionPrevia) {
+      setConfiguracionAsientos(configuracionPrevia);
+      setConfiguracionGuardada(true);
+    }
+  }, [configuracionPrevia]);
 
   // Actualizar hora actual
   useEffect(() => {
@@ -59,6 +123,69 @@ export default function ModalEspera({ open, usuario, horario }) {
     console.log("Cambiando a ajustes:", !mostrarAjustes);
     setMostrarAjustes(!mostrarAjustes);
   };
+  
+  // Funciones para guardar/cancelar configuración
+  const handleGuardarConfiguracion = useCallback(async () => {
+    setGuardandoConfiguracion(true);
+    try {
+      // Guardar en localStorage
+      const config = {
+        ...configuracionAsientos,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem(`config-asientos-${invitadoId}`, JSON.stringify(config));
+      setConfiguracionGuardada(true);
+      
+      // Notificar al componente padre si existe callback
+      if (onGuardarConfiguracion) {
+        onGuardarConfiguracion(config);
+      }
+      
+      console.log("Configuración guardada en memoria:", config);
+      
+      // Volver a la vista de espera
+      setMostrarAjustes(false);
+    } catch (error) {
+      console.error("Error al guardar configuración:", error);
+    } finally {
+      setGuardandoConfiguracion(false);
+    }
+  }, [configuracionAsientos, invitadoId, onGuardarConfiguracion]);
+  
+  const handleCancelarConfiguracion = useCallback(() => {
+    // Restaurar configuración previa o valores por defecto
+    if (configuracionPrevia) {
+      setConfiguracionAsientos(configuracionPrevia);
+    } else {
+      setConfiguracionAsientos({
+        boletosDisponibles: usuario?.cantidad_personas || usuario?.cantidad || 1,
+        personas: [{ id: 1, nombre: usuario?.nombre_completo || usuario?.nombre || "", activa: true }],
+        restriccionesAlimentarias: {
+          vegetariano: false,
+          vegano: false,
+          sinGluten: false,
+          alergiaMarisco: false,
+        },
+        tipoMenu: "normal",
+        restriccionEspecifica: "",
+      });
+    }
+    setMostrarAjustes(false);
+  }, [configuracionPrevia, usuario]);
+  
+  // Funciones de zoom para el canvas
+  const zoomIn = useCallback(() => {
+    setZoom(prev => Math.min(prev + 0.1, 2));
+  }, []);
+  
+  const zoomOut = useCallback(() => {
+    setZoom(prev => Math.max(prev - 0.1, 0.5));
+  }, []);
+  
+  const resetZoom = useCallback(() => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  }, []);
 
   const agregarPersona = () => {
     if (
@@ -94,12 +221,128 @@ export default function ModalEspera({ open, usuario, horario }) {
     }));
   };
 
+  // Renderizar elemento del layout (mesas y decorativos)
+  const renderElemento = (element) => {
+    // Obtener disponibilidad para mesas
+    const disponibilidad = element.disponibilidad;
+    const invitadosAsignados = disponibilidad 
+      ? disponibilidad.asientos_ocupados 
+      : element.invitados || 0;
+    
+    // Renderizar mesas
+    if (element.type === 'mesa') {
+      return (
+        <Mesa
+          numeroMesa={element.numero}
+          invitadosAsignados={invitadosAsignados}
+          capacidadMaxima={element.capacidad}
+          sillasEspeciales={element.sillasEspeciales || []}
+          invitadosEspeciales={element.invitadosEspeciales || 0}
+          readOnly={true}
+        />
+      );
+    }
+    
+    if (element.type === 'mesaRectangular') {
+      return (
+        <MesaRectangular
+          numeroMesa={element.numero}
+          invitadosAsignados={invitadosAsignados}
+          capacidadMaxima={element.capacidad}
+          sillasEspeciales={element.sillasEspeciales || []}
+          invitadosEspeciales={element.invitadosEspeciales || 0}
+          readOnly={true}
+        />
+      );
+    }
+    
+    // Aplicar transformaciones para elementos decorativos
+    const rotation = element.rotation || 0;
+    const scale = element.scale || 1;
+    const scaleX = element.scaleX || scale;
+    const scaleY = element.scaleY || scale;
+    
+    const transformStyle = { 
+      transform: `rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`,
+      transformOrigin: 'center center'
+    };
+
+    // Renderizar elementos decorativos
+    const elementContent = (() => {
+      switch (element.type) {
+        case "entrada":
+          return (
+            <div className="rounded px-6 py-1 rotate-90 border flex items-center justify-center text-gray-600 font-semibold bg-gray-50 whitespace-nowrap pointer-events-none">
+              Entrada
+            </div>
+          );
+        case "barra":
+          return (
+            <div className="border-2 border-separate border-dashed border-gray-300 w-24 h-24 flex items-center justify-center text-center p-2 rounded-md text-gray-500 font-semibold bg-white shadow pointer-events-none">
+              Barra
+            </div>
+          );
+        case "mesa-principal":
+          return (
+            <div className="rounded px-6 py-3 w-48 border-separate border-2 border-dashed text-center text-gray-600 font-semibold bg-gray-50 pointer-events-none">
+              Mesa principal
+            </div>
+          );
+        case "pistaBaileRedonda":
+          return (
+            <div className="w-40 h-40 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 font-semibold bg-cafe/10 rounded-full pointer-events-none">
+              <span className="text-cafe text-lg font-bold">
+                Pista de <br /> Baile
+              </span>
+            </div>
+          );
+        case "pistaBaileRectangular":
+          return (
+            <div className="w-64 h-28 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 font-semibold bg-cafe/10 rounded-lg pointer-events-none">
+              <span className="text-cafe text-lg font-bold">
+                Pista de <br /> Baile
+              </span>
+            </div>
+          );
+        case "pistaBaileCuadrada":
+          return (
+            <div className="w-40 h-40 text-center border-cafe border-2 border-dashed flex items-center justify-center text-gray-600 font-semibold bg-cafe/10 rounded-md pointer-events-none">
+              <span className="text-cafe text-lg font-bold">
+                Pista de <br /> Baile
+              </span>
+            </div>
+          );
+        case "escenario":
+          return (
+            <div className="border-2 border-separate border-dashed border-gray-300 w-28 h-28 flex flex-col items-center justify-center text-center p-2 rounded-md text-gray-500 font-semibold bg-white shadow pointer-events-none">
+              <p>ESCENARIO</p>
+              <p className="text-xs mt-1">DJ Música</p>
+            </div>
+          );
+        case "buffet":
+          return (
+            <div className="border-2 border-separate border-dashed border-gray-300 w-28 h-20 flex items-center justify-center text-center p-2 rounded-md text-gray-500 font-semibold bg-white shadow pointer-events-none">
+              BUFFET
+            </div>
+          );
+        default:
+          return null;
+      }
+    })();
+
+    return (
+      <div style={transformStyle}>
+        {elementContent}
+      </div>
+    );
+  };
+
   return (
     <Dialog open={open} onClose={() => {}} className="relative z-50">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
 
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <DialogPanel className="w-full max-w-[87vw] bg-white rounded-2xl shadow-2xl overflow-hidden">
           <div className="flex flex-col lg:flex-row w-full min-h-[600px]">
             {/* Panel izquierdo con flip */}
             <div className="w-full lg:w-96 rounded-2xl flex flex-col relative overflow-hidden">
@@ -189,7 +432,7 @@ export default function ModalEspera({ open, usuario, horario }) {
                               Disponible
                             </div>
                             <div className="text-gray-400 font-normal">
-                              (15 asientos)
+                              ({estadisticas?.asientos_disponibles || 0} asientos)
                             </div>
                           </div>
                           <div className="">
@@ -198,7 +441,7 @@ export default function ModalEspera({ open, usuario, horario }) {
                               Ocupado
                             </div>
                             <div className="text-gray-400 font-normal">
-                              (21 asientos)
+                              ({estadisticas?.asientos_ocupados || 0} asientos)
                             </div>
                           </div>
                           <div className="">
@@ -207,7 +450,7 @@ export default function ModalEspera({ open, usuario, horario }) {
                                 Mesas Ocupadas
                               </p>
                               <div className="text-lg font-semibold text-casal">
-                                28/50
+                                {estadisticas?.mesas_llenas || 0}/{estadisticas?.total_mesas || 0}
                               </div>
                             </div>
                             <div>
@@ -215,12 +458,18 @@ export default function ModalEspera({ open, usuario, horario }) {
                                 Capacidad utilizada:
                               </p>
                               <div className="text-lg font-semibold text-green-500">
-                                56%
+                                {Math.round((estadisticas?.porcentaje_ocupacion || 0) * 100)}%
                               </div>
                             </div>
                           </div>
                         </div>
-                        <div className="flex justify-center mt-3">
+                        <div className="flex flex-col items-center gap-2 mt-3">
+                          {configuracionGuardada && (
+                            <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                              <Save className="w-3 h-3" />
+                              <span>Configuración guardada</span>
+                            </div>
+                          )}
                           <Button
                             onClick={handleToggleAjustes}
                             className="bg-casal text-white text-sm font-semibold px-8 py-2 rounded-2xl hover:bg-casal/90 transition"
@@ -248,22 +497,19 @@ export default function ModalEspera({ open, usuario, horario }) {
                         </Button>
                       </div>
 
-                      {/* Preselección de mesa */}
-                      <div className="mb-4 flex  justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-700">
-                            Preselección de mesa
+                      {/* Información de boletos */}
+                      <div className="mb-4 bg-blue-50 p-3 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">
+                            Boletos disponibles:
                           </span>
-                          <span className="bg-Acapulco text-white px-2 py-1 rounded text-xs font-medium">
-                            Mesa {configuracionAsientos.mesaSeleccionada}
+                          <span className="bg-casal text-white px-3 py-1 rounded-lg text-sm font-semibold">
+                            {configuracionAsientos.boletosDisponibles}
                           </span>
                         </div>
-                        <div>
-                          <p className="text-xs text-gray-500">
-                            Usted tiene {configuracionAsientos.boletosDisponibles}{" "}
-                            boletos
-                          </p>
-                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Configura la información de las personas que asistirán
+                        </p>
                       </div>
 
                       {/* Configuración de personas */}
@@ -469,10 +715,25 @@ export default function ModalEspera({ open, usuario, horario }) {
                         />
                       </div>
 
-                      {/* Botón de guardar */}
-                      <Button className="w-full bg-casal text-white font-medium py-2 rounded-lg hover:bg-casal/90 transition">
-                        Guardar configuración
-                      </Button>
+                      {/* Botones de guardar y cancelar */}
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={handleGuardarConfiguracion}
+                          disabled={guardandoConfiguracion}
+                          className="flex-1 bg-casal text-white font-medium py-2 rounded-lg hover:bg-casal/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          <Save className="w-4 h-4" />
+                          {guardandoConfiguracion ? 'Guardando...' : 'Guardar'}
+                        </Button>
+                        <Button 
+                          onClick={handleCancelarConfiguracion}
+                          disabled={guardandoConfiguracion}
+                          className="flex-1 bg-gray-200 text-gray-700 font-medium py-2 rounded-lg hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          <X className="w-4 h-4" />
+                          Cancelar
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -517,22 +778,109 @@ export default function ModalEspera({ open, usuario, horario }) {
                 {/* Mapa de asientos */}
                 <div className="flex-1 flex items-center justify-center">
                   <div className="w-full max-w-4xl bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                    <div className="aspect-[4/3] bg-gray-100 rounded-lg flex items-center justify-center relative overflow-hidden">
-                      <div>
-                        <p className="text-3xl text-gray-400">En elaboración</p>
+                    {/* Controles de zoom */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={zoomOut}
+                          className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                          title="Alejar"
+                        >
+                          <Minus className="w-4 h-4 text-gray-700" />
+                        </Button>
+                        <Button
+                          onClick={resetZoom}
+                          className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                          title="Restablecer zoom"
+                        >
+                          <RotateCcw className="w-4 h-4 text-gray-700" />
+                        </Button>
+                        <Button
+                          onClick={zoomIn}
+                          className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                          title="Acercar"
+                        >
+                          <Plus className="w-4 h-4 text-gray-700" />
+                        </Button>
                       </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        {conectado ? (
+                          <>
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span className="text-green-600 font-medium">Conectado</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            <span className="text-gray-500">Desconectado</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Canvas de mesas */}
+                    <div 
+                      ref={containerRef}
+                      className="aspect-[4/3] bg-gray-100 rounded-lg relative overflow-auto"
+                      style={{ minHeight: '500px' }}
+                    >
+                      {loadingMesas ? (
+                        <div className="flex flex-col items-center gap-2 absolute inset-0 justify-center">
+                          <div className="w-8 h-8 border-4 border-casal/30 border-t-casal rounded-full animate-spin"></div>
+                          <p className="text-sm text-gray-500">Cargando mesas...</p>
+                        </div>
+                      ) : elementosConDisponibilidad && elementosConDisponibilidad.length > 0 ? (
+                        <div 
+                          className="relative bg-gray-50"
+                          style={{
+                            width: '1200px',
+                            height: '800px',
+                            minWidth: '1200px',
+                            minHeight: '800px'
+                          }}
+                        >
+                          <div
+                            ref={canvasRef}
+                            className="absolute left-0 top-0 origin-top-left"
+                            style={{
+                              transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                              transformOrigin: '0 0',
+                              width: '1200px',
+                              height: '800px'
+                            }}
+                          >
+                            {elementosConDisponibilidad.map((element) => (
+                              <div
+                                key={element.id}
+                                style={{
+                                  position: 'absolute',
+                                  left: `${element.position?.x || 0}px`,
+                                  top: `${element.position?.y || 0}px`,
+                                  userSelect: 'none'
+                                }}
+                              >
+                                {renderElemento(element)}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center absolute inset-0">
+                          <p className="text-lg text-gray-400">No hay mesas disponibles</p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Leyenda */}
                     <div className="flex justify-center gap-6 mt-4 text-xs">
                       <div className="flex items-center gap-1">
-                        <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                        <span className="text-gray-600">Disponible</span>
+                        <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+                        <span className="text-gray-600">Mesas Disponibles</span>
                       </div>
-                      <div className="flex items-center gap-1">
+                      {/* <div className="flex items-center gap-1">
                         <div className="w-3 h-3 bg-red-400 rounded-full"></div>
                         <span className="text-gray-600">Ocupado</span>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>

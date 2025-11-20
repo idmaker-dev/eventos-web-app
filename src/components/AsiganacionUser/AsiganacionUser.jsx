@@ -12,6 +12,7 @@ import {
   MapPin,
   CheckCircle,
   Clock2,
+  X,
 } from "lucide-react";
 import { Button } from "@headlessui/react";
 import { Tooltip } from "../ui/Tooltip.jsx";
@@ -71,11 +72,12 @@ export default function AsignacionUser({
 
   // Estado de asignación del usuario
   const [asignacionActual, setAsignacionActual] = useState(null);
+  const [asignacionTemporal, setAsignacionTemporal] = useState(null);
 
   // Obtener disponibilidad de mesas (incluye layout completo + disponibilidad)
   const {
     elementos: elementosConDisponibilidad,
-    isLoading: loadingDisponibilidad,
+    isLoading: loadingDisponibilidad, // eslint-disable-line no-unused-vars
     refrescar: refrescarDisponibilidad
   } = useDisponibilidadMesas(eventoId, true);
 
@@ -83,7 +85,7 @@ export default function AsignacionUser({
   const allElements = elementosConDisponibilidad || [];
 
   // Zoom y controles
-  const [zoom, setZoom] = useState(0.3);
+  const [zoom, setZoom] = useState(0.4);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 
   // Modales
@@ -190,7 +192,7 @@ export default function AsignacionUser({
         clearInterval(intervalRef.current);
       }
     };
-  }, [temporizadorActivo, asignacionActual, onCambioEstado]);
+  }, [temporizadorActivo, asignacionActual, onCambioEstado, TIEMPO_LIMITE]);
 
   const formatearTiempo = (milisegundos) => {
     if (!milisegundos) return "00:00";
@@ -309,6 +311,19 @@ export default function AsignacionUser({
   /* -----------------------
     Lógica de asignación
   ----------------------- */
+  // Función auxiliar para formatear restricciones desde la pre-configuración
+  const formatearRestricciones = (restriccionesObj) => {
+    if (!restriccionesObj) return "Ninguna";
+    
+    const restriccionesActivas = [];
+    if (restriccionesObj.vegetariano) restriccionesActivas.push("Vegetariano");
+    if (restriccionesObj.vegano) restriccionesActivas.push("Vegano");
+    if (restriccionesObj.sinGluten) restriccionesActivas.push("Sin gluten");
+    if (restriccionesObj.alergiaMarisco) restriccionesActivas.push("Alergia a mariscos");
+    
+    return restriccionesActivas.length > 0 ? restriccionesActivas.join(", ") : "Ninguna";
+  };
+
   const seleccionarMesa = (numeroMesa) => {
     // ✅ VALIDACIONES DE TURNO (si está usando sistema de turnos)
     if (usandoSistemaTurnos) {
@@ -356,48 +371,55 @@ export default function AsignacionUser({
       return;
     }
 
-    // ✅ Validación de mesa vacía SOLO para sistema legacy (sin turnos)
-    if (mesaSeleccionada.invitados === 0 && !usandoSistemaTurnos) {
+    // ✅ Validación de mesa vacía: Regla de grupos grandes (aplica SIEMPRE)
+    // Los datos pueden venir del backend (disponibilidad) o del estado local (invitados)
+    const invitadosEnMesa = mesaSeleccionada.disponibilidad 
+      ? mesaSeleccionada.disponibilidad.asientos_ocupados 
+      : mesaSeleccionada.invitados;
+
+    if (invitadosEnMesa === 0) {
       const validacion = puedeAbrirMesaNueva();
 
       if (!validacion.puede) {
         const stats = obtenerEstadisticasOcupacion();
         let mensajeDetallado = "";
-        if (validacion.razon === "minimo-personas") {
+        
+        if (validacion.razon === "grupo-pequeno") {
           mensajeDetallado =
-            `No puedes abrir una mesa nueva aún.\n\n` +
-            `Ocupación actual: ${stats.totalPersonasOcupadas} personas\n` +
-            `Mínimo requerido: 10 personas\n\n` +
-            `Selecciona una mesa que ya tenga invitados asignados.`;
+            `🚫 No puedes abrir una mesa nueva\n\n` +
+            `Tu grupo: ${usuarioActual.cantidad} ${usuarioActual.cantidad === 1 ? 'persona' : 'personas'}\n` +
+            `Mínimo requerido: 8 personas\n\n` +
+            `💡 Solo grupos grandes (8+ personas) pueden abrir mesas nuevas.\n\n` +
+            `Por favor, selecciona una mesa que ya tenga invitados asignados para optimizar el espacio.`;
         } else if (validacion.razon === "espacio-disponible") {
           const mesasConEspacio = allElements
             .filter(
               (el) =>
                 (el.type === "mesa" || el.type === "mesaRectangular") &&
-                el.invitados > 0 &&
-                el.capacidad - el.invitados >= usuarioActual.cantidad
+                ((el.disponibilidad?.asientos_ocupados || el.invitados) > 0) &&
+                (el.disponibilidad?.asientos_disponibles || (el.capacidad - el.invitados)) >= usuarioActual.cantidad
             )
             .map(
               (mesa) =>
                 `Mesa ${mesa.numero} (${
-                  mesa.capacidad - mesa.invitados
+                  mesa.disponibilidad?.asientos_disponibles || (mesa.capacidad - mesa.invitados)
                 } lugares)`
             )
             .join(", ");
 
           mensajeDetallado =
-            `No puedes abrir una mesa nueva aún.\n\n` +
-            `Personas ocupadas: ${stats.totalPersonasOcupadas}\n` +
+            `🎯 Optimiza el espacio disponible\n\n` +
+            `Tu grupo: ${usuarioActual.cantidad} ${usuarioActual.cantidad === 1 ? 'persona' : 'personas'}\n` +
             `Espacios disponibles: ${stats.espacioTotalDisponible} lugares\n\n` +
             `Mesas con espacio disponible:\n${mesasConEspacio}\n\n` +
-            `Completa las mesas existentes antes de abrir una nueva.`;
+            `💡 Para evitar dejar mesas con cupos vacíos, primero ocupa los espacios en mesas que ya tienen invitados.\n\n` +
+            `Las mesas sugeridas son las que mejor se ajustan a tu grupo.`;
         }
 
         mostrarNotificacion(mensajeDetallado, "warning");
         return;
       }
     }
-    // En sistema de turnos, la disponibilidad ya fue verificada por el backend
 
     // Validar capacidad disponible
     const espacioDisponible =
@@ -433,17 +455,62 @@ export default function AsignacionUser({
       }
     }
 
-    // Todo OK -> abrir modal de restricciones
-    setPendingAsignacion({ usuario: usuarioActual, numeroMesa });
-    setPendingNombre(usuarioActual.nombre);
-    setRestricciones({
-      vegetariano: 0,
-      vegano: 0,
-      sinGluten: 0,
-      alergiaMarisco: 0,
-    });
-    setOtra("");
-    setShowRestrModal(true);
+    // Verificar si existe pre-configuración en localStorage
+    const configGuardada = localStorage.getItem(`config-asientos-${usuarioActual.id}`);
+    
+    if (configGuardada) {
+      // Si existe pre-configuración, cargarla y NO abrir modal
+      try {
+        const config = JSON.parse(configGuardada);
+        console.log("📋 Pre-configuración encontrada:", config);
+        
+        // ⚠️ IMPORTANTE: Establecer pendingAsignacion ANTES de llamar a handleConfirmRestricciones
+        setPendingAsignacion({ usuario: usuarioActual, numeroMesa });
+        
+        // Usar directamente los datos de la pre-configuración
+        const personas = config.personas || [{ 
+          id: 1, 
+          nombre: usuarioActual.nombre,
+          tipoMenu: config.tipoMenu || "normal",
+          restricciones: formatearRestricciones(config.restriccionesAlimentarias),
+          otraRestriccion: config.restriccionEspecifica || null
+        }];
+        
+        // Llamar después de un pequeño delay para asegurar que pendingAsignacion se actualice
+        setTimeout(() => {
+          handleConfirmRestricciones({ 
+            personas, 
+            cantidadTotal: config.boletosDisponibles || usuarioActual.cantidad 
+          });
+        }, 0);
+        
+      } catch (error) {
+        console.error("Error al cargar pre-configuración:", error);
+        // Si hay error, abrir modal normalmente
+        setPendingAsignacion({ usuario: usuarioActual, numeroMesa });
+        setPendingNombre(usuarioActual.nombre);
+        setRestricciones({
+          vegetariano: 0,
+          vegano: 0,
+          sinGluten: 0,
+          alergiaMarisco: 0,
+        });
+        setOtra("");
+        setShowRestrModal(true);
+      }
+    } else {
+      // Si NO existe pre-configuración, abrir modal normalmente
+      setPendingAsignacion({ usuario: usuarioActual, numeroMesa });
+      setPendingNombre(usuarioActual.nombre);
+      setRestricciones({
+        vegetariano: 0,
+        vegano: 0,
+        sinGluten: 0,
+        alergiaMarisco: 0,
+      });
+      setOtra("");
+      setShowRestrModal(true);
+    }
   };
 
   const handleConfirmRestricciones = ({ personas, cantidadTotal }) => {
@@ -468,33 +535,17 @@ export default function AsignacionUser({
       }),
     };
 
-    // ✅ SI USA SISTEMA DE TURNOS, guardar con el servicio de turnos
-    if (usandoSistemaTurnos && onGuardarSeleccion) {
-      // Preparar datos para el formato de turnos
-      const datosSeleccion = {
-        mesas_seleccionadas: [{
-          mesa_id: numeroMesa,
-          numero_mesa: numeroMesa,
-          cantidad_personas: cantidadTotal
-        }],
-        tipo_menu: personas[0]?.tipoMenu || 'normal',
-        restriccion_dietetica: personas[0]?.restricciones || 'Ninguna',
-        otra_restriccion: personas[0]?.otraRestriccion || null,
-        personas: personas
-      };
+    // ⚠️ NUEVO: Guardar en localStorage TEMPORAL (no llamar API aún)
+    localStorage.setItem(
+      `asignacion-temporal-${usuarioActual.id}`,
+      JSON.stringify(asignacionData)
+    );
 
-      // Llamar a la función de guardado del turno
-      onGuardarSeleccion(datosSeleccion);
-    } else {
-      // Sistema legacy: guardar en localStorage
-      localStorage.setItem(
-        `asignacion-${usuarioActual.id}`,
-        JSON.stringify(asignacionData)
-      );
-    }
-
-    // Actualizar el estado de asignación actual
-    setAsignacionActual(asignacionData);
+    // Actualizar el estado de asignación TEMPORAL (no la final)
+    setAsignacionTemporal(asignacionData);
+    
+    // Limpiar la asignación "actual" ya que ahora está en temporal
+    setAsignacionActual(null);
 
     // Refrescar disponibilidad desde el backend para actualizar la UI
     if (refrescarDisponibilidad) {
@@ -528,42 +579,119 @@ export default function AsignacionUser({
     }
   };
 
-  const cancelarAsignacion = () => {
-    if (!asignacionActual) return;
+  const guardarAsignacionFinal = async () => {
+    if (!asignacionTemporal) return;
 
-    const confirmar = window.confirm(
-      "¿Estás seguro de que deseas cancelar tu asignación?\n\n" +
-        `Perderás tu lugar en la Mesa ${asignacionActual.numeroMesa} para ${
-          asignacionActual.cantidadTotal || usuarioActual.cantidad
+    try {
+      // ✅ SI USA SISTEMA DE TURNOS, guardar con el servicio de turnos
+      if (usandoSistemaTurnos && onGuardarSeleccion) {
+        const { numeroMesa, cantidadTotal, personas } = asignacionTemporal;
+        
+        // Preparar datos para el formato de turnos
+        const datosSeleccion = {
+          mesas_seleccionadas: [{
+            mesa_id: numeroMesa,
+            numero_mesa: numeroMesa,
+            cantidad_personas: cantidadTotal
+          }],
+          tipo_menu: personas[0]?.tipoMenu || 'normal',
+          restriccion_dietetica: personas[0]?.restricciones || 'Ninguna',
+          otra_restriccion: personas[0]?.otraRestriccion || null,
+          personas: personas
+        };
+
+        // Llamar a la función de guardado del turno
+        await onGuardarSeleccion(datosSeleccion);
+      } else {
+        // Sistema legacy: mover de temporal a final
+        localStorage.setItem(
+          `asignacion-${usuarioActual.id}`,
+          JSON.stringify(asignacionTemporal)
+        );
+      }
+
+      // Actualizar estado: temporal pasa a ser actual
+      setAsignacionActual(asignacionTemporal);
+      setAsignacionTemporal(null);
+      
+      // Limpiar temporal del localStorage
+      localStorage.removeItem(`asignacion-temporal-${usuarioActual.id}`);
+      
+      // Limpiar pre-configuración si existe (ya no se necesita)
+      localStorage.removeItem(`config-asientos-${usuarioActual.id}`);
+
+      // Refrescar disponibilidad desde el backend
+      if (refrescarDisponibilidad) {
+        await refrescarDisponibilidad();
+      }
+
+      mostrarNotificacion(
+        `¡Asignación guardada exitosamente!小n小n` +
+          `Mesa: ${asignacionTemporal.numeroMesa}小n` +
+          `Personas: ${asignacionTemporal.cantidadTotal}`,
+        "success"
+      );
+
+      if (onCambioEstado) {
+        onCambioEstado("completada");
+      }
+    } catch (error) {
+      console.error("Error al guardar asignación final:", error);
+      mostrarNotificacion(
+        "Error al guardar la asignación. Intenta nuevamente.",
+        "error"
+      );
+    }
+  };
+
+  const cancelarAsignacion = () => {
+    // Verificar si hay asignación temporal o actual
+    const asignacion = asignacionTemporal || asignacionActual;
+    if (!asignacion) return;
+
+    const mensaje = asignacionTemporal 
+      ? "¿Deseas descartar los cambios?\n\nLa selección de mesa no se guardará y podrás elegir otra mesa."
+      : "¿Estás seguro de que deseas cancelar tu asignación?\n\n" +
+        `Perderás tu lugar en la Mesa ${asignacion.numeroMesa} para ${
+          asignacion.cantidadTotal || usuarioActual.cantidad
         } ${
-          (asignacionActual.cantidadTotal || usuarioActual.cantidad) === 1
+          (asignacion.cantidadTotal || usuarioActual.cantidad) === 1
             ? "persona"
             : "personas"
         }.\n\n` +
-        "Tendrás que seleccionar otra mesa y configurar nuevamente la información de todos los invitados."
-    );
+        "Tendrás que seleccionar otra mesa y configurar nuevamente la información de todos los invitados.";
 
+    const confirmar = window.confirm(mensaje);
     if (!confirmar) return;
 
-    // Limpiar asignación local y refrescar datos del backend
-    setAsignacionActual(null);
-    localStorage.removeItem(`asignacion-${usuarioActual.id}`);
+    // Limpiar según el tipo de asignación
+    if (asignacionTemporal) {
+      setAsignacionTemporal(null);
+      localStorage.removeItem(`asignacion-temporal-${usuarioActual.id}`);
+      mostrarNotificacion(
+        "Selección descartada. Puedes elegir otra mesa.",
+        "info"
+      );
+    } else {
+      setAsignacionActual(null);
+      localStorage.removeItem(`asignacion-${usuarioActual.id}`);
+      mostrarNotificacion(
+        `Asignación cancelada exitosamente.\n\n` +
+          `Mesa ${asignacion.numeroMesa} liberada.\n` +
+          `${asignacion.cantidadTotal || usuarioActual.cantidad} ${
+            (asignacion.cantidadTotal || usuarioActual.cantidad) === 1
+              ? "lugar liberado"
+              : "lugares liberados"
+          }.\n\n` +
+          `Puedes seleccionar otra mesa ahora.`,
+        "info"
+      );
+    }
     
     // Refrescar disponibilidad desde el backend
     if (refrescarDisponibilidad) {
       refrescarDisponibilidad();
     }
-    mostrarNotificacion(
-      `Asignación cancelada exitosamente.\n\n` +
-        `Mesa ${asignacionActual.numeroMesa} liberada.\n` +
-        `${asignacionActual.cantidadTotal || usuarioActual.cantidad} ${
-          (asignacionActual.cantidadTotal || usuarioActual.cantidad) === 1
-            ? "lugar liberado"
-            : "lugares liberados"
-        }.\n\n` +
-        `Puedes seleccionar otra mesa ahora.`,
-      "info"
-    );
   };
 
   /* -----------------------
@@ -614,20 +742,15 @@ export default function AsignacionUser({
         }
         // Si no hay disponibilidad en sistema de turnos, la mesa NO es seleccionable
       } else {
-        // ❌ SISTEMA LEGACY (sin turnos): lógica anterior
-        if (disponibilidad) {
-          // Usar disponibilidad si está disponible
-          puedeSeleccionar = disponibilidad.esta_disponible && 
-                            disponibilidad.asientos_disponibles >= usuarioActual.cantidad;
-        } else {
-          // Fallback a lógica legacy
-          if (espacioDisponible >= usuarioActual.cantidad) {
-            if (invitadosAsignados > 0) {
-              puedeSeleccionar = true;
-            } else {
-              const validacion = puedeAbrirMesaNueva();
-              puedeSeleccionar = validacion.puede;
-            }
+        // ❌ SISTEMA LEGACY (sin turnos): aplicar reglas de grupos
+        if (espacioDisponible >= usuarioActual.cantidad) {
+          if (invitadosAsignados > 0) {
+            // Mesa con invitados: disponible para todos
+            puedeSeleccionar = true;
+          } else {
+            // Mesa vacía: solo para grupos grandes (8+ personas)
+            const validacion = puedeAbrirMesaNueva();
+            puedeSeleccionar = validacion.puede;
           }
         }
       }
@@ -711,20 +834,15 @@ export default function AsignacionUser({
         }
         // Si no hay disponibilidad en sistema de turnos, la mesa NO es seleccionable
       } else {
-        // ❌ SISTEMA LEGACY (sin turnos): lógica anterior
-        if (disponibilidad) {
-          // Usar disponibilidad si está disponible
-          puedeSeleccionar = disponibilidad.esta_disponible && 
-                            disponibilidad.asientos_disponibles >= usuarioActual.cantidad;
-        } else {
-          // Fallback a lógica legacy
-          if (espacioDisponible >= usuarioActual.cantidad) {
-            if (invitadosAsignados > 0) {
-              puedeSeleccionar = true;
-            } else {
-              const validacion = puedeAbrirMesaNueva();
-              puedeSeleccionar = validacion.puede;
-            }
+        // ❌ SISTEMA LEGACY (sin turnos): aplicar reglas de grupos
+        if (espacioDisponible >= usuarioActual.cantidad) {
+          if (invitadosAsignados > 0) {
+            // Mesa con invitados: disponible para todos
+            puedeSeleccionar = true;
+          } else {
+            // Mesa vacía: solo para grupos grandes (8+ personas)
+            const validacion = puedeAbrirMesaNueva();
+            puedeSeleccionar = validacion.puede;
           }
         }
       }
@@ -901,59 +1019,79 @@ export default function AsignacionUser({
     Lógica de sugerencias y validaciones
   ----------------------- */
   const obtenerEstadisticasOcupacion = () => {
-    const mesasConInvitados = allElements.filter(
-      (el) =>
-        (el.type === "mesa" || el.type === "mesaRectangular") &&
-        el.invitados > 0
+    // Filtrar mesas (redondas o rectangulares)
+    const todasLasMesas = allElements.filter(
+      (el) => el.type === "mesa" || el.type === "mesaRectangular"
     );
 
-    const totalPersonasOcupadas = mesasConInvitados.reduce(
-      (total, mesa) => total + mesa.invitados,
-      0
-    );
+    // Filtrar mesas con invitados (usar disponibilidad del backend si existe)
+    const mesasConInvitados = todasLasMesas.filter((el) => {
+      const invitados = el.disponibilidad 
+        ? el.disponibilidad.asientos_ocupados 
+        : el.invitados;
+      return invitados > 0;
+    });
 
-    const espacioTotalDisponible = mesasConInvitados.reduce(
-      (total, mesa) => total + (mesa.capacidad - mesa.invitados),
-      0
-    );
+    // Calcular total de personas ocupadas
+    const totalPersonasOcupadas = mesasConInvitados.reduce((total, mesa) => {
+      const ocupados = mesa.disponibilidad 
+        ? mesa.disponibilidad.asientos_ocupados 
+        : mesa.invitados;
+      return total + ocupados;
+    }, 0);
+
+    // Calcular espacio total disponible en mesas ocupadas
+    const espacioTotalDisponible = mesasConInvitados.reduce((total, mesa) => {
+      const disponibles = mesa.disponibilidad 
+        ? mesa.disponibilidad.asientos_disponibles 
+        : (mesa.capacidad - mesa.invitados);
+      return total + disponibles;
+    }, 0);
 
     return {
       totalPersonasOcupadas,
       espacioTotalDisponible,
       mesasConInvitados: mesasConInvitados.length,
-      totalMesas: allElements.filter(
-        (el) => el.type === "mesa" || el.type === "mesaRectangular"
-      ).length,
+      totalMesas: todasLasMesas.length,
     };
   };
 
   const puedeAbrirMesaNueva = () => {
     const stats = obtenerEstadisticasOcupacion();
 
-    // Regla 1: Si hay menos de 10 personas total, NO puede abrir mesa nueva
-    if (stats.totalPersonasOcupadas < 10) {
+    // 🔒 REGLA PRINCIPAL: Solo grupos de 8+ personas pueden abrir mesas nuevas
+    if (usuarioActual.cantidad < 8) {
+      // ⚠️ EXCEPCIÓN: Si NO hay espacios disponibles en mesas ocupadas, permitir apertura
+      if (stats.espacioTotalDisponible === 0) {
+        return {
+          puede: true,
+          razon: "sin-espacios-disponibles",
+          mensaje: `No hay espacios disponibles en las mesas ocupadas. Puedes abrir una mesa nueva aunque tu grupo sea pequeño.`,
+        };
+      }
+
+      // Si hay espacios disponibles, aplicar la regla normal
       return {
         puede: false,
-        razon: "minimo-personas",
-        mensaje: `Solo hay ${stats.totalPersonasOcupadas} personas ocupadas. Se necesitan al menos 10 personas antes de abrir una mesa nueva.`,
+        razon: "grupo-pequeno",
+        mensaje: `Tu grupo tiene ${usuarioActual.cantidad} ${usuarioActual.cantidad === 1 ? 'persona' : 'personas'}. Solo grupos de 8 o más personas pueden abrir mesas nuevas.\n\nPor favor, selecciona una mesa que ya tenga invitados asignados.`,
       };
     }
 
-    // Regla 2: Si aún hay espacio disponible en mesas ocupadas, NO puede abrir mesa nueva
+    // Regla adicional: Si hay espacio disponible en mesas ocupadas que se ajuste a tu grupo, priorizarlo
     if (stats.espacioTotalDisponible >= usuarioActual.cantidad) {
       return {
         puede: false,
         razon: "espacio-disponible",
-        mensaje: `Aún hay ${stats.espacioTotalDisponible} lugares disponibles en mesas ocupadas. Debes llenar estos espacios primero.`,
+        mensaje: `Aún hay ${stats.espacioTotalDisponible} lugares disponibles en mesas ocupadas.\n\nPara optimizar el espacio, te recomendamos ocupar esos lugares primero.`,
       };
     }
 
-    // Puede abrir mesa nueva
+    // ✅ Puede abrir mesa nueva (grupo grande y sin espacio suficiente en mesas ocupadas)
     return {
       puede: true,
-      razon: "sin-espacio",
-      mensaje:
-        "Puedes abrir una mesa nueva porque no hay suficiente espacio en las mesas ocupadas.",
+      razon: "grupo-grande-sin-espacio",
+      mensaje: "Tu grupo es grande y no hay suficiente espacio continuo en las mesas ocupadas. Puedes abrir una mesa nueva.",
     };
   };
 
@@ -963,6 +1101,7 @@ export default function AsignacionUser({
   const obtenerSugerenciasMesas = () => {
     if (asignacionActual) return [];
 
+    // eslint-disable-next-line no-unused-vars
     const stats = obtenerEstadisticasOcupacion();
     const puedeAbrirNueva = puedeAbrirMesaNueva();
 
@@ -970,43 +1109,72 @@ export default function AsignacionUser({
       .filter((el) => {
         if (!(el.type === "mesa" || el.type === "mesaRectangular"))
           return false;
-        if (el.capacidad - el.invitados < usuarioActual.cantidad) return false;
+        
+        // Obtener datos correctos (disponibilidad del backend si existe)
+        const invitados = el.disponibilidad 
+          ? el.disponibilidad.asientos_ocupados 
+          : el.invitados;
+        const espacioDisponible = el.disponibilidad 
+          ? el.disponibilidad.asientos_disponibles 
+          : (el.capacidad - el.invitados);
+
+        // Verificar si tiene espacio suficiente
+        if (espacioDisponible < usuarioActual.cantidad) return false;
 
         // Si la mesa está vacía, verificar si puede abrirla
-        if (el.invitados === 0 && !puedeAbrirNueva.puede) return false;
+        if (invitados === 0 && !puedeAbrirNueva.puede) return false;
 
         return true;
       })
-      .map((mesa) => ({
-        ...mesa,
-        espacioDisponible: mesa.capacidad - mesa.invitados,
-        porcentajeOcupado: (mesa.invitados / mesa.capacidad) * 100,
-        // Validar sillas especiales
-        tieneSillaEspecial: usuarioActual.necesidadEspecial
-          ? Array.isArray(mesa.sillasEspeciales)
-            ? mesa.sillasEspeciales.length > 0
-            : mesa.sillasEspeciales > 0
-          : true,
-        esMesaNueva: mesa.invitados === 0,
-      }))
+      .map((mesa) => {
+        // Usar disponibilidad del backend si existe
+        const invitados = mesa.disponibilidad 
+          ? mesa.disponibilidad.asientos_ocupados 
+          : mesa.invitados;
+        const espacioDisponible = mesa.disponibilidad 
+          ? mesa.disponibilidad.asientos_disponibles 
+          : (mesa.capacidad - mesa.invitados);
+
+        return {
+          ...mesa,
+          espacioDisponible,
+          invitados, // Sobrescribir con el valor correcto
+          porcentajeOcupado: (invitados / mesa.capacidad) * 100,
+          // Validar sillas especiales
+          tieneSillaEspecial: usuarioActual.necesidadEspecial
+            ? Array.isArray(mesa.sillasEspeciales)
+              ? mesa.sillasEspeciales.length > 0
+              : mesa.sillasEspeciales > 0
+            : true,
+          esMesaNueva: invitados === 0,
+          // Calcular qué tan "justa" es la asignación (cuánto espacio sobraría)
+          espacioSobrante: espacioDisponible - usuarioActual.cantidad,
+        };
+      })
       .filter((mesa) => mesa.tieneSillaEspecial);
 
-    // Ordenar por prioridad:
-    // 1. Mesas con invitados primero
-    // 2. Mesas más ocupadas
-    // 3. Espacio más justo
+    // 🎯 Ordenar por prioridad optimizada para llenar mesas completamente:
     const mesasOrdenadas = mesasDisponibles.sort((a, b) => {
-      // Priorizar mesas con invitados sobre mesas vacías
+      // 1. Priorizar mesas con invitados sobre mesas vacías (grupos pequeños)
       if (a.esMesaNueva && !b.esMesaNueva) return 1;
       if (!a.esMesaNueva && b.esMesaNueva) return -1;
 
-      // Si ambas tienen invitados, priorizar la más ocupada
+      // 2. Priorizar mesas que quedarían COMPLETAS (espacio sobrante = 0)
+      if (a.espacioSobrante === 0 && b.espacioSobrante !== 0) return -1;
+      if (b.espacioSobrante === 0 && a.espacioSobrante !== 0) return 1;
+
+      // 3. Priorizar menor espacio sobrante (mejor ajuste)
+      if (a.espacioSobrante !== b.espacioSobrante) {
+        return a.espacioSobrante - b.espacioSobrante;
+      }
+
+      // 4. Si el espacio sobrante es igual, priorizar mesas más ocupadas
       if (a.invitados !== b.invitados) {
         return b.invitados - a.invitados;
       }
 
-      // Si tienen la misma ocupación, priorizar espacio más justo
-      return a.espacioDisponible - b.espacioDisponible;
+      // 5. Como último recurso, ordenar por número de mesa
+      return a.numero - b.numero;
     });
 
     return mesasOrdenadas.slice(0, 3);
@@ -1014,6 +1182,7 @@ export default function AsignacionUser({
 
   const sugerenciasMesas = obtenerSugerenciasMesas();
 
+  // eslint-disable-next-line no-unused-vars
   const puedeSeleccionarMesaVacia = () => {
     const validacion = puedeAbrirMesaNueva();
     return validacion.puede;
@@ -1066,18 +1235,51 @@ export default function AsignacionUser({
               </div>
             </div>
 
-            {asignacionActual && (
+            {(asignacionTemporal || asignacionActual) && (
               <div className="flex items-center gap-3">
-                <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2">
-                  <div className="flex items-center gap-2 text-green-800">
-                    <CheckCircle className="w-5 h-5" />
-                    <span className="font-medium">
-                      Mesa {asignacionActual.numeroMesa} confirmada
-                    </span>
+                {/* Mostrar estado diferente si es temporal vs confirmada */}
+                {asignacionTemporal ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-2">
+                    <div className="flex items-center gap-2 text-yellow-800">
+                      <Clock2 className="w-5 h-5" />
+                      <span className="font-medium">
+                        Mesa {asignacionTemporal.numeroMesa} (pendiente de confirmar)
+                      </span>
+                    </div>
                   </div>
-                </div>
-                {/* Ocultar botón si la selección ya está confirmada (completada) */}
-                {!seleccionGuardada?.confirmada && (
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2">
+                    <div className="flex items-center gap-2 text-green-800">
+                      <CheckCircle className="w-5 h-5" />
+                      <span className="font-medium">
+                        Mesa {asignacionActual.numeroMesa} confirmada
+                      </span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Botones de Guardar y Cancelar cuando hay asignación temporal */}
+                {asignacionTemporal && (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={guardarAsignacionFinal}
+                      className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center gap-2"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Guardar
+                    </Button>
+                    <Button
+                      onClick={cancelarAsignacion}
+                      className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold flex items-center gap-2"
+                    >
+                      <X className="w-4 h-4" />
+                      Cancelar
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Botón de cancelar solo para asignaciones ya confirmadas Y en sistema legacy (sin turnos) */}
+                {asignacionActual && !usandoSistemaTurnos && !seleccionGuardada?.confirmada && (
                   <Button
                     onClick={cancelarAsignacion}
                     className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
@@ -1123,21 +1325,21 @@ export default function AsignacionUser({
                 </div>
               )}
 
-              {/* Asignación actual */}
-              {asignacionActual && (
+              {/* Asignación actual o temporal */}
+              {(asignacionTemporal || asignacionActual) && (
                 <>
                   <div className="w-px h-10 bg-gray-300"></div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-casal" />
                     <div>
-                      <label className="text-xs text-gray-500">Mesa asignada</label>
-                      <p className="font-semibold text-gray-800">Mesa {asignacionActual.numeroMesa}</p>
+                      <label className="text-xs text-gray-500">Mesa {asignacionTemporal ? 'seleccionada' : 'asignada'}</label>
+                      <p className="font-semibold text-gray-800">Mesa {(asignacionTemporal || asignacionActual).numeroMesa}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div>
-                      <label className="text-xs text-gray-500">Fecha asignación</label>
-                      <p className="font-semibold text-gray-800">{asignacionActual.fechaFormateada}</p>
+                      <label className="text-xs text-gray-500">Fecha selección</label>
+                      <p className="font-semibold text-gray-800">{(asignacionTemporal || asignacionActual).fechaFormateada}</p>
                     </div>
                   </div>
                 </>
@@ -1147,7 +1349,7 @@ export default function AsignacionUser({
         </div>
 
         {/* Panel de mesas sugeridas (ahora en la parte superior del layout) */}
-        {!asignacionActual && sugerenciasMesas.length > 0 && (
+        {!asignacionTemporal && !asignacionActual && sugerenciasMesas.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
             {(() => {
               const stats = obtenerEstadisticasOcupacion();

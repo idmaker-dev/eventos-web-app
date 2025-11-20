@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import useTurnosInvitado from '../../hooks/useTurnosInvitado';
 import AsignacionUser from './AsiganacionUser';
 import ModalEspera from './ModalEspera';
 import Navbar from './Navbar';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useSignalR } from '../../contexts/SignalRContext';
 
 /**
  * Wrapper para AsignacionUser que integra el sistema de turnos
@@ -20,6 +21,7 @@ export default function AsignacionUserWrapper({
   eventoId, // ID del evento desde URL
 }) {
   const { showSuccess, showError } = useNotifications();
+  const { conectado, conectarSignalR, desconectarSignalR } = useSignalR();
   
   // Hook de turnos (ahora incluye datos del invitado)
   const {
@@ -48,6 +50,25 @@ export default function AsignacionUserWrapper({
    * Determinar si el evento usa sistema de turnos
    */
   const usaSistemaTurnos = estadoTurno !== 'sin_turno' || loadingTurnos;
+
+  /**
+   * Conectar/Desconectar SignalR cuando cambia el estado del turno
+   */
+  useEffect(() => {
+    // Solo conectar si está en espera o activo y no está conectado
+    if (invitadoId && (estadoTurno === 'espera' || estadoTurno === 'activo') && !conectado) {
+      console.log('🔌 [Wrapper] Conectando SignalR con invitadoId:', invitadoId);
+      conectarSignalR(invitadoId);
+    }
+
+    // Desconectar cuando el componente se desmonte o cuando ya no esté en espera/activo
+    return () => {
+      if (conectado && estadoTurno !== 'espera' && estadoTurno !== 'activo') {
+        console.log('🔌 [Wrapper] Desconectando SignalR');
+        desconectarSignalR();
+      }
+    };
+  }, [invitadoId, estadoTurno, conectado, conectarSignalR, desconectarSignalR]);
 
   /**
    * Manejar guardado de selección con turnos
@@ -167,6 +188,22 @@ export default function AsignacionUserWrapper({
       const fin = new Date(turno.fecha_hora_fin);
       duracionMinutos = Math.round((fin - inicio) / 60000); // Convertir ms a minutos
     }
+    
+    // Cargar configuración previa de localStorage si existe
+    const loadConfiguracionPrevia = () => {
+      try {
+        const saved = localStorage.getItem(`config-asientos-${invitadoId}`);
+        return saved ? JSON.parse(saved) : null;
+      } catch (error) {
+        console.error('Error al cargar configuración previa:', error);
+        return null;
+      }
+    };
+    
+    // Callback para guardar configuración
+    const handleGuardarConfiguracion = (config) => {
+      console.log('Configuración guardada desde wrapper:', config);
+    };
 
     return (
       <>
@@ -176,12 +213,19 @@ export default function AsignacionUserWrapper({
           usuario={{
             id: invitadoId,
             nombre: invitado?.nombre_completo || invitado?.nombre || 'Usuario',
+            nombre_completo: invitado?.nombre_completo || invitado?.nombre || 'Usuario',
+            cantidad_personas: invitado?.cantidad_personas || 1,
+            cantidad: invitado?.cantidad_personas || 1,
           }}
           horario={{
             inicio: horaInicio,
             fin: horaFin,
             duracionMinutos: duracionMinutos
           }}
+          eventoId={eventoId}
+          invitadoId={invitadoId}
+          configuracionPrevia={loadConfiguracionPrevia()}
+          onGuardarConfiguracion={handleGuardarConfiguracion}
         />
       </>
     );
