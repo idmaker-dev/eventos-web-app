@@ -1,0 +1,35 @@
+/* Estilos para el efecto 3D flip */
+.flip-container {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+.flip-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.7s;
+  transform-style: preserve-3d;
+}
+
+.flip-card.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Asegurar que el contenedor mantenga las dimensiones */
+.flip-container {
+  min-height: 500px;
+}
