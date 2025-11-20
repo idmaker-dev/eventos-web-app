@@ -49,6 +49,8 @@ export default function DistribuccionMonitor({
   );
   const [guardando, setGuardando] = useState(false);
   const [invitadosPendientes, setInvitadosPendientes] = useState([]);
+  const [invitadosCompletados, setInvitadosCompletados] = useState([]);
+  const [estadisticas, setEstadisticas] = useState({});
   const [cargandoDatos, setCargandoDatos] = useState(false);
 
   const openDesignModal = () => setShowDesignModal(true);
@@ -140,12 +142,22 @@ export default function DistribuccionMonitor({
       // 2. Cargar estado de invitados con turnos
       const resultadoEstado = await eventService.getEstadoInvitados(eventoActual.id);
       if (resultadoEstado?.success) {
-        // Invitados en curso: están seleccionando mesa ahora
-        const invitadosEnCurso = resultadoEstado.porEstado?.en_curso || [];
-        console.log('✅ [Monitor] Invitados en curso:', invitadosEnCurso.length);
+        // Invitados pendientes: PENDIENTES + EN_CURSO + NO_PRESENTADOS
+        const pendientes = resultadoEstado.porEstado?.pendientes || [];
+        const enCurso = resultadoEstado.porEstado?.en_curso || [];
+        const noPresentados = resultadoEstado.porEstado?.no_presentados || [];
+        const todosLosPendientes = [...pendientes, ...enCurso, ...noPresentados];
+        
+        // Invitados completados: ya seleccionaron mesas
+        const completados = resultadoEstado.porEstado?.completados || [];
+        
+        console.log('✅ [Monitor] Invitados pendientes:', todosLosPendientes.length);
+        console.log('✅ [Monitor] Invitados completados:', completados.length);
         console.log('📊 [Monitor] Estadísticas:', resultadoEstado.estadisticas);
         
-        setInvitadosPendientes(invitadosEnCurso);
+        setInvitadosPendientes(todosLosPendientes);
+        setInvitadosCompletados(completados);
+        setEstadisticas(resultadoEstado.estadisticas || {});
       }
 
       console.log('✅ [Monitor] Actualización completa');
@@ -717,41 +729,150 @@ export default function DistribuccionMonitor({
         <div className="flex flex-col xl:flex-row gap-6 mt-6">
           {/* Lista de Invitados */}
           <div className="w-full xl:w-80 flex-shrink-0 space-y-4">
-            {/* 📡 Panel de Invitados Pendientes (Tiempo Real) */}
-            <div className="bg-fondoVs dark:bg-[#1a1a1a] py-6 px-3 rounded-lg shadow-sm border-2 border-blue-200 dark:border-blue-800">
+            {/* 🔴 Panel de Invitados SIN SELECCIÓN (Principal) */}
+            <div className="bg-fondoVs dark:bg-[#1a1a1a] py-6 px-3 rounded-lg shadow-sm border-2 border-orange-200 dark:border-orange-800">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-xl font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  Seleccionando Mesa
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                  Sin Selección
                   <span className="text-sm text-gray-500 font-normal">
                     ({invitadosPendientes.length})
                   </span>
                 </p>
                 {cargandoDatos && (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
                 )}
               </div>
 
-              <div className="max-h-[16rem] overflow-y-auto">
+              <div className="max-h-[24rem] overflow-y-auto">
                 {invitadosPendientes.length > 0 ? (
                   <ul className="space-y-2">
-                    {invitadosPendientes.map((turno) => (
+                    {invitadosPendientes.map((turno) => {
+                      // Determinar color según estado
+                      const esNoPresentado = turno.estado === 'NO_PRESENTADO';
+                      const esEnCurso = turno.estado === 'EN_CURSO';
+                      
+                      return (
+                        <li 
+                          key={turno.invitado_id}
+                          draggable
+                          onDragStart={(e) => {
+                            const invitadoData = {
+                              id: turno.invitado_id,
+                              nombre: turno.invitado_nombre || `Invitado #${turno.invitado_numero}`,
+                              cantidad: turno.cantidad_boletos || 1,
+                              necesidadEspecial: false,
+                              turno_numero: turno.turno_numero,
+                              estado: turno.estado
+                            };
+                            e.dataTransfer.setData("text/plain", JSON.stringify(invitadoData));
+                            setActiveInvitado(invitadoData);
+                          }}
+                          onDragEnd={() => setActiveInvitado(null)}
+                          className={`p-3 border rounded-lg cursor-move hover:shadow-md transition-all ${
+                            esNoPresentado 
+                              ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 hover:border-red-400'
+                              : esEnCurso
+                              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400'
+                              : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700 hover:border-orange-400'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className={`w-2 h-2 mt-1.5 rounded-full ${
+                              esNoPresentado 
+                                ? 'bg-red-500'
+                                : esEnCurso 
+                                ? 'bg-blue-500 animate-pulse' 
+                                : 'bg-orange-500'
+                            }`}></div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm truncate">
+                                    {turno.invitado_nombre || `Invitado #${turno.invitado_numero}`}
+                                  </p>
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                                    {turno.cantidad_boletos} {turno.cantidad_boletos === 1 ? 'persona' : 'personas'} • Turno #{turno.turno_numero}
+                                  </p>
+                                </div>
+                                {esNoPresentado && (
+                                  <span className="text-xs px-2 py-0.5 bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 rounded-full font-medium flex-shrink-0">
+                                    No presentado
+                                  </span>
+                                )}
+                                {esEnCurso && (
+                                  <span className="text-xs px-2 py-0.5 bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-full font-medium flex-shrink-0">
+                                    En curso
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-500">
+                                {turno.detalle}
+                              </p>
+                              {turno.notificado && (
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 flex items-center gap-1">
+                                  <span>✓</span> Notificado
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="text-center py-6 text-gray-500">
+                    <div className="text-3xl mb-2">🎉</div>
+                    <p className="font-medium text-sm">
+                      ¡Todos han seleccionado mesa!
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg">
+                <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                  <span>💡</span>
+                  <span>
+                    Arrastra el invitado a una mesa para asignarlo manualmente. 
+                    Si no pueden acceder, contáctalos para asistirlos.
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* ✅ Panel de Invitados COMPLETADOS (Secundario) */}
+            <div className="bg-fondoVs dark:bg-[#1a1a1a] py-4 px-3 rounded-lg shadow-sm border border-green-200 dark:border-green-800">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-base font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  Selección Completada
+                  <span className="text-xs text-gray-500 font-normal">
+                    ({invitadosCompletados.length})
+                  </span>
+                </p>
+              </div>
+
+              <div className="max-h-[12rem] overflow-y-auto">
+                {invitadosCompletados.length > 0 ? (
+                  <ul className="space-y-1.5">
+                    {invitadosCompletados.map((turno) => (
                       <li 
                         key={turno.invitado_id}
-                        className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg"
+                        className="p-2 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-md"
                       >
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">
-                              Turno #{turno.turno_numero}
+                        <div className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 mt-1 bg-green-500 rounded-full flex-shrink-0"></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-800 dark:text-gray-200 text-xs truncate">
+                              {turno.invitado_nombre || `Invitado #${turno.invitado_numero}`}
                             </p>
-                            <p className="text-xs text-gray-500">
-                              {turno.detalle}
+                            <p className="text-xs text-gray-500 dark:text-gray-500">
+                              {turno.cantidad_boletos} {turno.cantidad_boletos === 1 ? 'persona' : 'personas'}
                             </p>
                             {turno.tiene_seleccion && (
-                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                ✓ Mesa seleccionada
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                                ✓ Mesa asignada
                               </p>
                             )}
                           </div>
@@ -760,19 +881,12 @@ export default function DistribuccionMonitor({
                     ))}
                   </ul>
                 ) : (
-                  <div className="text-center py-4 text-gray-500">
-                    <p className="text-sm">
-                      No hay invitados seleccionando mesa en este momento
+                  <div className="text-center py-3 text-gray-500">
+                    <p className="text-xs">
+                      Ningún invitado ha completado su selección aún
                     </p>
                   </div>
                 )}
-              </div>
-
-              <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
-                <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
-                  <span>💡</span>
-                  Invitados que están eligiendo su mesa en tiempo real
-                </p>
               </div>
             </div>
 
@@ -938,7 +1052,7 @@ export default function DistribuccionMonitor({
                       Invitados:
                     </span>
                     <span className="ml-2 font-bold text-blue-600">
-                      {totalInvitadosAsignados}/{totalCapacidad}
+                      {totalInvitadosAsignados}/{estadisticas.total}
                     </span>
                     <span className="ml-2 font-medium text-gray-600 dark:text-gray-100">
                       Asignados
@@ -979,12 +1093,12 @@ export default function DistribuccionMonitor({
                     </span>
                     <span
                       className={`ml-2 font-bold ${
-                        totalPersonasSinAsignar > 0
+                        (estadisticas.sin_seleccion || 0) > 0
                           ? "text-red-500"
                           : "text-green-500"
                       }`}
                     >
-                      {totalPersonasSinAsignar}
+                      {estadisticas.sin_seleccion || 0}
                     </span>
                   </div>
                 </div>
