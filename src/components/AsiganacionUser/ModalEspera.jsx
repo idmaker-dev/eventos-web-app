@@ -837,7 +837,7 @@ export default function ModalEspera({
                     </div>
                     <div className="flex w-full justify-between items-center">
                       <div className="text-xs text-gray-500 mt-2 sm:mt-0">
-                        {eventoInfo.lugar_nombre || "Plano del salón"} - {eventoInfo.nombre_layout || "Layout por defecto"}
+                        {eventoInfo?.lugar_nombre || "Plano del salón"} - {eventoInfo?.nombre_layout || "Layout por defecto"}
                       </div>
                       <div className="text-xs text-gray-500 mt-2 sm:mt-0">
                         Evento: {eventoInfo?.nombre_evento || "Graduación"}
