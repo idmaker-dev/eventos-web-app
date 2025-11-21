@@ -67,6 +67,12 @@ export default function DistribuccionMonitor({
   const [pendingAsignacion, setPendingAsignacion] = useState(null);
   const [pendingNombre, setPendingNombre] = useState("");
 
+  // Modal de bloqueo de mesas
+  const [showBloqueoModal, setShowBloqueoModal] = useState(false);
+  const [mesaParaBloqueo, setMesaParaBloqueo] = useState(null);
+  const [motivoBloqueo, setMotivoBloqueo] = useState("");
+  const [procesandoBloqueo, setProcesandoBloqueo] = useState(false);
+
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const isPanningRef = useRef(false);
@@ -168,9 +174,9 @@ export default function DistribuccionMonitor({
     }
   }, [eventoActual?.id, cargarDisponibilidad, setAllElements, cargandoDatos]);
 
-  // 📡 Callback para cuando se selecciona una mesa (SignalR)
+  // 📡 Callback para cuando se selecciona una mesa o se bloquea (SignalR)
   const handleMesaSeleccionada = useCallback(async (data) => {
-    console.log('🔔 [Monitor] Mesa seleccionada:', data);
+    console.log('🔔 [Monitor] Notificación recibida:', data);
     console.log('🔔 [Monitor] Evento actual:', eventoActual?.id);
     console.log('🔔 [Monitor] Evento del mensaje:', data.eventoId);
 
@@ -180,16 +186,23 @@ export default function DistribuccionMonitor({
       return;
     }
 
-    const mesasSeleccionadas = data.mesasSeleccionadas || [];
+    // Manejar notificación de mesa bloqueada/desbloqueada
+    if (data.mesa_id && typeof data.bloqueada !== 'undefined') {
+      mostrarNotificacion(
+        `🔒 Mesa ${data.mesa_id} ${data.bloqueada ? 'bloqueada' : 'desbloqueada'}${data.motivo ? ': ' + data.motivo : ''}`,
+        data.bloqueada ? 'warning' : 'info'
+      );
+    }
+    // Manejar notificación de mesa seleccionada
+    else if (data.mesasSeleccionadas) {
+      const mesasSeleccionadas = data.mesasSeleccionadas || [];
+      mostrarNotificacion(
+        `🔔 Mesas seleccionadas: ${mesasSeleccionadas.map(m => m.mesa_id).join(", ")}`,
+        'info'
+      );
+    }
 
-    // Mostrar notificación visual
-    //dentro de cada mesa seleccionada hay un campo mesa_id
-    mostrarNotificacion(
-      `🔔 Mesas seleccionadas: ${mesasSeleccionadas.map(m => m.mesa_id).join(", ")}`,
-      'info'
-    );
-
-    // Actualizar datos del monitor
+    // Actualizar datos del monitor en ambos casos
     await actualizarDatosMonitor();
   }, [eventoActual?.id, actualizarDatosMonitor]);
 
@@ -200,6 +213,23 @@ export default function DistribuccionMonitor({
   useEffect(() => {
     if (elementosConDisponibilidad && elementosConDisponibilidad.length > 0) {
       console.log('🔄 [Monitor] Sincronizando elementos desde hook:', elementosConDisponibilidad.length);
+      
+      // Verificar mesas bloqueadas
+      const mesasBloqueadas = elementosConDisponibilidad.filter(el => 
+        (el.type === 'mesa' || el.type === 'mesaRectangular') && 
+        (el.disponibilidad?.esta_bloqueada || el.disponibilidad?.bloqueada || el.bloqueada)
+      );
+      
+      if (mesasBloqueadas.length > 0) {
+        console.log('🔒 [Monitor] Mesas bloqueadas detectadas:', mesasBloqueadas.map(m => ({
+          numero: m.numero,
+          id: m.id,
+          esta_bloqueada: m.disponibilidad?.esta_bloqueada,
+          bloqueada: m.disponibilidad?.bloqueada || m.bloqueada,
+          motivo: m.disponibilidad?.motivo_bloqueo || m.motivo_bloqueo
+        })));
+      }
+      
       setAllElements(elementosConDisponibilidad);
     }
   }, [elementosConDisponibilidad, setAllElements]);
@@ -220,6 +250,25 @@ export default function DistribuccionMonitor({
 
     if (!mesaSeleccionada) {
       mostrarNotificacion(`Mesa ${numeroMesa} no encontrada`, "error");
+      return;
+    }
+
+    // Validar que la mesa no esté bloqueada (triple-check)
+    const mesaBloqueada = mesaSeleccionada.disponibilidad?.esta_bloqueada || 
+                          mesaSeleccionada.disponibilidad?.bloqueada || 
+                          mesaSeleccionada.bloqueada;
+    
+    if (mesaBloqueada) {
+      const motivo = mesaSeleccionada.disponibilidad?.motivo_bloqueo || 
+                     mesaSeleccionada.motivo_bloqueo || 
+                     'No especificado';
+      
+      mostrarNotificacion(
+        `❌ La Mesa ${numeroMesa} está bloqueada.\n\n` +
+        `Motivo: ${motivo}\n\n` +
+        `Desbloquea la mesa antes de asignar invitados.`,
+        "error"
+      );
       return;
     }
 
@@ -371,6 +420,73 @@ export default function DistribuccionMonitor({
       setGuardando(false);
       mostrarNotificacion("¡Asignaciones guardadas exitosamente!", "success");
     }, 1000);
+  };
+
+  // Abrir modal para bloquear/desbloquear mesa
+  const abrirModalBloqueo = (mesa) => {
+    setMesaParaBloqueo(mesa);
+    setMotivoBloqueo(mesa.motivo_bloqueo || "");
+    setShowBloqueoModal(true);
+  };
+
+  // Confirmar bloqueo/desbloqueo de mesa
+  const confirmarBloqueoMesa = async () => {
+    if (!mesaParaBloqueo || !eventoActual?.id) return;
+
+    // Triple-check del estado de bloqueo
+    const estaBloqueada = mesaParaBloqueo.disponibilidad?.esta_bloqueada || 
+                          mesaParaBloqueo.disponibilidad?.bloqueada || 
+                          mesaParaBloqueo.bloqueada || 
+                          false;
+    const nuevoEstado = !estaBloqueada;
+
+    // Validar motivo si se está bloqueando
+    if (nuevoEstado && !motivoBloqueo.trim()) {
+      mostrarNotificacion(
+        "⚠️ Debes proporcionar un motivo para bloquear la mesa",
+        "warning"
+      );
+      return;
+    }
+
+    setProcesandoBloqueo(true);
+
+    try {
+      const resultado = await eventService.bloquearMesa(
+        eventoActual.id,
+        mesaParaBloqueo.id,
+        nuevoEstado,
+        nuevoEstado ? motivoBloqueo : ""
+      );
+
+      if (resultado.success) {
+        mostrarNotificacion(
+          `✅ Mesa ${mesaParaBloqueo.numero} ${nuevoEstado ? 'bloqueada' : 'desbloqueada'} exitosamente`,
+          "success"
+        );
+
+        // Actualizar datos del monitor
+        await actualizarDatosMonitor();
+
+        // Cerrar modal
+        setShowBloqueoModal(false);
+        setMesaParaBloqueo(null);
+        setMotivoBloqueo("");
+      } else {
+        mostrarNotificacion(
+          `❌ Error: ${resultado.error}`,
+          "error"
+        );
+      }
+    } catch (error) {
+      console.error("Error al bloquear/desbloquear mesa:", error);
+      mostrarNotificacion(
+        "❌ Error inesperado al modificar el estado de la mesa",
+        "error"
+      );
+    } finally {
+      setProcesandoBloqueo(false);
+    }
   };
 
   // Canvas pan handlers (solo visualización, no edición)
@@ -572,18 +688,85 @@ export default function DistribuccionMonitor({
         ? element.disponibilidad.asientos_ocupados 
         : element.invitados;
       
+      // 🔒 Triple-check para detectar mesas bloqueadas (mismo que AsignacionUser)
+      const estaBloqueada = element.disponibilidad?.esta_bloqueada || 
+                            element.disponibilidad?.bloqueada || 
+                            element.bloqueada || 
+                            false;
+      const motivoBloqueo = element.disponibilidad?.motivo_bloqueo || 
+                            element.motivo_bloqueo || 
+                            '';
+      
+      // Log de debugging para verificar detección de bloqueo
+      if (estaBloqueada) {
+        console.log(`🔒 [Monitor] Mesa ${element.numero} detectada como bloqueada:`, {
+          esta_bloqueada: element.disponibilidad?.esta_bloqueada,
+          bloqueada_disp: element.disponibilidad?.bloqueada,
+          bloqueada_dir: element.bloqueada,
+          motivo: motivoBloqueo
+        });
+      }
+      
       return (
-        <div className="relative cursor-pointer" style={transformStyle}>
+        <div className="relative cursor-pointer group" style={transformStyle}>
           <Mesa
             numeroMesa={element.numero}
             invitadosAsignados={invitadosAsignados}
             capacidadMaxima={element.capacidad}
             sillasEspeciales={element.sillasEspeciales || []}
             invitadosEspeciales={element.invitadosEspeciales || 0}
-            onDrop={asignarInvitadosMesa}
+            onDrop={estaBloqueada ? undefined : asignarInvitadosMesa}
             onDoubleClick={() => openMesaModal(element.numero)}
             readOnly={false}
           />
+          {/* Overlay para mesas bloqueadas */}
+          {estaBloqueada && (
+            <div 
+              className="absolute inset-0 bg-red-500/20 backdrop-blur-[1px] rounded-full flex items-center justify-center pointer-events-none border-2 border-red-500/40"
+              title={motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : 'Mesa bloqueada'}
+            >
+              <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
+                🔒 BLOQUEADA
+              </div>
+            </div>
+          )}
+          {/* Indicador de bloqueo en esquina */}
+          {estaBloqueada && (
+            <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg z-10">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+          )}
+          {/* Botón mejorado de bloqueo/desbloqueo - Siempre visible */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              abrirModalBloqueo(element);
+            }}
+            className={`absolute -bottom-3 left-1/2 -translate-x-1/2 transition-all rounded-lg px-3 py-1.5 shadow-lg z-10 flex items-center gap-1.5 font-semibold text-xs ${
+              estaBloqueada
+                ? 'bg-green-500 hover:bg-green-600 hover:scale-105'
+                : 'bg-red-500 hover:bg-red-600 hover:scale-105 opacity-0 group-hover:opacity-100'
+            } text-white`}
+            title={estaBloqueada ? 'Clic para desbloquear mesa' : 'Clic para bloquear mesa'}
+          >
+            {estaBloqueada ? (
+              <>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
+                </svg>
+                <span>Desbloquear</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+                <span>Bloquear</span>
+              </>
+            )}
+          </button>
         </div>
       );
     }
@@ -594,18 +777,75 @@ export default function DistribuccionMonitor({
         ? element.disponibilidad.asientos_ocupados 
         : element.invitados;
       
+      // 🔒 Triple-check para detectar mesas bloqueadas (mismo que AsignacionUser)
+      const estaBloqueada = element.disponibilidad?.esta_bloqueada || 
+                            element.disponibilidad?.bloqueada || 
+                            element.bloqueada || 
+                            false;
+      const motivoBloqueo = element.disponibilidad?.motivo_bloqueo || 
+                            element.motivo_bloqueo || 
+                            '';
+      
       return (
-        <div className="relative cursor-pointer" style={transformStyle}>
+        <div className="relative cursor-pointer group" style={transformStyle}>
           <MesaRectangular
             numeroMesa={element.numero}
             invitadosAsignados={invitadosAsignados}
             capacidadMaxima={element.capacidad}
             sillasEspeciales={element.sillasEspeciales || []}
             invitadosEspeciales={element.invitadosEspeciales || 0}
-            onDrop={asignarInvitadosMesa}
+            onDrop={estaBloqueada ? undefined : asignarInvitadosMesa}
             onDoubleClick={() => openMesaModal(element.numero)}
             readOnly={false}
           />
+          {/* Overlay para mesas bloqueadas */}
+          {estaBloqueada && (
+            <div 
+              className="absolute inset-0 bg-red-500/20 backdrop-blur-[1px] rounded-lg flex items-center justify-center pointer-events-none border-2 border-red-500/40"
+              title={motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : 'Mesa bloqueada'}
+            >
+              <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
+                🔒 BLOQUEADA
+              </div>
+            </div>
+          )}
+          {/* Indicador de bloqueo en esquina */}
+          {estaBloqueada && (
+            <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-lg z-10">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+          )}
+          {/* Botón mejorado de bloqueo/desbloqueo - Siempre visible */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              abrirModalBloqueo(element);
+            }}
+            className={`absolute -bottom-3 left-1/2 -translate-x-1/2 transition-all rounded-lg px-3 py-1.5 shadow-lg z-10 flex items-center gap-1.5 font-semibold text-xs ${
+              estaBloqueada
+                ? 'bg-green-500 hover:bg-green-600 hover:scale-105'
+                : 'bg-red-500 hover:bg-red-600 hover:scale-105 opacity-0 group-hover:opacity-100'
+            } text-white`}
+            title={estaBloqueada ? 'Clic para desbloquear mesa' : 'Clic para bloquear mesa'}
+          >
+            {estaBloqueada ? (
+              <>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 15.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
+                </svg>
+                <span>Desbloquear</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+                <span>Bloquear</span>
+              </>
+            )}
+          </button>
         </div>
       );
     }
@@ -682,6 +922,7 @@ export default function DistribuccionMonitor({
     );
   };
 
+  // eslint-disable-next-line no-unused-vars
   const stats = calcularEstadisticas();
 
   const saveFromModal = () => {
@@ -710,6 +951,18 @@ export default function DistribuccionMonitor({
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               Modo Monitor - Asignación Activa
             </div>
+            {/* Contador de mesas bloqueadas */}
+            {(() => {
+              const mesasBloqueadas = allElements.filter(
+                (el) => (el.type === "mesa" || el.type === "mesaRectangular") && 
+                        (el.disponibilidad?.esta_bloqueada || el.disponibilidad?.bloqueada || el.bloqueada)
+              ).length;
+              return mesasBloqueadas > 0 ? (
+                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-lg text-sm font-medium">
+                  🔒 {mesasBloqueadas} {mesasBloqueadas === 1 ? 'Mesa bloqueada' : 'Mesas bloqueadas'}
+                </div>
+              ) : null;
+            })()}
             <Button
               onClick={guardarAsignaciones}
               disabled={guardando}
@@ -1134,6 +1387,129 @@ export default function DistribuccionMonitor({
           mesa={mesaSeleccionadaModal}
           isMonitorMode={true}
         />
+      )}
+
+      {/* Modal de Bloqueo de Mesa */}
+      {showBloqueoModal && mesaParaBloqueo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-xl font-bold ${
+                mesaParaBloqueo.disponibilidad?.esta_bloqueada || mesaParaBloqueo.disponibilidad?.bloqueada || mesaParaBloqueo.bloqueada
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
+              }`}>
+                {mesaParaBloqueo.disponibilidad?.esta_bloqueada || mesaParaBloqueo.disponibilidad?.bloqueada || mesaParaBloqueo.bloqueada
+                  ? '🔓 Desbloquear Mesa'
+                  : '🔒 Bloquear Mesa'} {mesaParaBloqueo.numero}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowBloqueoModal(false);
+                  setMesaParaBloqueo(null);
+                  setMotivoBloqueo("");
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                disabled={procesandoBloqueo}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {mesaParaBloqueo.disponibilidad?.esta_bloqueada || mesaParaBloqueo.disponibilidad?.bloqueada || mesaParaBloqueo.bloqueada ? (
+              <div className="mb-6">
+                <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-lg mb-4">
+                  <p className="text-base text-green-800 dark:text-green-300 mb-3 font-semibold flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
+                    </svg>
+                    Mesa actualmente BLOQUEADA
+                  </p>
+                  {(mesaParaBloqueo.disponibilidad?.motivo_bloqueo || mesaParaBloqueo.motivo_bloqueo) && (
+                    <p className="text-sm text-green-700 dark:text-green-400 ml-7">
+                      <strong>Motivo del bloqueo:</strong> {mesaParaBloqueo.disponibilidad?.motivo_bloqueo || mesaParaBloqueo.motivo_bloqueo}
+                    </p>
+                  )}
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 font-medium mb-2">
+                    🔓 Al DESBLOQUEAR esta mesa:
+                  </p>
+                  <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4">
+                    <li>• Los invitados podrán verla y seleccionarla</li>
+                    <li>• Aparecerá como disponible en el sistema</li>
+                    <li>• Se eliminará la restricción de acceso</li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Bloquear esta mesa impedirá que los invitados la seleccionen. Proporciona un motivo:
+                </p>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Motivo del bloqueo <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={motivoBloqueo}
+                  onChange={(e) => setMotivoBloqueo(e.target.value)}
+                  placeholder="Ej: Reservada para VIP, Mesa dañada, etc."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 resize-none"
+                  rows="3"
+                  disabled={procesandoBloqueo}
+                />
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowBloqueoModal(false);
+                  setMesaParaBloqueo(null);
+                  setMotivoBloqueo("");
+                }}
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium transition-colors"
+                disabled={procesandoBloqueo}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarBloqueoMesa}
+                disabled={procesandoBloqueo || (!(mesaParaBloqueo.disponibilidad?.esta_bloqueada || mesaParaBloqueo.disponibilidad?.bloqueada || mesaParaBloqueo.bloqueada) && !motivoBloqueo.trim())}
+                className={`flex-1 px-4 py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 text-base ${
+                  procesandoBloqueo || (!(mesaParaBloqueo.disponibilidad?.esta_bloqueada || mesaParaBloqueo.disponibilidad?.bloqueada || mesaParaBloqueo.bloqueada) && !motivoBloqueo.trim())
+                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                    : mesaParaBloqueo.disponibilidad?.esta_bloqueada || mesaParaBloqueo.disponibilidad?.bloqueada || mesaParaBloqueo.bloqueada
+                    ? 'bg-green-500 hover:bg-green-600 hover:shadow-lg text-white'
+                    : 'bg-red-500 hover:bg-red-600 hover:shadow-lg text-white'
+                }`}
+              >
+                {procesandoBloqueo ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Procesando...
+                  </>
+                ) : mesaParaBloqueo.disponibilidad?.esta_bloqueada || mesaParaBloqueo.disponibilidad?.bloqueada || mesaParaBloqueo.bloqueada ? (
+                  <>
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
+                    </svg>
+                    Sí, DESBLOQUEAR Mesa
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                    Confirmar BLOQUEO
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MODAL DE DISEÑO FULLSCREEN */}

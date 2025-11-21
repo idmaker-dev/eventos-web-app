@@ -190,6 +190,32 @@ export const SignalRProvider = ({ children }) => {
         }
       });
 
+      // Escuchar evento de mesa bloqueada/desbloqueada para monitor
+      newConnection.on('mesaBloqueada', (data) => {
+        if (EnvConfig.DEBUG_MODE) {
+          console.log('🔒 Notificación recibida: mesaBloqueada');
+          console.log('🔒 Datos de la mesa:', JSON.stringify(data, null, 2));
+        }
+
+        // Agregar notificación al estado
+        const nuevaNotificacion = {
+          tipo: 'mesa_bloqueada',
+          mensaje: data.bloqueada ? 'Mesa bloqueada' : 'Mesa desbloqueada',
+          data,
+          timestamp: new Date().toISOString(),
+        };
+
+        setNotificaciones(prev => [nuevaNotificacion, ...prev]);
+
+        // Ejecutar callback de monitor si existe (reutilizamos el mismo callback)
+        if (monitorCallbackRef.current) {
+          console.log('🔔 [SignalR] Ejecutando callback de monitor por cambio de bloqueo');
+          monitorCallbackRef.current(data);
+        } else if (EnvConfig.DEBUG_MODE) {
+          console.log('ℹ️ [SignalR] Callback de monitor no activo (no estás en el modo Monitor)');
+        }
+      });
+
       // Listener genérico para debug
       newConnection.onreceive = (data) => {
         if (EnvConfig.DEBUG_MODE) {

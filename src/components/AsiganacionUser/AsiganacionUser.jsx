@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import Mesa from "../Distribuccion/Mesa.jsx";
 import MesaRectangular from "../Distribuccion/MesaRectangular.jsx";
 import {
@@ -19,6 +19,7 @@ import { Tooltip } from "../ui/Tooltip.jsx";
 import ModalRestricciones from "../Distribuccion/ModalRestricciones.jsx";
 import ModalMesaDetalles from "../Distribuccion/ModalMesaDetalles.jsx";
 import { useDisponibilidadMesas } from "../../hooks/useDisponibilidadMesas";
+import { useSignalRUser } from "../../hooks/useSignalRUser";
 
 export default function AsignacionUser({
   // Props estándar
@@ -84,6 +85,63 @@ export default function AsignacionUser({
   // Layout del salón - SIEMPRE desde el endpoint de disponibilidad
   const allElements = elementosConDisponibilidad || [];
 
+  /* -----------------------
+     Util / Notificaciones
+     ----------------------- */
+  const mostrarNotificacion = useCallback((mensaje, tipo) => {
+    const colores = {
+      success: "bg-green-100 border-green-400 text-green-700",
+      error: "bg-red-100 border-red-400 text-red-700",
+      warning: "bg-yellow-100 border-yellow-400 text-yellow-700",
+      info: "bg-blue-100 border-blue-400 text-blue-700",
+    };
+
+    const notification = document.createElement("div");
+    notification.className = `fixed top-4 right-4 px-4 py-3 rounded border-l-4 ${colores[tipo]} z-50 max-w-md shadow-lg`;
+    notification.style.whiteSpace = "pre-line";
+    notification.textContent = mensaje;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 5000);
+  }, []);
+
+  // 📡 Callback para notificaciones de SignalR (cambios en mesas)
+  const handleMesaCambiada = useCallback((notificacion) => {
+    console.log('🔔 [AsignacionUser] Notificación recibida:', notificacion);
+    
+    // Mostrar notificación al usuario
+    if (notificacion.tipo === 'mesa_bloqueada') {
+      const esBloqueada = notificacion.data.bloqueada;
+      mostrarNotificacion(
+        notificacion.mensaje,
+        esBloqueada ? 'warning' : 'info'
+      );
+    } else if (notificacion.tipo === 'mesa_seleccionada') {
+      // Solo refrescar silenciosamente, no mostrar notificación
+      console.log('🔄 [AsignacionUser] Refrescando disponibilidad por cambio en mesa');
+    }
+    
+    // Refrescar disponibilidad para actualizar el layout
+    if (refrescarDisponibilidad) {
+      refrescarDisponibilidad();
+    }
+  }, [mostrarNotificacion, refrescarDisponibilidad]);
+
+  // 🔌 Integrar SignalR para notificaciones en tiempo real
+  // IMPORTANTE: Usamos invitadoId para la conexión, igual que en el Wrapper
+  const { conectado: signalRConectado } = useSignalRUser(handleMesaCambiada, invitadoId);
+  
+  // Log de estado de conexión SignalR
+  useEffect(() => {
+    console.log('📡 [AsignacionUser] Estado SignalR:', signalRConectado ? 'CONECTADO ✅' : 'DESCONECTADO ❌');
+    console.log('📡 [AsignacionUser] InvitadoId:', invitadoId);
+    console.log('📡 [AsignacionUser] EventoId:', eventoId);
+  }, [signalRConectado, invitadoId, eventoId]);
+
   // Zoom y controles
   const [zoom, setZoom] = useState(0.4);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -141,7 +199,9 @@ export default function AsignacionUser({
   }, [usuarioActual.id]);
 
   useEffect(() => {
-    if (temporizadorActivo && !asignacionActual) {
+    // ⚠️ IMPORTANTE: Solo usar temporizador local si NO está usando sistema de turnos
+    // En sistema de turnos, el tiempo viene del backend (tiempoRestanteTurno)
+    if (temporizadorActivo && !asignacionActual && !usandoSistemaTurnos) {
       // Resetear la notificación de 2 minutos al iniciar el temporizador
       notificacionDosMinutosRef.current = false;
       
@@ -192,7 +252,7 @@ export default function AsignacionUser({
         clearInterval(intervalRef.current);
       }
     };
-  }, [temporizadorActivo, asignacionActual, onCambioEstado, TIEMPO_LIMITE]);
+  }, [temporizadorActivo, asignacionActual, onCambioEstado, TIEMPO_LIMITE, usandoSistemaTurnos, mostrarNotificacion]);
 
   const formatearTiempo = (milisegundos) => {
     if (!milisegundos) return "00:00";
@@ -201,30 +261,6 @@ export default function AsignacionUser({
     return `${minutos.toString().padStart(2, "0")}:${segundos
       .toString()
       .padStart(2, "0")}`;
-  };
-
-  /* -----------------------
-     Util / Notificaciones
-     ----------------------- */
-  const mostrarNotificacion = (mensaje, tipo) => {
-    const colores = {
-      success: "bg-green-100 border-green-400 text-green-700",
-      error: "bg-red-100 border-red-400 text-red-700",
-      warning: "bg-yellow-100 border-yellow-400 text-yellow-700",
-      info: "bg-blue-100 border-blue-400 text-blue-700",
-    };
-
-    const notification = document.createElement("div");
-    notification.className = `fixed top-4 right-4 px-4 py-3 rounded border-l-4 ${colores[tipo]} z-50 max-w-md shadow-lg`;
-    notification.style.whiteSpace = "pre-line";
-    notification.textContent = mensaje;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-      if (document.body.contains(notification)) {
-        document.body.removeChild(notification);
-      }
-    }, 5000);
   };
 
   /* -----------------------
@@ -368,6 +404,25 @@ export default function AsignacionUser({
 
     if (!mesaSeleccionada) {
       mostrarNotificacion(`Mesa ${numeroMesa} no encontrada`, "error");
+      return;
+    }
+
+    // ✅ Validación: Mesa bloqueada (verificar tanto en disponibilidad como en el elemento)
+    const mesaBloqueada = mesaSeleccionada.disponibilidad?.esta_bloqueada || 
+                          mesaSeleccionada.disponibilidad?.bloqueada || 
+                          mesaSeleccionada.bloqueada;
+    
+    if (mesaBloqueada) {
+      const motivo = mesaSeleccionada.disponibilidad?.motivo_bloqueo || 
+                     mesaSeleccionada.motivo_bloqueo || 
+                     'No especificado';
+      
+      mostrarNotificacion(
+        `🔒 La Mesa ${numeroMesa} está bloqueada y no está disponible para selección.\n\n` +
+        `Motivo: ${motivo}\n\n` +
+        `Por favor, selecciona otra mesa o contacta al administrador del evento.`,
+        "error"
+      );
       return;
     }
 
@@ -731,8 +786,17 @@ export default function AsignacionUser({
       ? disponibilidad.asientos_ocupados 
       : element.invitados;
 
+    // Verificar si la mesa está bloqueada
+    const mesaBloqueada = disponibilidad?.esta_bloqueada || 
+                          disponibilidad?.bloqueada || 
+                          element.bloqueada;
+    
+    const motivoBloqueo = disponibilidad?.motivo_bloqueo || 
+                          element.motivo_bloqueo || 
+                          '';
+
     let puedeSeleccionar = false;
-    if (!asignacionActual) {
+    if (!asignacionActual && !mesaBloqueada) { // No permitir selección si está bloqueada
       // ✅ CON SISTEMA DE TURNOS: usar SIEMPRE disponibilidad del backend
       if (usandoSistemaTurnos) {
         // En sistema de turnos, la disponibilidad DEBE venir del backend
@@ -807,6 +871,17 @@ export default function AsignacionUser({
           sugerida={esSugerida}
           className={esMiMesa ? "ring-4 ring-green-400 ring-opacity-60" : ""}
         />
+        {/* Overlay para mesa bloqueada */}
+        {mesaBloqueada && (
+          <div 
+            className="absolute inset-0 bg-red-500/30 backdrop-blur-[1px] rounded-full flex items-center justify-center pointer-events-none border-2 border-red-500 z-20"
+            title={motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : 'Mesa bloqueada'}
+          >
+            <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
+              🔒 BLOQUEADA
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -823,8 +898,17 @@ export default function AsignacionUser({
       ? disponibilidad.asientos_ocupados 
       : element.invitados;
 
+    // Verificar si la mesa está bloqueada
+    const mesaBloqueada = disponibilidad?.esta_bloqueada || 
+                          disponibilidad?.bloqueada || 
+                          element.bloqueada;
+    
+    const motivoBloqueo = disponibilidad?.motivo_bloqueo || 
+                          element.motivo_bloqueo || 
+                          '';
+
     let puedeSeleccionar = false;
-    if (!asignacionActual) {
+    if (!asignacionActual && !mesaBloqueada) { // No permitir selección si está bloqueada
       // ✅ CON SISTEMA DE TURNOS: usar SIEMPRE disponibilidad del backend
       if (usandoSistemaTurnos) {
         // En sistema de turnos, la disponibilidad DEBE venir del backend
@@ -900,6 +984,17 @@ export default function AsignacionUser({
           sugerida={esSugerida}
           className={esMiMesa ? "ring-4 ring-green-400 ring-opacity-60" : ""}
         />
+        {/* Overlay para mesa bloqueada */}
+        {mesaBloqueada && (
+          <div 
+            className="absolute inset-0 bg-red-500/30 backdrop-blur-[1px] rounded-lg flex items-center justify-center pointer-events-none border-2 border-red-500 z-20"
+            title={motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : 'Mesa bloqueada'}
+          >
+            <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
+              🔒 BLOQUEADA
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1110,6 +1205,12 @@ export default function AsignacionUser({
         if (!(el.type === "mesa" || el.type === "mesaRectangular"))
           return false;
         
+        // 🔒 Excluir mesas bloqueadas
+        const mesaBloqueada = el.disponibilidad?.esta_bloqueada || 
+                              el.disponibilidad?.bloqueada || 
+                              el.bloqueada;
+        if (mesaBloqueada) return false;
+        
         // Obtener datos correctos (disponibilidad del backend si existe)
         const invitados = el.disponibilidad 
           ? el.disponibilidad.asientos_ocupados 
@@ -1202,14 +1303,30 @@ export default function AsignacionUser({
         <div className="mb-6">
           {/* Título y temporizador */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-                <User className="w-8 h-8 text-casal" />
-                Selección de Mesa
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
+                  <User className="w-8 h-8 text-casal" />
+                  Selección de Mesa
+                </h1>
+                
+                {/* Indicador de estado SignalR */}
+                <div 
+                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                    signalRConectado 
+                      ? 'bg-green-100 text-green-800 border border-green-300' 
+                      : 'bg-gray-100 text-gray-600 border border-gray-300'
+                  }`}
+                  title={signalRConectado ? 'Notificaciones en tiempo real activas' : 'Reconectando...'}
+                >
+                  <span className={`w-2 h-2 rounded-full ${signalRConectado ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
+                  {signalRConectado ? 'En vivo' : 'Offline'}
+                </div>
+
                 {/* Mostrar temporizador del turno si está disponible, sino el local */}
                 {((usandoSistemaTurnos && tiempoRestanteTurno !== null && tiempoRestanteTurno > 0) || 
                   (!usandoSistemaTurnos && tiempoRestante !== null)) && !asignacionActual && (
-                  <div className="ml-4 flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <div
                       className={`px-3 py-1 rounded-full font-mono text-lg font-bold ${
                         (usandoSistemaTurnos ? tiempoRestanteTurno : tiempoRestante) < 300
@@ -1226,7 +1343,7 @@ export default function AsignacionUser({
                     </div>
                   </div>
                 )}
-              </h1>
+              </div>
               <div className="text-gray-600 mt-2">
                 <p>
                   Elige tu mesa para el evento y especifica tus preferencias
@@ -1508,6 +1625,14 @@ export default function AsignacionUser({
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-green-200 border border-green-400 rounded"></div>
                   <span>Mesa llena</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-100 border-2 border-red-400 rounded relative">
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-red-600 text-xs font-bold">🔒</span>
+                    </div>
+                  </div>
+                  <span>Mesa bloqueada</span>
                 </div>
                 {asignacionActual && (
                   <div className="flex items-center gap-2">

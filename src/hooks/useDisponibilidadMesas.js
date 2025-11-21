@@ -10,6 +10,7 @@ export const useDisponibilidadMesas = (eventoId = null, autoLoad = true) => {
   const [disponibilidad, setDisponibilidad] = useState(null);
   const [elementos, setElementos] = useState([]);
   const [estadisticas, setEstadisticas] = useState(null);
+  const [eventoInfo, setEventoInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -24,6 +25,7 @@ export const useDisponibilidadMesas = (eventoId = null, autoLoad = true) => {
       setDisponibilidad(null);
       setElementos([]);
       setEstadisticas(null);
+      setEventoInfo(null);
       return { success: false, error: "eventoId requerido" };
     }
 
@@ -39,6 +41,16 @@ export const useDisponibilidadMesas = (eventoId = null, autoLoad = true) => {
         setDisponibilidad(data);
         setElementos(data.layout?.elementos || []);
         setEstadisticas(data.estadisticas || null);
+        setEventoInfo(data.evento || null);
+
+        //enrriquecer eventoinfo con nombre del layout
+        if (data.evento && data.layout) {
+          setEventoInfo((prev) => ({
+            ...prev,
+            nombre_layout:
+              data.layout.configuracion_lugar_base_nombre || "Salon",
+          }));
+        }
 
         if (EnvConfig.DEBUG_MODE) {
           console.log("✅ Disponibilidad cargada:", {
@@ -54,6 +66,7 @@ export const useDisponibilidadMesas = (eventoId = null, autoLoad = true) => {
         setDisponibilidad(null);
         setElementos([]);
         setEstadisticas(null);
+        setEventoInfo(null);
         return result;
       }
     } catch (error) {
@@ -62,6 +75,7 @@ export const useDisponibilidadMesas = (eventoId = null, autoLoad = true) => {
       setDisponibilidad(null);
       setElementos([]);
       setEstadisticas(null);
+      setEventoInfo(null);
 
       if (EnvConfig.DEBUG_MODE) {
         console.error("❌ Error al cargar disponibilidad:", error);
@@ -183,6 +197,7 @@ export const useDisponibilidadMesas = (eventoId = null, autoLoad = true) => {
     elementos,
     estadisticas,
     isLoading,
+    eventoInfo,
     error,
 
     // Métodos principales
