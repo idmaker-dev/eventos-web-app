@@ -1,7 +1,7 @@
 import React from 'react';
 import { Accessibility } from 'lucide-react';
 
-const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, sillasEspeciales = [], invitadosEspeciales = 0, onDrop, onDoubleClick }) => {
+const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 10, sillasEspeciales = [], invitadosEspeciales = 0, onDrop, onDoubleClick }) => {
   // Calcular porcentaje de ocupación
   const porcentajeOcupacion = (invitadosAsignados / capacidadMaxima) * 100;
   
@@ -52,14 +52,16 @@ const Mesa = ({ numeroMesa, invitadosAsignados = 0, capacidadMaxima = 8, sillasE
   };
 
   const posicionesSillas = [
-    { top: '10%', left: '50%', transform: 'translateX(-50%)' }, // Posición 1
-    { top: '25%', right: '20%', transform: 'translate(50%, -50%)' }, // Posición 2
-    { top: '50%', right: '5%', transform: 'translateY(-50%)' }, // Posición 3
-    { bottom: '25%', right: '20%', transform: 'translate(50%, 50%)' }, // Posición 4
-    { bottom: '10%', left: '50%', transform: 'translateX(-50%)' }, // Posición 5
-    { bottom: '25%', left: '20%', transform: 'translate(-50%, 50%)' }, // Posición 6
-    { top: '50%', left: '5%', transform: 'translateY(-50%)' }, // Posición 7
-    { top: '25%', left: '20%', transform: 'translate(-50%, -50%)' }, // Posición 8
+    { top: '10%', left: '50%', transform: 'translateX(-50%)' }, // Posición 1 (arriba centro)
+    { top: '18%', right: '25%', transform: 'translate(50%, -50%)' }, // Posición 2 (arriba derecha)
+    { top: '35%', right: '10%', transform: 'translateY(-50%)' }, // Posición 3 (derecha arriba)
+    { top: '65%', right: '10%', transform: 'translateY(-50%)' }, // Posición 4 (derecha abajo)
+    { bottom: '18%', right: '25%', transform: 'translate(50%, 50%)' }, // Posición 5 (abajo derecha)
+    { bottom: '10%', left: '50%', transform: 'translateX(-50%)' }, // Posición 6 (abajo centro)
+    { bottom: '18%', left: '25%', transform: 'translate(-50%, 50%)' }, // Posición 7 (abajo izquierda)
+    { top: '65%', left: '10%', transform: 'translateY(-50%)' }, // Posición 8 (izquierda abajo)
+    { top: '35%', left: '10%', transform: 'translateY(-50%)' }, // Posición 9 (izquierda arriba)
+    { top: '18%', left: '25%', transform: 'translate(-50%, -50%)' }, // Posición 10 (arriba izquierda)
   ];
 
   const handleDrop = (e) => {
