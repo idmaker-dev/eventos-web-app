@@ -48,7 +48,8 @@ export default function ModalEspera({
     estadisticas,
     loading: loadingMesas,
     refrescar: refrescarDisponibilidad,
-    disponibilidad
+    disponibilidad,
+    eventoInfo,
   } = useDisponibilidadMesas(eventoId, true);
   
   // Debug: Ver estructura de datos
@@ -60,14 +61,50 @@ export default function ModalEspera({
     }
   }, [disponibilidad, elementosConDisponibilidad, estadisticas]);
   
-  // Callback para actualizaciones de SignalR
-  const handleMesaSeleccionada = useCallback(async (data) => {
-    console.log("🪑 [ModalEspera] Mesa seleccionada detectada:", data);
-    await refrescarDisponibilidad();
-  }, [refrescarDisponibilidad]);
+  // Función para mostrar notificaciones
+  const mostrarNotificacion = useCallback((mensaje, tipo) => {
+    const colores = {
+      success: "bg-green-100 border-green-400 text-green-700",
+      error: "bg-red-100 border-red-400 text-red-700",
+      warning: "bg-yellow-100 border-yellow-400 text-yellow-700",
+      info: "bg-blue-100 border-blue-400 text-blue-700",
+    };
+
+    const notification = document.createElement("div");
+    notification.className = `fixed top-4 right-4 px-4 py-3 rounded border-l-4 ${colores[tipo]} z-50 max-w-md shadow-lg`;
+    notification.style.whiteSpace = "pre-line";
+    notification.textContent = mensaje;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 5000);
+  }, []);
   
-  // Hook de SignalR para invitados (solo registra callback, no conecta)
-  const { conectado } = useSignalRInvitado(handleMesaSeleccionada);
+  // Callback para actualizaciones de SignalR (selección y bloqueo)
+  const handleMesaCambiada = useCallback(async (notificacion) => {
+    console.log("🔔 [ModalEspera] Notificación recibida:", notificacion);
+    
+    // Mostrar notificación al usuario según el tipo
+    if (notificacion.tipo === 'mesa_bloqueada') {
+      const esBloqueada = notificacion.data.bloqueada;
+      mostrarNotificacion(
+        notificacion.mensaje,
+        esBloqueada ? 'warning' : 'info'
+      );
+    } else if (notificacion.tipo === 'mesa_seleccionada') {
+      // Solo refrescar silenciosamente para selecciones
+      console.log("🔄 [ModalEspera] Refrescando disponibilidad por cambio en mesa");
+    }
+    
+    // Refrescar disponibilidad para actualizar el layout
+    await refrescarDisponibilidad();
+  }, [refrescarDisponibilidad, mostrarNotificacion]);
+  
+  // Hook de SignalR para invitados (maneja selección y bloqueo de mesas)
+  const { conectado } = useSignalRInvitado(handleMesaCambiada);
   
   // Cargar disponibilidad inicial cuando el modal se abre
   useEffect(() => {
@@ -229,30 +266,64 @@ export default function ModalEspera({
       ? disponibilidad.asientos_ocupados 
       : element.invitados || 0;
     
+    // Verificar si la mesa está bloqueada
+    const estaBloqueada = element.disponibilidad?.esta_bloqueada || 
+                          element.disponibilidad?.bloqueada || 
+                          element.bloqueada;
+    const motivoBloqueo = element.disponibilidad?.motivo_bloqueo || 
+                          element.motivo_bloqueo || 
+                          '';
+    
     // Renderizar mesas
     if (element.type === 'mesa') {
       return (
-        <Mesa
-          numeroMesa={element.numero}
-          invitadosAsignados={invitadosAsignados}
-          capacidadMaxima={element.capacidad}
-          sillasEspeciales={element.sillasEspeciales || []}
-          invitadosEspeciales={element.invitadosEspeciales || 0}
-          readOnly={true}
-        />
+        <div className="relative">
+          <Mesa
+            numeroMesa={element.numero}
+            invitadosAsignados={invitadosAsignados}
+            capacidadMaxima={element.capacidad}
+            sillasEspeciales={element.sillasEspeciales || []}
+            invitadosEspeciales={element.invitadosEspeciales || 0}
+            readOnly={true}
+          />
+          {/* Overlay para mesa bloqueada */}
+          {estaBloqueada && (
+            <div 
+              className="absolute inset-0 bg-red-500/30 backdrop-blur-[1px] rounded-full flex items-center justify-center pointer-events-none border-2 border-red-500 z-20"
+              title={motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : 'Mesa bloqueada'}
+            >
+              <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
+                🔒 BLOQUEADA
+              </div>
+            </div>
+          )}
+        </div>
       );
     }
     
     if (element.type === 'mesaRectangular') {
       return (
-        <MesaRectangular
-          numeroMesa={element.numero}
-          invitadosAsignados={invitadosAsignados}
-          capacidadMaxima={element.capacidad}
-          sillasEspeciales={element.sillasEspeciales || []}
-          invitadosEspeciales={element.invitadosEspeciales || 0}
-          readOnly={true}
-        />
+        <div className="relative">
+          <MesaRectangular
+            numeroMesa={element.numero}
+            invitadosAsignados={invitadosAsignados}
+            capacidadMaxima={element.capacidad}
+            sillasEspeciales={element.sillasEspeciales || []}
+            invitadosEspeciales={element.invitadosEspeciales || 0}
+            readOnly={true}
+          />
+          {/* Overlay para mesa bloqueada */}
+          {estaBloqueada && (
+            <div 
+              className="absolute inset-0 bg-red-500/30 backdrop-blur-[1px] rounded-lg flex items-center justify-center pointer-events-none border-2 border-red-500 z-20"
+              title={motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : 'Mesa bloqueada'}
+            >
+              <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
+                🔒 BLOQUEADA
+              </div>
+            </div>
+          )}
+        </div>
       );
     }
     
@@ -458,7 +529,7 @@ export default function ModalEspera({
                                 Capacidad utilizada:
                               </p>
                               <div className="text-lg font-semibold text-green-500">
-                                {Math.round((estadisticas?.porcentaje_ocupacion || 0) * 100)}%
+                                {estadisticas?.porcentaje_ocupacion || 0}%
                               </div>
                             </div>
                           </div>
@@ -766,10 +837,10 @@ export default function ModalEspera({
                     </div>
                     <div className="flex w-full justify-between items-center">
                       <div className="text-xs text-gray-500 mt-2 sm:mt-0">
-                        Plano del Salón - Salón de eventos Foro 1
+                        {eventoInfo?.lugar_nombre || "Plano del salón"} - {eventoInfo?.nombre_layout || "Layout por defecto"}
                       </div>
                       <div className="text-xs text-gray-500 mt-2 sm:mt-0">
-                        Evento: Graduación ITESM 2025
+                        Evento: {eventoInfo?.nombre_evento || "Graduación"}
                       </div>
                     </div>
                   </div>
@@ -833,9 +904,9 @@ export default function ModalEspera({
                         <div 
                           className="relative bg-gray-50"
                           style={{
-                            width: '1200px',
+                            width: '1400px',
                             height: '800px',
-                            minWidth: '1200px',
+                            minWidth: '1400px',
                             minHeight: '800px'
                           }}
                         >

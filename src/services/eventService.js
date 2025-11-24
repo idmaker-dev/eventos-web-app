@@ -266,6 +266,51 @@ class EventService {
       };
     }
   }
+
+  /**
+   * Bloquear o desbloquear una mesa
+   *
+   * @param {string} eventId - ID del evento
+   * @param {string} mesaId - ID de la mesa (ej: "mesa-165")
+   * @param {boolean} bloqueada - true para bloquear, false para desbloquear
+   * @param {string} motivo - Motivo del bloqueo (opcional)
+   * @returns {Promise<Object>} - Resultado de la operación
+   */
+  async bloquearMesa(eventId, mesaId, bloqueada, motivo = "") {
+    try {
+      const url = `/eventos/${eventId}/seleccion-mesas/bloquear-mesa`;
+      const payload = {
+        mesa_id: mesaId,
+        bloqueada,
+        motivo,
+      };
+
+      console.log("🔒 [bloquearMesa] Datos de la petición:", {
+        eventId,
+        mesaId,
+        bloqueada,
+        motivo,
+        url,
+        payload,
+      });
+
+      const response = await httpService.post(url, payload);
+
+      return {
+        success: true,
+        data: response.data || response,
+        message: bloqueada
+          ? "Mesa bloqueada exitosamente"
+          : "Mesa desbloqueada exitosamente",
+      };
+    } catch (error) {
+      console.error("Error al bloquear/desbloquear mesa:", error);
+      return {
+        success: false,
+        error: error.userMessage || "Error al modificar estado de la mesa",
+      };
+    }
+  }
 }
 
 // Crear instancia singleton
