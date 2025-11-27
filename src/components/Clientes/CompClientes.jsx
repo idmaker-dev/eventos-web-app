@@ -1,12 +1,17 @@
 import { Button, Input } from "@headlessui/react";
 import clsx from "clsx";
-import { Minus, Plus, Search, X } from "lucide-react";
+import { Minus, Plus, Search, X, RefreshCw } from "lucide-react";
 import { Tooltip } from "../ui/Tooltip.jsx";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import ListaTickets from "./Detalles/ListaClientes.jsx";
-import { ticketsData } from "./Detalles/DetallesDta.js";
 import Destalles from "./Detalles/Destalles.jsx";
 import ChatModal from "./Chat/ChatModal.jsx";
+import { useTickets } from "../../hooks/useTickets";
+import { useSignalRTickets } from "../../hooks/useSignalRTickets";
+import { useSignalRConnection } from "../../hooks/useSignalR";
+import { useTicketDetail } from "../../hooks/useTicketDetail";
+import { useClientInfo } from "../../hooks/useClientInfo";
+import { transformarTicketCompletoParaUI, formatearFechaHora } from "../../utils/ticketsHelpers";
 
 // Hook para detectar móvil
 function useIsMobile() {
@@ -21,14 +26,118 @@ function useIsMobile() {
 }
 
 export default function CompClientes() {
+  const [ticketSeleccionadoSimple, setTicketSeleccionadoSimple] = useState(null);
   const [ticketSeleccionado, setTicketSeleccionado] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const isMobile = useIsMobile();
 
+  // Hook para conectar a SignalR automáticamente
+  const { conectado: signalRConectado } = useSignalRConnection();
+
+  // Hook para cargar tickets desde el API
+  const {
+    tickets,
+    loading,
+    error,
+    cargarTickets,
+    estadisticas,
+  } = useTickets();
+
+  // Log para verificar conexión de SignalR
+  useEffect(() => {
+    console.log("📡 [CompClientes] Estado de SignalR:", signalRConectado);
+  }, [signalRConectado]);
+
+  // Hooks para cargar detalle del ticket y datos del cliente
+  const { 
+    ticketDetail, 
+    loading: loadingDetail
+  } = useTicketDetail(ticketSeleccionadoSimple?.ticket);
+
+  const { 
+    clientInfo, 
+    loading: loadingClient 
+  } = useClientInfo(ticketSeleccionadoSimple?.telefono);
+
+  // Hook para SignalR (actualizaciones en tiempo real)
+  useSignalRTickets({
+    onNuevoTicket: (data) => {
+      console.log("📩 Nuevo ticket recibido, recargando lista...", data);
+      cargarTickets();
+    },
+    onTicketActualizado: (data) => {
+      console.log("🔄 Ticket actualizado, recargando lista...", data);
+      cargarTickets();
+      // Si el ticket actualizado es el seleccionado, forzar recarga seleccionando de nuevo
+      if (ticketSeleccionadoSimple?.ticket === data?.ticket) {
+        setTicketSeleccionadoSimple({ ...ticketSeleccionadoSimple });
+      }
+    },
+    onNuevoMensaje: (data) => {
+      console.log("💬 Nuevo mensaje recibido via SignalR:", data);
+      
+      // Si el mensaje es del ticket seleccionado, agregarlo al chat
+      if (ticketSeleccionadoSimple?.ticket === data?.ticketId) {
+        console.log("✅ El mensaje pertenece al ticket seleccionado, agregando al chat...");
+        
+        // Crear el objeto de mensaje en el formato esperado por ChatModal
+        const nuevoMensaje = {
+          id: data.mensajeId,
+          remitente: data.from === 'usuario' ? 'Cliente' : 'Soporte',
+          nombre: data.from === 'usuario' ? 'Cliente' : 'Soporte',
+          texto: data.texto,
+          hora: formatearFechaHora(data.timestamp),
+          leido: false,
+          from: data.from, // Mantener para compatibilidad con ChatModal
+        };
+        
+        // Agregar el mensaje al ticket seleccionado
+        setTicketSeleccionado(prevTicket => {
+          if (!prevTicket) return prevTicket;
+          
+          return {
+            ...prevTicket,
+            chat: [...(prevTicket.chat || []), nuevoMensaje],
+          };
+        });
+        
+        console.log("✅ Mensaje agregado al chat:", nuevoMensaje);
+      } else {
+        console.log("ℹ️ El mensaje no pertenece al ticket actual");
+      }
+    },
+  });
+
+  // Efecto para transformar datos cuando se cargan el detalle y el cliente
+  useEffect(() => {
+    if (ticketDetail && clientInfo) {
+      console.log("🔄 [CompClientes] Transformando datos:", {
+        ticketDetail,
+        clientInfo,
+        tieneTicket: !!ticketDetail.ticket,
+        tieneDatosPersonales: !!clientInfo.datos_personales,
+        tieneTickets: !!clientInfo.tickets,
+      });
+      const ticketCompleto = transformarTicketCompletoParaUI(ticketDetail, clientInfo);
+      setTicketSeleccionado(ticketCompleto);
+    } else if (ticketDetail && !loadingClient) {
+      // Si solo tenemos el detalle del ticket, usar eso
+      console.log("⚠️ [CompClientes] Solo con ticketDetail (sin clientInfo)");
+      const ticketCompleto = transformarTicketCompletoParaUI(ticketDetail, null);
+      setTicketSeleccionado(ticketCompleto);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketDetail, clientInfo, loadingClient]);
+
+  // Memoizar datos del chat para evitar re-renders innecesarios
+  const chatData = useMemo(() => {
+    return ticketSeleccionado?.chat || [];
+  }, [ticketSeleccionado?.chat]);
+
   const handleSeleccionarTicket = (ticket) => {
-    setTicketSeleccionado(ticket);
+    setTicketSeleccionadoSimple(ticket);
     setChatOpen(true);
     if (isMobile) {
       setShowDetails(true);
@@ -37,23 +146,29 @@ export default function CompClientes() {
 
   const handleVolverALista = () => {
     setShowDetails(false);
+    setTicketSeleccionadoSimple(null);
     setTicketSeleccionado(null);
     setChatOpen(false);
   };
 
   const ticketsFiltrados = useMemo(() => {
     if (!searchTerm.trim()) {
-      return ticketsData;
+      return tickets;
     }
 
-    return ticketsData.filter((ticket) => {
+    return tickets.filter((ticket) => {
       const searchLower = searchTerm.toLowerCase();
       const nombre = ticket.nombre?.toLowerCase() || "";
       const numeroTicket = ticket.ticket?.toLowerCase() || "";
+      const telefono = ticket.telefono || "";
 
-      return nombre.includes(searchLower) || numeroTicket.includes(searchLower);
+      return (
+        nombre.includes(searchLower) ||
+        numeroTicket.includes(searchLower) ||
+        telefono.includes(searchLower)
+      );
     });
-  }, [searchTerm]);
+  }, [searchTerm, tickets]);
 
   // Vista para móvil
   if (isMobile) {
@@ -63,7 +178,24 @@ export default function CompClientes() {
           // Lista de tickets en móvil
           <div className="h-full flex flex-col">
             <div className="p-4 bg-fondoVs dark:bg-[#1a1a1a] border-b rounded-t-xl">
-              <h2 className="text-xl font-bold text-casal mb-2">Tickets</h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-bold text-casal">
+                  Tickets ({estadisticas.total})
+                </h2>
+                <Tooltip content="Recargar tickets">
+                  <Button
+                    onClick={cargarTickets}
+                    disabled={loading}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                  >
+                    <RefreshCw
+                      className={`w-5 h-5 text-casal ${
+                        loading ? "animate-spin" : ""
+                      }`}
+                    />
+                  </Button>
+                </Tooltip>
+              </div>
               <div className="relative">
                 <Input
                   type="text"
@@ -87,7 +219,23 @@ export default function CompClientes() {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-2 bg-fondoVs rounded-b-xl dark:bg-[#1a1a1a]">
-              {ticketsFiltrados.length > 0 ? (
+              {loading && tickets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-32 text-gray-500">
+                  <RefreshCw className="w-8 h-8 mb-2 opacity-50 animate-spin" />
+                  <p className="text-sm">Cargando tickets...</p>
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center h-32 text-red-500">
+                  <X className="w-8 h-8 mb-2 opacity-50" />
+                  <p className="text-sm">{error}</p>
+                  <Button
+                    onClick={cargarTickets}
+                    className="mt-2 text-xs underline"
+                  >
+                    Reintentar
+                  </Button>
+                </div>
+              ) : ticketsFiltrados.length > 0 ? (
                 <ListaTickets
                   ticketsData={ticketsFiltrados}
                   onSeleccionar={handleSeleccionarTicket}
@@ -104,18 +252,29 @@ export default function CompClientes() {
         ) : (
           // Detalles en pantalla completa (móvil)
           <div className="h-full">
-            <Destalles
-              ticket={ticketSeleccionado}
-              ticketsData={ticketsData}
-              onBack={handleVolverALista} // Pasamos la función para regresar
-              isMobileView={true}
-            />
-            <ChatModal
-              open={chatOpen}
-              onClose={() => setChatOpen(false)}
-              ticket={ticketSeleccionado?.ticket}
-              chatData={ticketSeleccionado?.chat}
-            />
+            {loadingDetail || loadingClient ? (
+              <div className="flex flex-col items-center justify-center h-full bg-fondoVs dark:bg-[#1a1a1a]">
+                <RefreshCw className="w-12 h-12 mb-4 opacity-50 animate-spin text-casal" />
+                <p className="text-lg font-semibold text-gray-600 dark:text-gray-300">
+                  Cargando detalles del ticket...
+                </p>
+              </div>
+            ) : ticketSeleccionado ? (
+              <>
+                <Destalles
+                  ticket={ticketSeleccionado}
+                  onBack={handleVolverALista}
+                  isMobileView={true}
+                />
+                <ChatModal
+                  open={chatOpen}
+                  onClose={() => setChatOpen(false)}
+                  chatData={chatData}
+                  ticket={ticketSeleccionadoSimple?.ticket}
+                  telefono={ticketSeleccionadoSimple?.telefono}
+                />
+              </>
+            ) : null}
           </div>
         )}
       </div>
@@ -129,10 +288,29 @@ export default function CompClientes() {
         <div className="flex">
           <div className="w-72 h-full border-r border-gray-200 dark:border-gray-700">
             <div className="p-4 bg-fondoVs dark:bg-[#1a1a1a] rounded-tl-3xl">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Total: {estadisticas.total} | Activos: {estadisticas.activos || 0}
+                </div>
+                <Tooltip content="Recargar tickets">
+                  <Button
+                    onClick={cargarTickets}
+                    disabled={loading}
+                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                  >
+                    <RefreshCw
+                      className={`w-4 h-4 text-casal ${
+                        loading ? "animate-spin" : ""
+                      }`}
+                    />
+                  </Button>
+                </Tooltip>
+              </div>
               <div className="relative">
                 <Input
                   type="text"
                   placeholder="Buscar..."
+                  value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className={clsx(
                     "mt-0 block w-full rounded-3xl border bg-white/80 dark:bg-gray-900 px-3 py-1.5 text-sm/6 text-gray-700 dark:text-white",
@@ -151,7 +329,23 @@ export default function CompClientes() {
               </div>
             </div>
             <div className="h-[calc(100vh-80px)] lg:h-[calc(81.2vh-80px)] rounded-bl-3xl px-4 overflow-y-auto space-y-2 bg-fondoVs dark:bg-[#1a1a1a]">
-              {ticketsFiltrados.length > 0 ? (
+              {loading && tickets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-32 text-gray-500 dark:text-gray-400">
+                  <RefreshCw className="w-8 h-8 mb-2 opacity-50 animate-spin" />
+                  <p className="text-sm">Cargando tickets...</p>
+                </div>
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center h-32 text-red-500">
+                  <X className="w-8 h-8 mb-2 opacity-50" />
+                  <p className="text-sm text-center">{error}</p>
+                  <Button
+                    onClick={cargarTickets}
+                    className="mt-2 text-xs underline"
+                  >
+                    Reintentar
+                  </Button>
+                </div>
+              ) : ticketsFiltrados.length > 0 ? (
                 <ListaTickets
                   ticketsData={ticketsFiltrados}
                   onSeleccionar={handleSeleccionarTicket}
@@ -166,7 +360,7 @@ export default function CompClientes() {
             </div>
           </div>
           <div className="flex-1">
-            {!ticketSeleccionado ? (
+            {!ticketSeleccionadoSimple ? (
               <div className="flex items-center justify-center h-full bg-fondoVs dark:bg-[#1a1a1a] rounded-r-3xl">
                 <div className="text-center p-10">
                   <img
@@ -180,20 +374,27 @@ export default function CompClientes() {
                   </p>
                 </div>
               </div>
-            ) : (
+            ) : loadingDetail || loadingClient ? (
+              <div className="flex items-center justify-center h-full bg-fondoVs dark:bg-[#1a1a1a] rounded-r-3xl">
+                <div className="text-center p-10">
+                  <RefreshCw className="w-16 h-16 mb-4 mx-auto opacity-50 animate-spin text-casal" />
+                  <p className="text-xl font-semibold text-gray-600 dark:text-gray-300">
+                    Cargando detalles del ticket...
+                  </p>
+                </div>
+              </div>
+            ) : ticketSeleccionado ? (
               <div>
-                <Destalles
-                  ticket={ticketSeleccionado}
-                  ticketsData={ticketsData}
-                />
+                <Destalles ticket={ticketSeleccionado} />
                 <ChatModal
                   open={chatOpen}
                   onClose={() => setChatOpen(false)}
-                  ticket={ticketSeleccionado.ticket}
-                  chatData={ticketSeleccionado.chat}
+                  chatData={chatData}
+                  ticket={ticketSeleccionadoSimple?.ticket}
+                  telefono={ticketSeleccionadoSimple?.telefono}
                 />
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

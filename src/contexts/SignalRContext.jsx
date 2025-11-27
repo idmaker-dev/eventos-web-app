@@ -20,6 +20,9 @@ export const SignalRProvider = ({ children }) => {
   const dashboardUpdateCallbackRef = useRef(null);
   const pagoCompletadoCallbackRef = useRef(null);
   const monitorCallbackRef = useRef(null); // Callback para actualización de monitor
+  const ticketNuevoCallbackRef = useRef(null); // Callback para nuevo ticket
+  const ticketActualizadoCallbackRef = useRef(null); // Callback para ticket actualizado
+  const mensajeNuevoCallbackRef = useRef(null); // Callback para nuevo mensaje en chat
   const intentosConexionRef = useRef(0);
   const conectandoRef = useRef(false); // Flag para evitar conexiones simultáneas
   const ultimoIntentoRef = useRef(0); // Timestamp del último intento
@@ -216,12 +219,92 @@ export const SignalRProvider = ({ children }) => {
         }
       });
 
-      // Listener genérico para debug
-      newConnection.onreceive = (data) => {
+      // Escuchar evento de nuevo ticket creado
+      newConnection.on('nuevoTicketCreado', (data) => {
         if (EnvConfig.DEBUG_MODE) {
-          console.log('📨 Mensaje raw recibido:', data);
+          console.log('🎫 Notificación recibida: nuevoTicket');
+          console.log('🎫 Datos del ticket:', JSON.stringify(data, null, 2));
         }
+
+        // Agregar notificación al estado
+        const nuevaNotificacion = {
+          tipo: 'nuevo_ticket',
+          mensaje: 'Nuevo ticket creado',
+          data,
+          timestamp: new Date().toISOString(),
+        };
+
+        setNotificaciones(prev => [nuevaNotificacion, ...prev]);
+
+        // Ejecutar callback si existe
+        if (ticketNuevoCallbackRef.current) {
+          console.log('🔔 [SignalR] Ejecutando callback de nuevo ticket');
+          ticketNuevoCallbackRef.current(data);
+        } else if (EnvConfig.DEBUG_MODE) {
+          console.log('ℹ️ [SignalR] Callback de nuevo ticket no activo');
+        }
+      });
+
+      // Escuchar evento de ticket actualizado
+      newConnection.on('ticketActualizado', (data) => {
+        if (EnvConfig.DEBUG_MODE) {
+          console.log('🔄 Notificación recibida: ticketActualizado');
+          console.log('🔄 Datos del ticket:', JSON.stringify(data, null, 2));
+        }
+
+        // Agregar notificación al estado
+        const nuevaNotificacion = {
+          tipo: 'ticket_actualizado',
+          mensaje: 'Ticket actualizado',
+          data,
+          timestamp: new Date().toISOString(),
+        };
+
+        setNotificaciones(prev => [nuevaNotificacion, ...prev]);
+
+        // Ejecutar callback si existe
+        if (ticketActualizadoCallbackRef.current) {
+          console.log('🔔 [SignalR] Ejecutando callback de ticket actualizado');
+          ticketActualizadoCallbackRef.current(data);
+        } else if (EnvConfig.DEBUG_MODE) {
+          console.log('ℹ️ [SignalR] Callback de ticket actualizado no activo');
+        }
+      });
+
+      // Escuchar evento de nuevo mensaje en chat (registrar múltiples variaciones)
+      const registrarEventoMensaje = (nombreEvento) => {
+        console.log(`📝 [SignalR] Registrando evento de mensaje: ${nombreEvento}`);
+        
+        newConnection.on(nombreEvento, (data) => {
+          console.log(`💬 [SignalR] Notificación recibida: ${nombreEvento}`);
+          console.log('💬 [SignalR] Datos del mensaje:', JSON.stringify(data, null, 2));
+
+          // Agregar notificación al estado
+          const nuevaNotificacion = {
+            tipo: 'nuevo_mensaje',
+            mensaje: 'Nuevo mensaje recibido',
+            data,
+            timestamp: new Date().toISOString(),
+          };
+
+          setNotificaciones(prev => [nuevaNotificacion, ...prev]);
+
+          // Ejecutar callback si existe
+          if (mensajeNuevoCallbackRef.current) {
+            console.log('🔔 [SignalR] Ejecutando callback de nuevo mensaje');
+            mensajeNuevoCallbackRef.current(data);
+          } else {
+            console.log('⚠️ [SignalR] Callback de nuevo mensaje no activo - no hay nadie escuchando');
+          }
+        });
       };
+
+      // Registrar todas las variaciones posibles del evento de mensaje
+      console.log('📋 [SignalR] Registrando variaciones del evento de mensaje...');
+      // registrarEventoMensaje('nuevomensajeticket'); // lowercase
+      registrarEventoMensaje('nuevoMensajeTicket'); // camelCase
+      // registrarEventoMensaje('NuevoMensajeTicket'); // PascalCase
+      console.log('✅ [SignalR] Todas las variaciones del evento de mensaje registradas');
 
       if (EnvConfig.DEBUG_MODE) {
         console.log('🚀 Iniciando conexión SignalR...');
@@ -324,6 +407,36 @@ export const SignalRProvider = ({ children }) => {
     monitorCallbackRef.current = null;
   }, []);
 
+  // Función para registrar callback de nuevo ticket
+  const registrarCallbackNuevoTicket = useCallback((callback) => {
+    ticketNuevoCallbackRef.current = callback;
+  }, []);
+
+  // Función para desregistrar callback de nuevo ticket
+  const desregistrarCallbackNuevoTicket = useCallback(() => {
+    ticketNuevoCallbackRef.current = null;
+  }, []);
+
+  // Función para registrar callback de ticket actualizado
+  const registrarCallbackTicketActualizado = useCallback((callback) => {
+    ticketActualizadoCallbackRef.current = callback;
+  }, []);
+
+  // Función para desregistrar callback de ticket actualizado
+  const desregistrarCallbackTicketActualizado = useCallback(() => {
+    ticketActualizadoCallbackRef.current = null;
+  }, []);
+
+  // Función para registrar callback de nuevo mensaje
+  const registrarCallbackNuevoMensaje = useCallback((callback) => {
+    mensajeNuevoCallbackRef.current = callback;
+  }, []);
+
+  // Función para desregistrar callback de nuevo mensaje
+  const desregistrarCallbackNuevoMensaje = useCallback(() => {
+    mensajeNuevoCallbackRef.current = null;
+  }, []);
+
   // Función para obtener información de estado
   const obtenerEstadoConexion = useCallback(() => {
     return {
@@ -351,6 +464,12 @@ export const SignalRProvider = ({ children }) => {
     desregistrarCallbackPagoCompletado,
     registrarCallbackMonitor,
     desregistrarCallbackMonitor,
+    registrarCallbackNuevoTicket,
+    desregistrarCallbackNuevoTicket,
+    registrarCallbackTicketActualizado,
+    desregistrarCallbackTicketActualizado,
+    registrarCallbackNuevoMensaje,
+    desregistrarCallbackNuevoMensaje,
     obtenerEstadoConexion,
   };
 

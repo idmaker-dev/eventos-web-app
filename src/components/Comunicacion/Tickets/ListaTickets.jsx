@@ -9,11 +9,11 @@ export default function ListaTickets({ onSeleccionar, ticketsData = [], ticketSe
     const baseClasses =
       "flex items-center justify-between p-3 cursor-pointer shadow-sm border-b transition-all duration-200 hover:shadow-md";
 
-    if (ticket.estado === "urgente") {
+    if (ticket.estado === "cerrado") {
       return {
-        container: `${baseClasses} bg-red-50 dark:bg-[#1a1a1a] border-red-200 hover:bg-red-100 hover:dark:bg-[#2a1a1a]`,
-        indicator: "w-3 h-3 rounded-full bg-red-500",
-        textColor: "text-red-800",
+        container: `${baseClasses} bg-gray-50 dark:bg-[#1a1a1a] border-gray-300 hover:bg-gray-100 hover:dark:bg-[#2a1a1a] opacity-75`,
+        indicator: "w-3 h-3 rounded-full bg-gray-500",
+        textColor: "text-gray-600",
       };
     } else {
       return {

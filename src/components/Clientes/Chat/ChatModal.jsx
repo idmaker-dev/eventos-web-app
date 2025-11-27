@@ -15,6 +15,8 @@ import EmojiSelector from "./EmojiSelector";
 import FileUploader from "./FileUploader";
 import FilePreview from "./FilePreview";
 import { Tooltip } from "../../ui/Tooltip";
+import ticketsService from "../../../services/ticketsService";
+import { formatearFechaHora } from "../../../utils/ticketsHelpers";
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -27,7 +29,7 @@ function useIsMobile() {
   return isMobile;
 }
 
-export default function ChatModal({ open, onClose, chatData = [], ticket }) {
+export default function ChatModal({ open, onClose, chatData = [], ticket, telefono }) {
   const [minimized, setMinimized] = useState(false);
   const [mensajes, setMensajes] = useState(chatData);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
@@ -110,56 +112,58 @@ export default function ChatModal({ open, onClose, chatData = [], ticket }) {
   const enviarMensajeWhatsApp = async () => {
     if (nuevoMensaje.trim() === "" && attachedFiles.length === 0) return;
 
+    const mensajeTexto = nuevoMensaje.trim();
     const ahora = new Date();
-    const hora = ahora.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
 
-    const mensajeUsuario = {
-      remitente: "Usuario",
-      texto: nuevoMensaje.trim(),
-      hora: hora,
-      id: Date.now(),
+    // Agregar mensaje inmediatamente a la UI como "Soporte" (optimistic update)
+    const mensajeSoporte = {
+      remitente: "Soporte",
+      nombre: "Soporte",
+      texto: mensajeTexto,
+      hora: formatearFechaHora(ahora.toISOString()),
+      id: `temp-${Date.now()}`,
+      from: "sistema",
+      leido: false,
       archivos: attachedFiles.length > 0 ? [...attachedFiles] : null
     };
 
-    setMensajes((prev) => [...prev, mensajeUsuario]);
-
-    const mensajeParaWhatsApp = nuevoMensaje.trim();
-    const archivosParaEnviar = [...attachedFiles];
+    setMensajes((prev) => [...prev, mensajeSoporte]);
     
-    // Limpiar formulario
+    // Limpiar formulario inmediatamente
+    const archivosParaEnviar = [...attachedFiles];
     setNuevoMensaje("");
     setAttachedFiles([]);
     setShowAttachmentMenu(false);
 
     try {
-      const formData = new FormData();
-      formData.append('ticketId', ticket);
-      formData.append('mensaje', mensajeParaWhatsApp);
-      formData.append('remitente', 'Usuario');
-
-      archivosParaEnviar.forEach((fileData, index) => {
-        formData.append(`archivo_${index}`, fileData.file);
+      // Enviar mensaje al bot de WhatsApp
+      const resultado = await ticketsService.sendMessage({
+        ticket: ticket,
+        telefono: telefono,
+        mensaje: mensajeTexto,
       });
 
-      const response = await fetch("/api/whatsapp/send-message", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al enviar mensaje");
+      if (!resultado.success) {
+        throw new Error(resultado.error || "Error al enviar mensaje");
       }
 
-      console.log("Mensaje enviado a WhatsApp:", {
-        mensaje: mensajeParaWhatsApp,
-        archivos: archivosParaEnviar.length
-      });
+      console.log("✅ Mensaje enviado exitosamente al bot:", resultado);
+
+      // TODO: Si hay archivos adjuntos, implementar lógica para subirlos
+      if (archivosParaEnviar.length > 0) {
+        console.warn("⚠️ Archivos adjuntos aún no implementados:", archivosParaEnviar.length);
+      }
+
     } catch (error) {
-      console.error("Error al enviar mensaje a WhatsApp:", error);
-      alert("Error al enviar mensaje. Intenta nuevamente.");
+      console.error("❌ Error al enviar mensaje:", error);
+      
+      // Remover el mensaje optimista si falla
+      setMensajes((prev) => prev.filter(m => m.id !== mensajeSoporte.id));
+      
+      // Restaurar el texto en el input
+      setNuevoMensaje(mensajeTexto);
+      
+      alert("Error al enviar el mensaje. Por favor, intenta nuevamente.");
     }
   };
 
@@ -246,23 +250,27 @@ export default function ChatModal({ open, onClose, chatData = [], ticket }) {
           }
         >
           {/* Header */}
-          <div className="flex justify-between items-center p-3 bg-fondoVs dark:bg-[#1a1a1a] text-casal rounded-t-xl">
-            <div className="flex items-center gap-1">
-              <div className="bg-gray-400 dark:bg-gray-400 p-1 rounded-full">
+          <div className="flex justify-between items-center p-3 bg-fondoVs dark:bg-[#1a1a1a] text-casal rounded-t-xl gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+              <div className="bg-gray-400 dark:bg-gray-400 p-1 rounded-full flex-shrink-0">
                 <User className="w-4 h-4" />
               </div>
-              <p className="text-base font-medium">No. Ticket {ticket}</p>
+              <Tooltip content={`No. Ticket ${ticket || "N/A"}`} position="bottom">
+                <p className="text-sm font-medium truncate">
+                  No. Ticket {ticket || "N/A"}
+                </p>
+              </Tooltip>
             </div>
-            <div>
+            <div className="flex items-center gap-1 flex-shrink-0 ml-2">
               <Button
-                className="mx-1 text-casal text-base"
+                className="text-casal text-base p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
                 onClick={() => setMinimized(true)}
                 title="Minimizar"
               >
                 <Minus className="w-5 h-5" />
               </Button>
               <Button
-                className="mx-1 text-casal text-base"
+                className="text-casal text-base p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
                 onClick={onClose}
                 title="Cerrar"
               >
@@ -308,46 +316,45 @@ export default function ChatModal({ open, onClose, chatData = [], ticket }) {
 
           {/* Mensajes */}
           <div className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-            <div className="space-y-4">
+            <div className="space-y-3">
               {mensajes && mensajes.length > 0 ? (
                 mensajes.map((mensaje, index) => {
-                  const esSoporte = mensaje.remitente === "Soporte";
-                  const esCliente = mensaje.remitente === "Cliente";
-                  const esUsuario = mensaje.remitente === "Usuario";
+                  const esSoporte = mensaje.remitente === "Soporte" || mensaje.from === "sistema";
+                  const esCliente = mensaje.remitente === "Cliente" || mensaje.from === "usuario";
 
                   return (
-                    <div key={mensaje.id || index}>
-                      <div className="flex justify-center mb-2">
-                        <span className="text-xs text-gray-500 px-3 py-1 rounded-full">
-                          {mensaje.hora}
-                        </span>
+                    <div key={mensaje.id || index} className="flex flex-col">
+                      {/* Fecha y hora del mensaje */}
+                      <div className={`text-xs text-gray-500 mb-1 ${
+                        esSoporte ? "text-right" : "text-left"
+                      }`}>
+                        {mensaje.hora}
                       </div>
 
+                      {/* Contenedor del mensaje */}
                       <div
                         className={`flex gap-2 ${
-                          esSoporte || esUsuario ? "flex-row-reverse" : ""
+                          esSoporte ? "flex-row-reverse" : ""
                         }`}
                       >
+                        {/* Avatar solo para cliente */}
                         {esCliente && (
                           <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-300 dark:bg-gray-600">
                             <User className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                           </div>
                         )}
 
+                        {/* Burbuja del mensaje */}
                         <div className="flex-1">
                           <div
-                            className={`rounded-lg p-3 shadow-lg max-w-[80%] relative ${
+                            className={`rounded-2xl p-3 max-w-[75%] ${
                               esSoporte
-                                ? "bg-casal text-white ml-auto"
-                                : esUsuario
-                                ? "bg-casal text-white ml-auto"
-                                : esCliente
-                                ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600"
-                                : "bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                                ? "bg-blue-500 text-white ml-auto"
+                                : "bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600"
                             }`}
                           >
                             {mensaje.texto && (
-                              <p className="text-sm mb-2">{mensaje.texto}</p>
+                              <p className="text-sm">{mensaje.texto}</p>
                             )}
                             
                             {/* Archivos en mensajes */}
