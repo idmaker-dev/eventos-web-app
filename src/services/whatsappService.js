@@ -1,4 +1,4 @@
-const WHATSAPP_API_BASE = "https://agente-citas-api.azurewebsites.net/api/v1";
+const WHATSAPP_API_BASE = "https://planoria-bot.azurewebsites.net/api/v1";
 
 /**
  * Servicio para manejar la verificación por WhatsApp
