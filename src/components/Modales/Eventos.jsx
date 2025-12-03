@@ -33,10 +33,12 @@ export default function Eventos({ open, onClose }) {
     responsable: "",
     costo: "",
     fechas: [],
+    requeridos: false,
   });
 
   // Hook de eventos desde el contexto (incluye cargarEventos)
-  const { crearEvento, isCreating, error, limpiarError, cargarEventos } = useSelectedEvent();
+  const { crearEvento, isCreating, error, limpiarError, cargarEventos } =
+    useSelectedEvent();
   const navigate = useNavigate();
 
   // Cargar lugares cuando se abre el modal
@@ -45,16 +47,17 @@ export default function Eventos({ open, onClose }) {
       if (open) {
         setIsLoadingLugares(true);
         try {
-          const eventService = (await import('../../services/eventService')).default;
+          const eventService = (await import("../../services/eventService"))
+            .default;
           const resultado = await eventService.getLugares();
-          
+
           if (resultado.success) {
             setLugares(resultado.data);
           } else {
-            console.error('❌ Error al cargar lugares:', resultado.error);
+            console.error("❌ Error al cargar lugares:", resultado.error);
           }
         } catch (error) {
-          console.error('❌ Error inesperado al cargar lugares:', error);
+          console.error("❌ Error inesperado al cargar lugares:", error);
         } finally {
           setIsLoadingLugares(false);
         }
@@ -66,11 +69,11 @@ export default function Eventos({ open, onClose }) {
 
   const handleInputChange = (field, value) => {
     console.log(field, value);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
+
     // Limpiar errores al escribir
     if (error) {
       limpiarError();
@@ -79,11 +82,12 @@ export default function Eventos({ open, onClose }) {
 
   const handleGuardar = async () => {
     // Crear el evento
-    formData.fechas = selectedDates.map((date) =>
-      date.toISOString().split("T")[0]
+    formData.fechas = selectedDates.map(
+      (date) => date.toISOString().split("T")[0]
     ); // Convertir a formato YYYY-MM-DD
+    formData.requeridos = !!formData.requeridos; 
     const resultado = await crearEvento(formData);
-    
+
     if (resultado.success) {
       // Recargar la lista de eventos para actualizar el select
       await cargarEventos();
@@ -112,7 +116,7 @@ export default function Eventos({ open, onClose }) {
 
   const handleGenerarCuestionario = () => {
     handleClose();
-    navigate('/admin/chat');
+    navigate("/admin/chat");
   };
   return (
     <Dialog
@@ -226,7 +230,9 @@ export default function Eventos({ open, onClose }) {
                             )}
                           >
                             <option value="">
-                              {isLoadingLugares ? "Cargando lugares..." : "Seleccionar lugar"}
+                              {isLoadingLugares
+                                ? "Cargando lugares..."
+                                : "Seleccionar lugar"}
                             </option>
                             {lugares.map((lugar) => (
                               <option key={lugar.id} value={lugar.id}>
@@ -248,7 +254,9 @@ export default function Eventos({ open, onClose }) {
                         </label>
                         <DateTimePicker
                           value={formData.fechaHora}
-                          onChange={(value) => handleInputChange("fechaHora", value)}
+                          onChange={(value) =>
+                            handleInputChange("fechaHora", value)
+                          }
                           placeholder="Seleccionar fecha y hora del evento"
                         />
                       </div>
@@ -260,7 +268,10 @@ export default function Eventos({ open, onClose }) {
                           type="number"
                           value={formData.cantidadAsistentes}
                           onChange={(e) =>
-                            handleInputChange("cantidadAsistentes", e.target.value)
+                            handleInputChange(
+                              "cantidadAsistentes",
+                              e.target.value
+                            )
                           }
                           placeholder="Ejemplo: 150, 300, 500..."
                           min="1"
@@ -307,6 +318,26 @@ export default function Eventos({ open, onClose }) {
                             "focus:not-data-focus:outline-none data-focus:outline-2 data-focus:-outline-offset-2 data-focus:outline-white/25"
                           )}
                         />
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <div className="px-4 py-2 border-2 rounded-2xl bg-white dark:bg-[#23272f] border-[#bcd6e4]">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!!formData.requeridos}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                requeridos: e.target.checked, // <-- boolean
+                              }))
+                            }
+                            className="mt-1 w-5 h-5 text-casal border-gray-300 rounded focus:ring-casal"
+                          />
+                          <span className="text-sm/6 text-casal italic dark:text-gray-300">
+                            ¿Requiere datos del tutor o responsable?
+                          </span>
+                        </label>
                       </div>
                     </div>
                     <div className="">
@@ -375,14 +406,30 @@ export default function Eventos({ open, onClose }) {
                   >
                     {isCreating ? (
                       <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         Guardando...
                       </>
                     ) : (
-                      'Guardar'
+                      "Guardar"
                     )}
                   </button>
                 </div>
