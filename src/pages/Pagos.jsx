@@ -26,7 +26,7 @@ export default function Pagos({ darkMode }) {
     if (!eventoActual?.id) {
       console.warn('⚠️ [cargarDeudas] No hay evento seleccionado');
       setLoading(false);
-      return;
+      return null;
     }
 
     setLoading(true);
@@ -36,12 +36,16 @@ export default function Pagos({ darkMode }) {
     if (resultado.success) {
       console.log('✅ [cargarDeudas] Deudas recibidas:', resultado.data.deudas?.length || 0);
       console.log('✅ [cargarDeudas] Datos:', resultado.data.deudas);
-      setDeudas(resultado.data.deudas || []);
+      const deudasNuevas = resultado.data.deudas || [];
+      setDeudas(deudasNuevas);
+      setLoading(false);
+      console.log('🔄 [cargarDeudas] Carga completada');
+      return deudasNuevas;
     } else {
       console.error("❌ [cargarDeudas] Error al cargar deudas:", resultado.error);
+      setLoading(false);
+      return null;
     }
-    setLoading(false);
-    console.log('🔄 [cargarDeudas] Carga completada');
   }, [eventoActual?.id]);
 
   // Callback para cuando se complete un pago
@@ -218,6 +222,26 @@ export default function Pagos({ darkMode }) {
           setSelectedDeuda(null);
         }}
         deuda={selectedDeuda}
+        onBoletosActualizados={async () => {
+          // Recargar las deudas cuando se actualicen los boletos
+          console.log('🔄 [Pagos] Recargando deudas después de actualizar boletos...');
+          const deudasActualizadas = await cargarDeudas();
+          
+          // Si hay deudas actualizadas y había una deuda seleccionada, actualizar el detalle
+          if (deudasActualizadas && selectedDeuda) {
+            console.log('🔄 [Pagos] Buscando deuda actualizada con ID:', selectedDeuda.deuda_id);
+            const deudaActualizada = deudasActualizadas.find(
+              d => d.deuda_id === selectedDeuda.deuda_id
+            );
+            
+            if (deudaActualizada) {
+              console.log('✅ [Pagos] Deuda actualizada encontrada, refrescando detalle');
+              setSelectedDeuda(deudaActualizada);
+            } else {
+              console.warn('⚠️ [Pagos] No se encontró la deuda actualizada');
+            }
+          }
+        }}
       />
     </div>
   );
