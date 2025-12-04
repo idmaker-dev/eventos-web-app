@@ -158,6 +158,7 @@ export const useEventos = () => {
           estado: "activo",
           costo: datosEvento.costo || "",
           fechas: datosEvento.fechas || [],
+          requiere_tutor: datosEvento.requiere_tutor || false,
         };
 
         const result = await eventService.createEvent(eventoParaCrear);

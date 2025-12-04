@@ -9,6 +9,7 @@ import codigoVerificacionService from "./codigoVerificacionService";
 import layoutService from "./layoutService";
 import layoutEventoService from "./layoutEventoService";
 import asignacionService from "./asignacionService";
+import ticketsService from "./ticketsService";
 
 export {
   httpService,
@@ -21,6 +22,7 @@ export {
   layoutService,
   layoutEventoService,
   asignacionService,
+  ticketsService,
 };
 
 // También exportar como un objeto por conveniencia
@@ -35,6 +37,7 @@ export const services = {
   layout: layoutService,
   layoutEvento: layoutEventoService,
   asignacion: asignacionService,
+  tickets: ticketsService,
 };
 
 export default services;

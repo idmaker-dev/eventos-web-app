@@ -69,7 +69,7 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
             </div>
             <div
               className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-                ticket.estado === "urgente" ? "bg-red-500" : "bg-blue-500"
+                ticket.estado === "cerrado" ? "bg-gray-500" : "bg-blue-500"
               }`}
             ></div>
           </div>
@@ -209,12 +209,12 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                             <td className="py-2 px-2">
                               <span
                                 className={clsx(
-                                  "rounded px-2 py-1 text-xs text-center",
-                                  item.estado === "exitoso"
-                                    ? "text-casal bg-Acapulco/40 dark:text-gray-200 font-semibold"
-                                    : item.estado === "proceso"
-                                    ? "text-yellow-600 bg-yellow-300 font-semibold"
-                                    : "text-white bg-gray-400 font-semibold"
+                                  "rounded px-2 py-1 text-xs text-center capitalize",
+                                  item.estado === "activo"
+                                    ? "text-white bg-blue-600 font-semibold"
+                                    : item.estado === "cerrado"
+                                    ? "text-white bg-gray-500 font-semibold"
+                                    : "text-white bg-blue-600 font-semibold"
                                 )}
                               >
                                 {item.estado}
@@ -273,13 +273,12 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                     <br />
                     <span
                       className={clsx({
-                        "text-white bg-casal": ticket.detalle.estadoDelTicket === "exitoso",
-                        "text-yellow-600": ticket.detalle.estadoDelTicket === "proceso",
-                        "text-gray-500": ticket.detalle.estadoDelTicket === "cancelado",
-                        "rounded px-2 py-1 font-semibold": true,
+                        "text-white bg-blue-600": ticket.estado === "activo",
+                        "text-white bg-gray-500": ticket.estado === "cerrado",
+                        "rounded px-2 py-1 font-semibold capitalize": true,
                       })}
                     >
-                      {ticket.detalle.estadoDelTicket}
+                      {ticket.estado}
                     </span>
                   </div>
                   <div className="text-xs text-casal dark:text-Acapulco leading-5 mt-2">
@@ -553,6 +552,9 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                               <div className="font-bold text-sm text-casal mb-1">
                                 {boleto.codigo}
                               </div>
+                              <span className="text-gray-400">
+                                Menú: {boleto.menu || "No especificado"}
+                                  </span>
                               <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
                                 {boleto.status &&
                                 boleto.retriciones &&
@@ -597,11 +599,11 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                       Información del evento
                     </h4>
                     <div className="text-sm text-gray-700 dark:text-gray-200">
-                      <div className="line-clamp-1">
-                        <p className="font-semibold text-casal">
+                      <div>
+                        <span className="font-semibold text-casal">
                           Nombre de la escuela:
-                        </p>{" "}
-                        {ticket.cliente.institución}
+                        </span>{" "}
+                        <span className="break-words">{ticket.cliente.institución}</span>
                       </div>
                       <div>
                         <span className="font-semibold text-casal">

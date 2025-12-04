@@ -84,7 +84,7 @@ export default function Cuestionario() {
     useState(false);
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
 
-  const tutorRequerido = event?.requerido === true;
+  const tutorRequerido = event?.requiere_tutor;
   // Estados para errores de validación
   const [errores, setErrores] = useState({});
 
@@ -260,14 +260,14 @@ export default function Cuestionario() {
     //   nuevosErrores.escuela = "La escuela o institución es obligatoria";
     if (!boletos || parseInt(boletos) <= 0)
       nuevosErrores.boletos = "La cantidad de boletos es obligatoria";
-   
+
     if (!fechaNacimiento)
       nuevosErrores.fechaNacimiento = "La fecha de nacimiento es obligatoria";
 
     if (tutorRequerido) {
       if (!contactoEmergencia.trim())
-      nuevosErrores.contactoEmergencia =
-        "El contacto de emergencia es obligatorio";
+        nuevosErrores.contactoEmergencia =
+          "El contacto de emergencia es obligatorio";
       // Validar datos del tutor
       if (!nombreTutor.trim())
         nuevosErrores.nombreTutor = "El nombre del tutor es obligatorio";
@@ -313,13 +313,14 @@ export default function Cuestionario() {
       licenciatura: carrera,
       instituto: escuela,
       cantidad_boletos: parseInt(boletos) || 0,
-      contacto_emergencias: contactoEmergencia,
+      // contacto_emergencias: contactoEmergencia,
       fecha_nacimiento: fechaNacimiento,
       tutor: {
         nombre: nombreTutor,
         apellidoPaterno: apellidoPaternoTutor,
         apellidoMaterno: apellidoMaternoTutor,
         correo: correoTutor,
+        numero_contacto: contactoEmergencia,
       },
       // Restricciones comentadas temporalmente
       // restricciones: [
@@ -329,8 +330,10 @@ export default function Cuestionario() {
       //     sin_gluten: restricciones.sinGluten,
       //     alergias_mariscos: restricciones.alergiaMarisco,
       //     otra: otra ? 1 : 0,
+      //     otra: otra ? 1 : 0,
       //   }
       // ]
+      requiere_tutor: tutorRequerido,
     };
 
     try {
@@ -390,9 +393,8 @@ export default function Cuestionario() {
                   className="w-20 h-auto mx-auto"
                 />
                 <h1 className="text-3xl font-semibold mt-4 text-center text-dark-sienna mb-6 text-casal">
-                  {`Cuestionario de Registro ${
-                    event?.instituto || "Instituto Villa Rica"
-                  }`}
+                  {`Cuestionario de Registro ${event?.instituto || "Instituto Villa Rica"
+                    }`}
                 </h1>
                 <h1 className="text-xl font-semibold mt-4 text-center text-gray-800 mb-6 text-grey-800">
                   {event?.nombre_evento ||
@@ -659,7 +661,7 @@ export default function Cuestionario() {
                         <p className="text-red-500 text-sm mt-1">{errores.contactoEmergencia}</p>
                       )}
                     </div> */}
-                    {!tutorRequerido && (
+                    {tutorRequerido && (
                       <div className="mb-3">
                         <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
                           Datos del tutor o responsable
