@@ -1,11 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import { Dialog } from "@headlessui/react";
-import { X, Calendar, DollarSign, FileText, CheckCircle2, Clock, AlertTriangle, Copy, Link } from "lucide-react";
+import { X, Calendar, DollarSign, FileText, CheckCircle2, Clock, AlertTriangle, Copy, Link, Ticket, Plus } from "lucide-react";
 import EnvConfig from "../../utils/config";
 import { useNotifications } from "../../contexts/NotificationContext";
+import ModalAumentarBoletos from "./ModalAumentarBoletos";
 
-const DetalleFacturas = ({ isOpen, onClose, deuda }) => {
+const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
   const { showSuccess, showError } = useNotifications();
+  const [modalBoletosOpen, setModalBoletosOpen] = useState(false);
 
   if (!deuda) return null;
 
@@ -88,6 +90,31 @@ const DetalleFacturas = ({ isOpen, onClose, deuda }) => {
 
           {/* Resumen Financiero */}
           <div className="p-6 bg-gradient-to-br from-casal/5 to-casal/10 dark:from-casal/10 dark:to-casal/20">
+            {/* Información de Boletos */}
+            <div className="mb-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-casal/10 dark:bg-casal/20 rounded-lg p-2.5">
+                    <Ticket className="w-5 h-5 text-casal dark:text-Acapulco" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Cantidad de boletos</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {deuda.asistente.cantidad_boletos}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setModalBoletosOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-casal text-white rounded-lg hover:bg-casal/90 transition-colors font-medium text-sm shadow-sm"
+                  title="Aumentar boletos"
+                >
+                  <Plus className="w-4 h-4" />
+                  Aumentar boletos
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total</p>
@@ -242,6 +269,19 @@ const DetalleFacturas = ({ isOpen, onClose, deuda }) => {
           </div>
         </Dialog.Panel>
       </div>
+
+      {/* Modal de Aumentar Boletos */}
+      <ModalAumentarBoletos
+        isOpen={modalBoletosOpen}
+        onClose={() => setModalBoletosOpen(false)}
+        deuda={deuda}
+        onBoletosActualizados={() => {
+          setModalBoletosOpen(false);
+          if (onBoletosActualizados) {
+            onBoletosActualizados();
+          }
+        }}
+      />
     </Dialog>
   );
 };
