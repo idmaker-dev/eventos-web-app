@@ -5,6 +5,7 @@ import CrearCuestionarioPages from "../components/Comunicacion/CrearCuestionario
 import Tickets from "../components/Comunicacion/Tickets";
 import React from "react";
 import { useOutletContext } from "react-router-dom";
+import Boletos from "../components/Boletos/Boleto";
 
 export default function Comunicacion() {
     return (
@@ -78,6 +79,15 @@ export default function Comunicacion() {
                                     : "hover:bg-black/15 text-grey dark:text-gray-600 bg-porcelain"
                             )
                         }>Enlace cuestionario</Tab>
+                        <Tab className={({ selected }) =>
+                            clsx(
+                                "rounded-full px-5 py-1 text-sm/6 font-semibold",
+                                "focus:outline-none transition",
+                                selected
+                                    ? "bg-casal text-white shadow dark:bg-casal"
+                                    : "hover:bg-black/15 text-grey dark:text-gray-600 bg-porcelain"
+                            )
+                        }>Boletos</Tab>
                     </TabList>
                         <TabPanels className="mt-6">
                             <TabPanel className={clsx("rounded-xl border-2")}>
@@ -95,6 +105,9 @@ export default function Comunicacion() {
                             </TabPanel> */}
                             <TabPanel className={clsx("rounded-xl border-2")}>
                                  <CrearCuestionarioPages />
+                            </TabPanel>
+                            <TabPanel className={clsx("rounded-xl border-2")}>
+                                <Boletos />
                             </TabPanel>
                         </TabPanels>
                 </TabGroup>
