@@ -33,7 +33,7 @@ export default function Eventos({ open, onClose }) {
     responsable: "",
     costo: "",
     fechas: [],
-    requeridos: false,
+    requiere_tutor: false,
   });
 
   // Hook de eventos desde el contexto (incluye cargarEventos)
@@ -85,7 +85,6 @@ export default function Eventos({ open, onClose }) {
     formData.fechas = selectedDates.map(
       (date) => date.toISOString().split("T")[0]
     ); // Convertir a formato YYYY-MM-DD
-    formData.requeridos = !!formData.requeridos; 
     const resultado = await crearEvento(formData);
 
     if (resultado.success) {
@@ -325,11 +324,11 @@ export default function Eventos({ open, onClose }) {
                         <label className="flex items-center gap-3 cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={!!formData.requeridos}
+                            checked={!!formData.requiere_tutor}
                             onChange={(e) =>
                               setFormData((prev) => ({
                                 ...prev,
-                                requeridos: e.target.checked, // <-- boolean
+                                requiere_tutor: e.target.checked, // <-- boolean
                               }))
                             }
                             className="mt-1 w-5 h-5 text-casal border-gray-300 rounded focus:ring-casal"
@@ -371,20 +370,20 @@ export default function Eventos({ open, onClose }) {
                         <div className="mt-2 text-sm text-gray-700 dark:text-gray-200">
                           {selectedDates && selectedDates.length > 0
                             ? selectedDates.map((date, idx) =>
-                                date ? (
-                                  <div
-                                    key={idx}
-                                    className=" w-full font-semibold mb-1 py-1 px-5 bg-[#246370]/80 dark:bg-[#2a9d8f] text-white rounded-lg w-fit"
-                                  >
-                                    fecha:{" "}
-                                    {date.toLocaleDateString("es-MX", {
-                                      day: "2-digit",
-                                      month: "2-digit",
-                                      year: "numeric",
-                                    })}
-                                  </div>
-                                ) : null
-                              )
+                              date ? (
+                                <div
+                                  key={idx}
+                                  className=" w-full font-semibold mb-1 py-1 px-5 bg-[#246370]/80 dark:bg-[#2a9d8f] text-white rounded-lg w-fit"
+                                >
+                                  fecha:{" "}
+                                  {date.toLocaleDateString("es-MX", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  })}
+                                </div>
+                              ) : null
+                            )
                             : "No hay fechas seleccionadas"}
                         </div>
                       </div>
