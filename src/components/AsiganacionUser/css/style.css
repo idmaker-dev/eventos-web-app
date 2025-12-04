@@ -16,13 +16,35 @@
   transform: rotateY(180deg);
 }
 
+/* Por defecto (mobile/tablet): solo muestra la cara activa */
 .flip-card-front,
 .flip-card-back {
-  position: absolute;
   width: 100%;
   height: 100%;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  display: none;
+}
+
+.flip-card.mostrar-frontal .flip-card-front {
+  display: block;
+}
+.flip-card.mostrar-trasera .flip-card-back {
+  display: block;
+}
+
+/* SOLO en desktop, ambas caras siempre visibles y superpuestas */
+@media (min-width: 1024px) {
+  .flip-card-front,
+  .flip-card-back {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4,0.2,0.2,1);
+  }
 }
 
 .flip-card-back {
@@ -32,4 +54,19 @@
 /* Asegurar que el contenedor mantenga las dimensiones */
 .flip-container {
   min-height: 500px;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 1100px;
+  height: 90vh;
+  max-height: 90vh;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.panel-scroll {
+  overflow-y: auto;
+  height: 100%;
 }

@@ -1,5 +1,16 @@
 import { Button, Dialog, DialogPanel } from "@headlessui/react";
-import { Clock, Calendar, UserCircle, ChevronLeft, ChevronRight, Save, X, Minus, Plus, RotateCcw } from "lucide-react";
+import {
+  Clock,
+  Calendar,
+  UserCircle,
+  ChevronLeft,
+  ChevronRight,
+  Save,
+  X,
+  Minus,
+  Plus,
+  RotateCcw,
+} from "lucide-react";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useDisponibilidadMesas } from "../../hooks/useDisponibilidadMesas";
 import { useSignalRInvitado } from "../../hooks/useSignalRInvitado";
@@ -7,21 +18,27 @@ import Mesa from "../Distribuccion/Mesa.jsx";
 import MesaRectangular from "../Distribuccion/MesaRectangular.jsx";
 import "./css/style.css";
 
-export default function ModalEspera({ 
-  open, 
-  usuario, 
+export default function ModalEspera({
+  open,
+  usuario,
   horario,
   eventoId,
   invitadoId,
   configuracionPrevia,
-  onGuardarConfiguracion 
+  onGuardarConfiguracion,
 }) {
   const [tiempoRestante, setTiempoRestante] = useState(0);
   const [horaActual, setHoraActual] = useState(new Date());
   const [mostrarAjustes, setMostrarAjustes] = useState(false);
   const [configuracionAsientos, setConfiguracionAsientos] = useState({
     boletosDisponibles: usuario?.cantidad_personas || usuario?.cantidad || 1,
-    personas: [{ id: 1, nombre: usuario?.nombre_completo || usuario?.nombre || "", activa: true }],
+    personas: [
+      {
+        id: 1,
+        nombre: usuario?.nombre_completo || usuario?.nombre || "",
+        activa: true,
+      },
+    ],
     restriccionesAlimentarias: {
       vegetariano: false,
       vegano: false,
@@ -31,17 +48,17 @@ export default function ModalEspera({
     tipoMenu: "normal",
     restriccionEspecifica: "",
   });
-  
+
   // Estados para configuración y SignalR
   const [configuracionGuardada, setConfiguracionGuardada] = useState(false);
   const [guardandoConfiguracion, setGuardandoConfiguracion] = useState(false);
-  
+
   // Estados para el canvas de mesas
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
-  
+
   // Hook para obtener disponibilidad de mesas
   const {
     elementos: elementosConDisponibilidad,
@@ -51,7 +68,7 @@ export default function ModalEspera({
     disponibilidad,
     eventoInfo,
   } = useDisponibilidadMesas(eventoId, true);
-  
+
   // Debug: Ver estructura de datos
   useEffect(() => {
     if (disponibilidad) {
@@ -60,7 +77,7 @@ export default function ModalEspera({
       console.log("📈 Estadísticas:", estadisticas);
     }
   }, [disponibilidad, elementosConDisponibilidad, estadisticas]);
-  
+
   // Función para mostrar notificaciones
   const mostrarNotificacion = useCallback((mensaje, tipo) => {
     const colores = {
@@ -82,38 +99,45 @@ export default function ModalEspera({
       }
     }, 5000);
   }, []);
-  
+
   // Callback para actualizaciones de SignalR (selección y bloqueo)
-  const handleMesaCambiada = useCallback(async (notificacion) => {
-    console.log("🔔 [ModalEspera] Notificación recibida:", notificacion);
-    
-    // Mostrar notificación al usuario según el tipo
-    if (notificacion.tipo === 'mesa_bloqueada') {
-      const esBloqueada = notificacion.data.bloqueada;
-      mostrarNotificacion(
-        notificacion.mensaje,
-        esBloqueada ? 'warning' : 'info'
-      );
-    } else if (notificacion.tipo === 'mesa_seleccionada') {
-      // Solo refrescar silenciosamente para selecciones
-      console.log("🔄 [ModalEspera] Refrescando disponibilidad por cambio en mesa");
-    }
-    
-    // Refrescar disponibilidad para actualizar el layout
-    await refrescarDisponibilidad();
-  }, [refrescarDisponibilidad, mostrarNotificacion]);
-  
+  const handleMesaCambiada = useCallback(
+    async (notificacion) => {
+      console.log("🔔 [ModalEspera] Notificación recibida:", notificacion);
+
+      // Mostrar notificación al usuario según el tipo
+      if (notificacion.tipo === "mesa_bloqueada") {
+        const esBloqueada = notificacion.data.bloqueada;
+        mostrarNotificacion(
+          notificacion.mensaje,
+          esBloqueada ? "warning" : "info"
+        );
+      } else if (notificacion.tipo === "mesa_seleccionada") {
+        // Solo refrescar silenciosamente para selecciones
+        console.log(
+          "🔄 [ModalEspera] Refrescando disponibilidad por cambio en mesa"
+        );
+      }
+
+      // Refrescar disponibilidad para actualizar el layout
+      await refrescarDisponibilidad();
+    },
+    [refrescarDisponibilidad, mostrarNotificacion]
+  );
+
   // Hook de SignalR para invitados (maneja selección y bloqueo de mesas)
   const { conectado } = useSignalRInvitado(handleMesaCambiada);
-  
+
   // Cargar disponibilidad inicial cuando el modal se abre
   useEffect(() => {
     if (open && eventoId) {
-      console.log("🔄 Cargando disponibilidad inicial al abrir modal de espera");
+      console.log(
+        "🔄 Cargando disponibilidad inicial al abrir modal de espera"
+      );
       refrescarDisponibilidad();
     }
   }, [open, eventoId, refrescarDisponibilidad]);
-  
+
   // Cargar configuración previa si existe
   useEffect(() => {
     if (configuracionPrevia) {
@@ -160,7 +184,7 @@ export default function ModalEspera({
     console.log("Cambiando a ajustes:", !mostrarAjustes);
     setMostrarAjustes(!mostrarAjustes);
   };
-  
+
   // Funciones para guardar/cancelar configuración
   const handleGuardarConfiguracion = useCallback(async () => {
     setGuardandoConfiguracion(true);
@@ -168,18 +192,21 @@ export default function ModalEspera({
       // Guardar en localStorage
       const config = {
         ...configuracionAsientos,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      localStorage.setItem(`config-asientos-${invitadoId}`, JSON.stringify(config));
+      localStorage.setItem(
+        `config-asientos-${invitadoId}`,
+        JSON.stringify(config)
+      );
       setConfiguracionGuardada(true);
-      
+
       // Notificar al componente padre si existe callback
       if (onGuardarConfiguracion) {
         onGuardarConfiguracion(config);
       }
-      
+
       console.log("Configuración guardada en memoria:", config);
-      
+
       // Volver a la vista de espera
       setMostrarAjustes(false);
     } catch (error) {
@@ -188,15 +215,22 @@ export default function ModalEspera({
       setGuardandoConfiguracion(false);
     }
   }, [configuracionAsientos, invitadoId, onGuardarConfiguracion]);
-  
+
   const handleCancelarConfiguracion = useCallback(() => {
     // Restaurar configuración previa o valores por defecto
     if (configuracionPrevia) {
       setConfiguracionAsientos(configuracionPrevia);
     } else {
       setConfiguracionAsientos({
-        boletosDisponibles: usuario?.cantidad_personas || usuario?.cantidad || 1,
-        personas: [{ id: 1, nombre: usuario?.nombre_completo || usuario?.nombre || "", activa: true }],
+        boletosDisponibles:
+          usuario?.cantidad_personas || usuario?.cantidad || 1,
+        personas: [
+          {
+            id: 1,
+            nombre: usuario?.nombre_completo || usuario?.nombre || "",
+            activa: true,
+          },
+        ],
         restriccionesAlimentarias: {
           vegetariano: false,
           vegano: false,
@@ -209,16 +243,16 @@ export default function ModalEspera({
     }
     setMostrarAjustes(false);
   }, [configuracionPrevia, usuario]);
-  
+
   // Funciones de zoom para el canvas
   const zoomIn = useCallback(() => {
-    setZoom(prev => Math.min(prev + 0.1, 2));
+    setZoom((prev) => Math.min(prev + 0.1, 2));
   }, []);
-  
+
   const zoomOut = useCallback(() => {
-    setZoom(prev => Math.max(prev - 0.1, 0.5));
+    setZoom((prev) => Math.max(prev - 0.1, 0.5));
   }, []);
-  
+
   const resetZoom = useCallback(() => {
     setZoom(1);
     setOffset({ x: 0, y: 0 });
@@ -262,20 +296,20 @@ export default function ModalEspera({
   const renderElemento = (element) => {
     // Obtener disponibilidad para mesas
     const disponibilidad = element.disponibilidad;
-    const invitadosAsignados = disponibilidad 
-      ? disponibilidad.asientos_ocupados 
+    const invitadosAsignados = disponibilidad
+      ? disponibilidad.asientos_ocupados
       : element.invitados || 0;
-    
+
     // Verificar si la mesa está bloqueada
-    const estaBloqueada = element.disponibilidad?.esta_bloqueada || 
-                          element.disponibilidad?.bloqueada || 
-                          element.bloqueada;
-    const motivoBloqueo = element.disponibilidad?.motivo_bloqueo || 
-                          element.motivo_bloqueo || 
-                          '';
-    
+    const estaBloqueada =
+      element.disponibilidad?.esta_bloqueada ||
+      element.disponibilidad?.bloqueada ||
+      element.bloqueada;
+    const motivoBloqueo =
+      element.disponibilidad?.motivo_bloqueo || element.motivo_bloqueo || "";
+
     // Renderizar mesas
-    if (element.type === 'mesa') {
+    if (element.type === "mesa") {
       return (
         <div className="relative">
           <Mesa
@@ -288,9 +322,11 @@ export default function ModalEspera({
           />
           {/* Overlay para mesa bloqueada */}
           {estaBloqueada && (
-            <div 
+            <div
               className="absolute inset-0 bg-red-500/30 backdrop-blur-[1px] rounded-full flex items-center justify-center pointer-events-none border-2 border-red-500 z-20"
-              title={motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : 'Mesa bloqueada'}
+              title={
+                motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : "Mesa bloqueada"
+              }
             >
               <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
                 🔒 BLOQUEADA
@@ -300,8 +336,8 @@ export default function ModalEspera({
         </div>
       );
     }
-    
-    if (element.type === 'mesaRectangular') {
+
+    if (element.type === "mesaRectangular") {
       return (
         <div className="relative">
           <MesaRectangular
@@ -314,9 +350,11 @@ export default function ModalEspera({
           />
           {/* Overlay para mesa bloqueada */}
           {estaBloqueada && (
-            <div 
+            <div
               className="absolute inset-0 bg-red-500/30 backdrop-blur-[1px] rounded-lg flex items-center justify-center pointer-events-none border-2 border-red-500 z-20"
-              title={motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : 'Mesa bloqueada'}
+              title={
+                motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : "Mesa bloqueada"
+              }
             >
               <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
                 🔒 BLOQUEADA
@@ -326,16 +364,16 @@ export default function ModalEspera({
         </div>
       );
     }
-    
+
     // Aplicar transformaciones para elementos decorativos
     const rotation = element.rotation || 0;
     const scale = element.scale || 1;
     const scaleX = element.scaleX || scale;
     const scaleY = element.scaleY || scale;
-    
-    const transformStyle = { 
+
+    const transformStyle = {
       transform: `rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`,
-      transformOrigin: 'center center'
+      transformOrigin: "center center",
     };
 
     // Renderizar elementos decorativos
@@ -401,11 +439,7 @@ export default function ModalEspera({
       }
     })();
 
-    return (
-      <div style={transformStyle}>
-        {elementContent}
-      </div>
-    );
+    return <div style={transformStyle}>{elementContent}</div>;
   };
 
   return (
@@ -413,15 +447,22 @@ export default function ModalEspera({
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
 
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <DialogPanel className="w-full max-w-[87vw] bg-white rounded-2xl shadow-2xl overflow-hidden">
-          <div className="flex flex-col lg:flex-row w-full min-h-[600px]">
+        <DialogPanel className="w-full max-w-6xl h-[90vh] max-h-[90vh] bg-white rounded-2xl shadow-2xl flex flex-col scroll-auto">
+          <div className="flex flex-col lg:flex-row w-full h-full min-h-[600px]">
             {/* Panel izquierdo con flip */}
-            <div className="w-full lg:w-96 rounded-2xl flex flex-col relative overflow-hidden">
-              <div className="flip-container flex-1">
-                <div className={`flip-card ${mostrarAjustes ? "flipped" : ""}`}>
+            <div className="w-full lg:w-96 h-full flex flex-col relative bg-white rounded-2xl">
+              <div className="flip-container flex-1 h-full">
+                <div
+                  className={
+                    `flip-card h-full ` +
+                    (mostrarAjustes
+                      ? "flipped mostrar-trasera"
+                      : "mostrar-frontal")
+                  }
+                >
                   {/* Cara frontal - Vista de espera */}
-                  <div className="flip-card-front">
-                    <div className="h-full overflow-y-auto bg-white rounded-b-2xl">
+                  <div className="flip-card-front h-full overflow-y-auto">
+                    <div className=" bg-white rounded-2xl">
                       <div className="bg-gradient-to-br from-casal to-casal/90 text-white p-6 flex flex-col justify-center rounded-t-2xl">
                         <div className="text-center mb-8">
                           <div className="w-20 h-20 bg-[#aaf7bf] rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
@@ -503,7 +544,8 @@ export default function ModalEspera({
                               Disponible
                             </div>
                             <div className="text-gray-400 font-normal">
-                              ({estadisticas?.asientos_disponibles || 0} asientos)
+                              ({estadisticas?.asientos_disponibles || 0}{" "}
+                              asientos)
                             </div>
                           </div>
                           <div className="">
@@ -521,7 +563,8 @@ export default function ModalEspera({
                                 Mesas Ocupadas
                               </p>
                               <div className="text-lg font-semibold text-casal">
-                                {estadisticas?.mesas_llenas || 0}/{estadisticas?.total_mesas || 0}
+                                {estadisticas?.mesas_llenas || 0}/
+                                {estadisticas?.total_mesas || 0}
                               </div>
                             </div>
                             <div>
@@ -553,7 +596,7 @@ export default function ModalEspera({
                   </div>
 
                   {/* Cara trasera - Vista de ajustes */}
-                  <div className="flip-card-back">
+                  <div className="flip-card-back h-full overflow-y-auto">
                     <div className="bg-white rounded-t-2xl h-full p-4 overflow-y-auto">
                       {/* Header */}
                       <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
@@ -587,19 +630,25 @@ export default function ModalEspera({
                       <div className="mb-4">
                         <div className="space-y-2 mb-3 bg-slate-100 p-2 rounded-lg">
                           <div className="flex justify-between items-center mb-2">
-                           <div className="text-sm font-medium text-gray-700">
-                             Configuración persona{" "}
-                            {configuracionAsientos.personas.length} de{" "}
-                            {configuracionAsientos.boletosDisponibles}
-                           </div>
-                           <div className="flex gap-2 items-center">
-                             <Button onClick={agregarPersona} className="text-xs text-casal font-medium underline hover:text-casal/80 bg-gray-300 rounded">
+                            <div className="text-sm font-medium text-gray-700">
+                              Configuración persona{" "}
+                              {configuracionAsientos.personas.length} de{" "}
+                              {configuracionAsientos.boletosDisponibles}
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <Button
+                                onClick={agregarPersona}
+                                className="text-xs text-casal font-medium underline hover:text-casal/80 bg-gray-300 rounded"
+                              >
                                 <ChevronRight className="w-4 h-4 inline-block rotate-180" />
                               </Button>
-                              <Button onClick={agregarPersona} className="text-xs text-casal font-medium underline hover:text-casal/80 bg-gray-300 rounded">
+                              <Button
+                                onClick={agregarPersona}
+                                className="text-xs text-casal font-medium underline hover:text-casal/80 bg-gray-300 rounded"
+                              >
                                 <ChevronLeft className="w-4 h-4 inline-block rotate-180" />
                               </Button>
-                           </div>
+                            </div>
                           </div>
                           <div className="flex gap-1 w-full overflow-x-auto pb-2">
                             {Array.from({ length: 12 }).map((_, i) => (
@@ -788,15 +837,15 @@ export default function ModalEspera({
 
                       {/* Botones de guardar y cancelar */}
                       <div className="flex gap-2">
-                        <Button 
+                        <Button
                           onClick={handleGuardarConfiguracion}
                           disabled={guardandoConfiguracion}
                           className="flex-1 bg-casal text-white font-medium py-2 rounded-lg hover:bg-casal/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                           <Save className="w-4 h-4" />
-                          {guardandoConfiguracion ? 'Guardando...' : 'Guardar'}
+                          {guardandoConfiguracion ? "Guardando..." : "Guardar"}
                         </Button>
-                        <Button 
+                        <Button
                           onClick={handleCancelarConfiguracion}
                           disabled={guardandoConfiguracion}
                           className="flex-1 bg-gray-200 text-gray-700 font-medium py-2 rounded-lg hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -819,7 +868,7 @@ export default function ModalEspera({
             </div>
 
             {/* Panel derecho - Mapa de asientos */}
-            <div className="flex-1 p-4 lg:p-6 bg-gray-50">
+            <div className="flex-1 p-4 lg:p-6 bg-gray-50 h-full overflow-y-auto hidden lg:block">
               <div className="h-full flex flex-col">
                 {/* Header del mapa */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 pb-4 border-b border-gray-200">
@@ -837,7 +886,8 @@ export default function ModalEspera({
                     </div>
                     <div className="flex w-full justify-between items-center">
                       <div className="text-xs text-gray-500 mt-2 sm:mt-0">
-                        {eventoInfo?.lugar_nombre || "Plano del salón"} - {eventoInfo?.nombre_layout || "Layout por defecto"}
+                        {eventoInfo?.lugar_nombre || "Plano del salón"} -{" "}
+                        {eventoInfo?.nombre_layout || "Layout por defecto"}
                       </div>
                       <div className="text-xs text-gray-500 mt-2 sm:mt-0">
                         Evento: {eventoInfo?.nombre_evento || "Graduación"}
@@ -878,7 +928,9 @@ export default function ModalEspera({
                         {conectado ? (
                           <>
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                            <span className="text-green-600 font-medium">Conectado</span>
+                            <span className="text-green-600 font-medium">
+                              Conectado
+                            </span>
                           </>
                         ) : (
                           <>
@@ -888,26 +940,29 @@ export default function ModalEspera({
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Canvas de mesas */}
-                    <div 
+                    <div
                       ref={containerRef}
                       className="aspect-[4/3] bg-gray-100 rounded-lg relative overflow-auto"
-                      style={{ minHeight: '500px' }}
+                      style={{ minHeight: "500px" }}
                     >
                       {loadingMesas ? (
                         <div className="flex flex-col items-center gap-2 absolute inset-0 justify-center">
                           <div className="w-8 h-8 border-4 border-casal/30 border-t-casal rounded-full animate-spin"></div>
-                          <p className="text-sm text-gray-500">Cargando mesas...</p>
+                          <p className="text-sm text-gray-500">
+                            Cargando mesas...
+                          </p>
                         </div>
-                      ) : elementosConDisponibilidad && elementosConDisponibilidad.length > 0 ? (
-                        <div 
+                      ) : elementosConDisponibilidad &&
+                        elementosConDisponibilidad.length > 0 ? (
+                        <div
                           className="relative bg-gray-50"
                           style={{
-                            width: '1400px',
-                            height: '800px',
-                            minWidth: '1400px',
-                            minHeight: '800px'
+                            width: "1400px",
+                            height: "800px",
+                            minWidth: "1400px",
+                            minHeight: "800px",
                           }}
                         >
                           <div
@@ -915,19 +970,19 @@ export default function ModalEspera({
                             className="absolute left-0 top-0 origin-top-left"
                             style={{
                               transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-                              transformOrigin: '0 0',
-                              width: '1200px',
-                              height: '800px'
+                              transformOrigin: "0 0",
+                              width: "1200px",
+                              height: "800px",
                             }}
                           >
                             {elementosConDisponibilidad.map((element) => (
                               <div
                                 key={element.id}
                                 style={{
-                                  position: 'absolute',
+                                  position: "absolute",
                                   left: `${element.position?.x || 0}px`,
                                   top: `${element.position?.y || 0}px`,
-                                  userSelect: 'none'
+                                  userSelect: "none",
                                 }}
                               >
                                 {renderElemento(element)}
@@ -937,7 +992,9 @@ export default function ModalEspera({
                         </div>
                       ) : (
                         <div className="flex items-center justify-center absolute inset-0">
-                          <p className="text-lg text-gray-400">No hay mesas disponibles</p>
+                          <p className="text-lg text-gray-400">
+                            No hay mesas disponibles
+                          </p>
                         </div>
                       )}
                     </div>

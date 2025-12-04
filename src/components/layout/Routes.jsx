@@ -15,7 +15,7 @@ import PagoTarjeta from "../../pages/PagoTarjeta"
 import SignalRTest from "../../pages/SignalRTest"
 import HomeLugar from "../../pages/HomeLugar" // nueva vista para rol lugar
 import LectorQRPage from "../../pages/LectorQRPage" // vista para escaneo de QR
-import Clientes from "../../pages/Clientes"
+
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
 import Dashboard from "../../pages/Dashboard"
@@ -25,6 +25,8 @@ import Usuarios from "../../pages/Usuarios"
 import Asignacion from "../../pages/Asignacion"
 import AsignacionUser from "../../pages/AsignacionUser"
 import ConfiguracionLayout from "../../pages/ConfiguracionLayout"
+import Clientes from "../../pages/Clientes"
+import Campanas from "../../pages/Campanas"
 // import Comunicacion from "../../pages/Comunicacion"
 
 /* Componentes de protección de rutas */
@@ -85,6 +87,7 @@ export default function AppRoutes() {
         <Route path="signalr-test" element={<SignalRTest />} />
         <Route path="asignacion" element={<Asignacion />} />
         <Route path="clientes" element={<Clientes />} />
+        <Route path="campanas" element={<Campanas />} />
       </Route>
       {/* Ruta pública - Accesible sin autenticación */}
       <Route path="/Cuestionario/:eventId" element={<Cuestionario />} />

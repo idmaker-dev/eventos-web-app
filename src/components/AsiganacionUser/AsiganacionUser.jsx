@@ -20,6 +20,9 @@ import ModalRestricciones from "../Distribuccion/ModalRestricciones.jsx";
 import ModalMesaDetalles from "../Distribuccion/ModalMesaDetalles.jsx";
 import { useDisponibilidadMesas } from "../../hooks/useDisponibilidadMesas";
 import { useSignalRUser } from "../../hooks/useSignalRUser";
+import MesaSilla from "./../../assets/recursos/MESAS-SILLA.svg";
+import IconPersona from "./../../assets/recursos/ICONOPERSONA.svg";
+import IconGrupo from "./../../assets/recursos/ICONOPERSONAS.svg";
 
 export default function AsignacionUser({
   // Props estándar
@@ -28,7 +31,7 @@ export default function AsignacionUser({
   invitadoId,
   eventoId,
   onCambioEstado,
-  
+
   // Props de sistema de turnos (opcionales)
   usandoSistemaTurnos = false,
   turno = null,
@@ -49,8 +52,7 @@ export default function AsignacionUser({
   const ZOOM_STEP = 0.1;
   const ZOOM_MIN = 0.1;
   const ZOOM_MAX = 4;
-  const TIEMPO_LIMITE =
-    (turno?.duracion_minutos || 5) * 60 * 1000;
+  const TIEMPO_LIMITE = (turno?.duracion_minutos || 5) * 60 * 1000;
 
   /* -----------------------
     Estados y refs
@@ -79,7 +81,7 @@ export default function AsignacionUser({
   const {
     elementos: elementosConDisponibilidad,
     isLoading: loadingDisponibilidad, // eslint-disable-line no-unused-vars
-    refrescar: refrescarDisponibilidad
+    refrescar: refrescarDisponibilidad,
   } = useDisponibilidadMesas(eventoId, true);
 
   // Layout del salón - SIEMPRE desde el endpoint de disponibilidad
@@ -110,36 +112,47 @@ export default function AsignacionUser({
   }, []);
 
   // 📡 Callback para notificaciones de SignalR (cambios en mesas)
-  const handleMesaCambiada = useCallback((notificacion) => {
-    console.log('🔔 [AsignacionUser] Notificación recibida:', notificacion);
-    
-    // Mostrar notificación al usuario
-    if (notificacion.tipo === 'mesa_bloqueada') {
-      const esBloqueada = notificacion.data.bloqueada;
-      mostrarNotificacion(
-        notificacion.mensaje,
-        esBloqueada ? 'warning' : 'info'
-      );
-    } else if (notificacion.tipo === 'mesa_seleccionada') {
-      // Solo refrescar silenciosamente, no mostrar notificación
-      console.log('🔄 [AsignacionUser] Refrescando disponibilidad por cambio en mesa');
-    }
-    
-    // Refrescar disponibilidad para actualizar el layout
-    if (refrescarDisponibilidad) {
-      refrescarDisponibilidad();
-    }
-  }, [mostrarNotificacion, refrescarDisponibilidad]);
+  const handleMesaCambiada = useCallback(
+    (notificacion) => {
+      console.log("🔔 [AsignacionUser] Notificación recibida:", notificacion);
+
+      // Mostrar notificación al usuario
+      if (notificacion.tipo === "mesa_bloqueada") {
+        const esBloqueada = notificacion.data.bloqueada;
+        mostrarNotificacion(
+          notificacion.mensaje,
+          esBloqueada ? "warning" : "info"
+        );
+      } else if (notificacion.tipo === "mesa_seleccionada") {
+        // Solo refrescar silenciosamente, no mostrar notificación
+        console.log(
+          "🔄 [AsignacionUser] Refrescando disponibilidad por cambio en mesa"
+        );
+      }
+
+      // Refrescar disponibilidad para actualizar el layout
+      if (refrescarDisponibilidad) {
+        refrescarDisponibilidad();
+      }
+    },
+    [mostrarNotificacion, refrescarDisponibilidad]
+  );
 
   // 🔌 Integrar SignalR para notificaciones en tiempo real
   // IMPORTANTE: Usamos invitadoId para la conexión, igual que en el Wrapper
-  const { conectado: signalRConectado } = useSignalRUser(handleMesaCambiada, invitadoId);
-  
+  const { conectado: signalRConectado } = useSignalRUser(
+    handleMesaCambiada,
+    invitadoId
+  );
+
   // Log de estado de conexión SignalR
   useEffect(() => {
-    console.log('📡 [AsignacionUser] Estado SignalR:', signalRConectado ? 'CONECTADO ✅' : 'DESCONECTADO ❌');
-    console.log('📡 [AsignacionUser] InvitadoId:', invitadoId);
-    console.log('📡 [AsignacionUser] EventoId:', eventoId);
+    console.log(
+      "📡 [AsignacionUser] Estado SignalR:",
+      signalRConectado ? "CONECTADO ✅" : "DESCONECTADO ❌"
+    );
+    console.log("📡 [AsignacionUser] InvitadoId:", invitadoId);
+    console.log("📡 [AsignacionUser] EventoId:", eventoId);
   }, [signalRConectado, invitadoId, eventoId]);
 
   // Zoom y controles
@@ -187,7 +200,7 @@ export default function AsignacionUser({
         }
 
         setAsignacionActual(asignacion);
-        
+
         // Los datos de la mesa ya vienen actualizados del backend con disponibilidad
         // No necesitamos manipular el estado local
       } catch (error) {
@@ -204,7 +217,7 @@ export default function AsignacionUser({
     if (temporizadorActivo && !asignacionActual && !usandoSistemaTurnos) {
       // Resetear la notificación de 2 minutos al iniciar el temporizador
       notificacionDosMinutosRef.current = false;
-      
+
       const inicioTemporizador = Date.now();
       const finTemporizador = inicioTemporizador + TIEMPO_LIMITE;
 
@@ -221,7 +234,11 @@ export default function AsignacionUser({
 
         // ⏰ NOTIFICACIÓN: Cuando queden 2 minutos (120000 ms)
         const dosMinutosEnMs = 2 * 60 * 1000;
-        if (tiempoRestante <= dosMinutosEnMs && tiempoRestante > dosMinutosEnMs - 1000 && !notificacionDosMinutosRef.current) {
+        if (
+          tiempoRestante <= dosMinutosEnMs &&
+          tiempoRestante > dosMinutosEnMs - 1000 &&
+          !notificacionDosMinutosRef.current
+        ) {
           notificacionDosMinutosRef.current = true;
           mostrarNotificacion(
             "⏰ ¡Atención!\n\nQuedan solo 2 minutos para completar tu selección.\n\nApresúrate para no perder tu turno.",
@@ -252,7 +269,14 @@ export default function AsignacionUser({
         clearInterval(intervalRef.current);
       }
     };
-  }, [temporizadorActivo, asignacionActual, onCambioEstado, TIEMPO_LIMITE, usandoSistemaTurnos, mostrarNotificacion]);
+  }, [
+    temporizadorActivo,
+    asignacionActual,
+    onCambioEstado,
+    TIEMPO_LIMITE,
+    usandoSistemaTurnos,
+    mostrarNotificacion,
+  ]);
 
   const formatearTiempo = (milisegundos) => {
     if (!milisegundos) return "00:00";
@@ -350,36 +374,54 @@ export default function AsignacionUser({
   // Función auxiliar para formatear restricciones desde la pre-configuración
   const formatearRestricciones = (restriccionesObj) => {
     if (!restriccionesObj) return "Ninguna";
-    
+
     const restriccionesActivas = [];
     if (restriccionesObj.vegetariano) restriccionesActivas.push("Vegetariano");
     if (restriccionesObj.vegano) restriccionesActivas.push("Vegano");
     if (restriccionesObj.sinGluten) restriccionesActivas.push("Sin gluten");
-    if (restriccionesObj.alergiaMarisco) restriccionesActivas.push("Alergia a mariscos");
-    
-    return restriccionesActivas.length > 0 ? restriccionesActivas.join(", ") : "Ninguna";
+    if (restriccionesObj.alergiaMarisco)
+      restriccionesActivas.push("Alergia a mariscos");
+
+    return restriccionesActivas.length > 0
+      ? restriccionesActivas.join(", ")
+      : "Ninguna";
   };
 
   const seleccionarMesa = (numeroMesa) => {
     // ✅ VALIDACIONES DE TURNO (si está usando sistema de turnos)
     if (usandoSistemaTurnos) {
       // Validar que el turno esté activo
-      if (estadoTurno !== 'activo') {
-        if (estadoTurno === 'espera') {
-          mostrarNotificacion("Tu turno aún no ha comenzado. Espera a que llegue tu horario asignado.", "warning");
-        } else if (estadoTurno === 'expirado') {
-          mostrarNotificacion("Tu turno ha expirado. Ya no puedes realizar cambios.", "error");
-        } else if (estadoTurno === 'completado') {
-          mostrarNotificacion("Ya completaste tu selección. No puedes realizar más cambios.", "info");
+      if (estadoTurno !== "activo") {
+        if (estadoTurno === "espera") {
+          mostrarNotificacion(
+            "Tu turno aún no ha comenzado. Espera a que llegue tu horario asignado.",
+            "warning"
+          );
+        } else if (estadoTurno === "expirado") {
+          mostrarNotificacion(
+            "Tu turno ha expirado. Ya no puedes realizar cambios.",
+            "error"
+          );
+        } else if (estadoTurno === "completado") {
+          mostrarNotificacion(
+            "Ya completaste tu selección. No puedes realizar más cambios.",
+            "info"
+          );
         } else {
-          mostrarNotificacion("No puedes seleccionar mesas en este momento.", "warning");
+          mostrarNotificacion(
+            "No puedes seleccionar mesas en este momento.",
+            "warning"
+          );
         }
         return;
       }
 
       // Validar que pueda acceder
       if (!puedeAcceder) {
-        mostrarNotificacion("No tienes permiso para seleccionar mesas en este momento.", "error");
+        mostrarNotificacion(
+          "No tienes permiso para seleccionar mesas en este momento.",
+          "error"
+        );
         return;
       }
 
@@ -408,19 +450,21 @@ export default function AsignacionUser({
     }
 
     // ✅ Validación: Mesa bloqueada (verificar tanto en disponibilidad como en el elemento)
-    const mesaBloqueada = mesaSeleccionada.disponibilidad?.esta_bloqueada || 
-                          mesaSeleccionada.disponibilidad?.bloqueada || 
-                          mesaSeleccionada.bloqueada;
-    
+    const mesaBloqueada =
+      mesaSeleccionada.disponibilidad?.esta_bloqueada ||
+      mesaSeleccionada.disponibilidad?.bloqueada ||
+      mesaSeleccionada.bloqueada;
+
     if (mesaBloqueada) {
-      const motivo = mesaSeleccionada.disponibilidad?.motivo_bloqueo || 
-                     mesaSeleccionada.motivo_bloqueo || 
-                     'No especificado';
-      
+      const motivo =
+        mesaSeleccionada.disponibilidad?.motivo_bloqueo ||
+        mesaSeleccionada.motivo_bloqueo ||
+        "No especificado";
+
       mostrarNotificacion(
         `🔒 La Mesa ${numeroMesa} está bloqueada y no está disponible para selección.\n\n` +
-        `Motivo: ${motivo}\n\n` +
-        `Por favor, selecciona otra mesa o contacta al administrador del evento.`,
+          `Motivo: ${motivo}\n\n` +
+          `Por favor, selecciona otra mesa o contacta al administrador del evento.`,
         "error"
       );
       return;
@@ -428,8 +472,8 @@ export default function AsignacionUser({
 
     // ✅ Validación de mesa vacía: Regla de grupos grandes (aplica SIEMPRE)
     // Los datos pueden venir del backend (disponibilidad) o del estado local (invitados)
-    const invitadosEnMesa = mesaSeleccionada.disponibilidad 
-      ? mesaSeleccionada.disponibilidad.asientos_ocupados 
+    const invitadosEnMesa = mesaSeleccionada.disponibilidad
+      ? mesaSeleccionada.disponibilidad.asientos_ocupados
       : mesaSeleccionada.invitados;
 
     if (invitadosEnMesa === 0) {
@@ -438,11 +482,13 @@ export default function AsignacionUser({
       if (!validacion.puede) {
         const stats = obtenerEstadisticasOcupacion();
         let mensajeDetallado = "";
-        
+
         if (validacion.razon === "grupo-pequeno") {
           mensajeDetallado =
             `🚫 No puedes abrir una mesa nueva\n\n` +
-            `Tu grupo: ${usuarioActual.cantidad} ${usuarioActual.cantidad === 1 ? 'persona' : 'personas'}\n` +
+            `Tu grupo: ${usuarioActual.cantidad} ${
+              usuarioActual.cantidad === 1 ? "persona" : "personas"
+            }\n` +
             `Mínimo requerido: 8 personas\n\n` +
             `💡 Solo grupos grandes (8+ personas) pueden abrir mesas nuevas.\n\n` +
             `Por favor, selecciona una mesa que ya tenga invitados asignados para optimizar el espacio.`;
@@ -451,20 +497,24 @@ export default function AsignacionUser({
             .filter(
               (el) =>
                 (el.type === "mesa" || el.type === "mesaRectangular") &&
-                ((el.disponibilidad?.asientos_ocupados || el.invitados) > 0) &&
-                (el.disponibilidad?.asientos_disponibles || (el.capacidad - el.invitados)) >= usuarioActual.cantidad
+                (el.disponibilidad?.asientos_ocupados || el.invitados) > 0 &&
+                (el.disponibilidad?.asientos_disponibles ||
+                  el.capacidad - el.invitados) >= usuarioActual.cantidad
             )
             .map(
               (mesa) =>
                 `Mesa ${mesa.numero} (${
-                  mesa.disponibilidad?.asientos_disponibles || (mesa.capacidad - mesa.invitados)
+                  mesa.disponibilidad?.asientos_disponibles ||
+                  mesa.capacidad - mesa.invitados
                 } lugares)`
             )
             .join(", ");
 
           mensajeDetallado =
             `🎯 Optimiza el espacio disponible\n\n` +
-            `Tu grupo: ${usuarioActual.cantidad} ${usuarioActual.cantidad === 1 ? 'persona' : 'personas'}\n` +
+            `Tu grupo: ${usuarioActual.cantidad} ${
+              usuarioActual.cantidad === 1 ? "persona" : "personas"
+            }\n` +
             `Espacios disponibles: ${stats.espacioTotalDisponible} lugares\n\n` +
             `Mesas con espacio disponible:\n${mesasConEspacio}\n\n` +
             `💡 Para evitar dejar mesas con cupos vacíos, primero ocupa los espacios en mesas que ya tienen invitados.\n\n` +
@@ -511,34 +561,39 @@ export default function AsignacionUser({
     }
 
     // Verificar si existe pre-configuración en localStorage
-    const configGuardada = localStorage.getItem(`config-asientos-${usuarioActual.id}`);
-    
+    const configGuardada = localStorage.getItem(
+      `config-asientos-${usuarioActual.id}`
+    );
+
     if (configGuardada) {
       // Si existe pre-configuración, cargarla y NO abrir modal
       try {
         const config = JSON.parse(configGuardada);
         console.log("📋 Pre-configuración encontrada:", config);
-        
+
         // ⚠️ IMPORTANTE: Establecer pendingAsignacion ANTES de llamar a handleConfirmRestricciones
         setPendingAsignacion({ usuario: usuarioActual, numeroMesa });
-        
+
         // Usar directamente los datos de la pre-configuración
-        const personas = config.personas || [{ 
-          id: 1, 
-          nombre: usuarioActual.nombre,
-          tipoMenu: config.tipoMenu || "normal",
-          restricciones: formatearRestricciones(config.restriccionesAlimentarias),
-          otraRestriccion: config.restriccionEspecifica || null
-        }];
-        
+        const personas = config.personas || [
+          {
+            id: 1,
+            nombre: usuarioActual.nombre,
+            tipoMenu: config.tipoMenu || "normal",
+            restricciones: formatearRestricciones(
+              config.restriccionesAlimentarias
+            ),
+            otraRestriccion: config.restriccionEspecifica || null,
+          },
+        ];
+
         // Llamar después de un pequeño delay para asegurar que pendingAsignacion se actualice
         setTimeout(() => {
-          handleConfirmRestricciones({ 
-            personas, 
-            cantidadTotal: config.boletosDisponibles || usuarioActual.cantidad 
+          handleConfirmRestricciones({
+            personas,
+            cantidadTotal: config.boletosDisponibles || usuarioActual.cantidad,
           });
         }, 0);
-        
       } catch (error) {
         console.error("Error al cargar pre-configuración:", error);
         // Si hay error, abrir modal normalmente
@@ -598,7 +653,7 @@ export default function AsignacionUser({
 
     // Actualizar el estado de asignación TEMPORAL (no la final)
     setAsignacionTemporal(asignacionData);
-    
+
     // Limpiar la asignación "actual" ya que ahora está en temporal
     setAsignacionActual(null);
 
@@ -641,18 +696,20 @@ export default function AsignacionUser({
       // ✅ SI USA SISTEMA DE TURNOS, guardar con el servicio de turnos
       if (usandoSistemaTurnos && onGuardarSeleccion) {
         const { numeroMesa, cantidadTotal, personas } = asignacionTemporal;
-        
+
         // Preparar datos para el formato de turnos
         const datosSeleccion = {
-          mesas_seleccionadas: [{
-            mesa_id: numeroMesa,
-            numero_mesa: numeroMesa,
-            cantidad_personas: cantidadTotal
-          }],
-          tipo_menu: personas[0]?.tipoMenu || 'normal',
-          restriccion_dietetica: personas[0]?.restricciones || 'Ninguna',
+          mesas_seleccionadas: [
+            {
+              mesa_id: numeroMesa,
+              numero_mesa: numeroMesa,
+              cantidad_personas: cantidadTotal,
+            },
+          ],
+          tipo_menu: personas[0]?.tipoMenu || "normal",
+          restriccion_dietetica: personas[0]?.restricciones || "Ninguna",
           otra_restriccion: personas[0]?.otraRestriccion || null,
-          personas: personas
+          personas: personas,
         };
 
         // Llamar a la función de guardado del turno
@@ -668,10 +725,10 @@ export default function AsignacionUser({
       // Actualizar estado: temporal pasa a ser actual
       setAsignacionActual(asignacionTemporal);
       setAsignacionTemporal(null);
-      
+
       // Limpiar temporal del localStorage
       localStorage.removeItem(`asignacion-temporal-${usuarioActual.id}`);
-      
+
       // Limpiar pre-configuración si existe (ya no se necesita)
       localStorage.removeItem(`config-asientos-${usuarioActual.id}`);
 
@@ -704,7 +761,7 @@ export default function AsignacionUser({
     const asignacion = asignacionTemporal || asignacionActual;
     if (!asignacion) return;
 
-    const mensaje = asignacionTemporal 
+    const mensaje = asignacionTemporal
       ? "¿Deseas descartar los cambios?\n\nLa selección de mesa no se guardará y podrás elegir otra mesa."
       : "¿Estás seguro de que deseas cancelar tu asignación?\n\n" +
         `Perderás tu lugar en la Mesa ${asignacion.numeroMesa} para ${
@@ -742,7 +799,7 @@ export default function AsignacionUser({
         "info"
       );
     }
-    
+
     // Refrescar disponibilidad desde el backend
     if (refrescarDisponibilidad) {
       refrescarDisponibilidad();
@@ -776,33 +833,35 @@ export default function AsignacionUser({
      ----------------------- */
   const MesaInteractiva = ({ element }) => {
     const esMiMesa = asignacionActual?.numeroMesa === element.numero;
-    
+
     // Usar disponibilidad real del backend si está disponible
     const disponibilidad = element.disponibilidad;
-    const espacioDisponible = disponibilidad 
-      ? disponibilidad.asientos_disponibles 
-      : (element.capacidad - element.invitados);
-    const invitadosAsignados = disponibilidad 
-      ? disponibilidad.asientos_ocupados 
+    const espacioDisponible = disponibilidad
+      ? disponibilidad.asientos_disponibles
+      : element.capacidad - element.invitados;
+    const invitadosAsignados = disponibilidad
+      ? disponibilidad.asientos_ocupados
       : element.invitados;
 
     // Verificar si la mesa está bloqueada
-    const mesaBloqueada = disponibilidad?.esta_bloqueada || 
-                          disponibilidad?.bloqueada || 
-                          element.bloqueada;
-    
-    const motivoBloqueo = disponibilidad?.motivo_bloqueo || 
-                          element.motivo_bloqueo || 
-                          '';
+    const mesaBloqueada =
+      disponibilidad?.esta_bloqueada ||
+      disponibilidad?.bloqueada ||
+      element.bloqueada;
+
+    const motivoBloqueo =
+      disponibilidad?.motivo_bloqueo || element.motivo_bloqueo || "";
 
     let puedeSeleccionar = false;
-    if (!asignacionActual && !mesaBloqueada) { // No permitir selección si está bloqueada
+    if (!asignacionActual && !mesaBloqueada) {
+      // No permitir selección si está bloqueada
       // ✅ CON SISTEMA DE TURNOS: usar SIEMPRE disponibilidad del backend
       if (usandoSistemaTurnos) {
         // En sistema de turnos, la disponibilidad DEBE venir del backend
         if (disponibilidad) {
-          puedeSeleccionar = disponibilidad.esta_disponible && 
-                            disponibilidad.asientos_disponibles >= usuarioActual.cantidad;
+          puedeSeleccionar =
+            disponibilidad.esta_disponible &&
+            disponibilidad.asientos_disponibles >= usuarioActual.cantidad;
         }
         // Si no hay disponibilidad en sistema de turnos, la mesa NO es seleccionable
       } else {
@@ -831,10 +890,10 @@ export default function AsignacionUser({
     const scale = element.scale || 1;
     const scaleX = element.scaleX || scale;
     const scaleY = element.scaleY || scale;
-    
-    const transformStyle = { 
+
+    const transformStyle = {
       transform: `rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`,
-      transformOrigin: 'center center'
+      transformOrigin: "center center",
     };
 
     const handleClick = (e) => {
@@ -873,9 +932,11 @@ export default function AsignacionUser({
         />
         {/* Overlay para mesa bloqueada */}
         {mesaBloqueada && (
-          <div 
+          <div
             className="absolute inset-0 bg-red-500/30 backdrop-blur-[1px] rounded-full flex items-center justify-center pointer-events-none border-2 border-red-500 z-20"
-            title={motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : 'Mesa bloqueada'}
+            title={
+              motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : "Mesa bloqueada"
+            }
           >
             <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
               🔒 BLOQUEADA
@@ -888,33 +949,35 @@ export default function AsignacionUser({
 
   const MesaRectangularInteractiva = ({ element }) => {
     const esMiMesa = asignacionActual?.numeroMesa === element.numero;
-    
+
     // Usar disponibilidad real del backend si está disponible
     const disponibilidad = element.disponibilidad;
-    const espacioDisponible = disponibilidad 
-      ? disponibilidad.asientos_disponibles 
-      : (element.capacidad - element.invitados);
-    const invitadosAsignados = disponibilidad 
-      ? disponibilidad.asientos_ocupados 
+    const espacioDisponible = disponibilidad
+      ? disponibilidad.asientos_disponibles
+      : element.capacidad - element.invitados;
+    const invitadosAsignados = disponibilidad
+      ? disponibilidad.asientos_ocupados
       : element.invitados;
 
     // Verificar si la mesa está bloqueada
-    const mesaBloqueada = disponibilidad?.esta_bloqueada || 
-                          disponibilidad?.bloqueada || 
-                          element.bloqueada;
-    
-    const motivoBloqueo = disponibilidad?.motivo_bloqueo || 
-                          element.motivo_bloqueo || 
-                          '';
+    const mesaBloqueada =
+      disponibilidad?.esta_bloqueada ||
+      disponibilidad?.bloqueada ||
+      element.bloqueada;
+
+    const motivoBloqueo =
+      disponibilidad?.motivo_bloqueo || element.motivo_bloqueo || "";
 
     let puedeSeleccionar = false;
-    if (!asignacionActual && !mesaBloqueada) { // No permitir selección si está bloqueada
+    if (!asignacionActual && !mesaBloqueada) {
+      // No permitir selección si está bloqueada
       // ✅ CON SISTEMA DE TURNOS: usar SIEMPRE disponibilidad del backend
       if (usandoSistemaTurnos) {
         // En sistema de turnos, la disponibilidad DEBE venir del backend
         if (disponibilidad) {
-          puedeSeleccionar = disponibilidad.esta_disponible && 
-                            disponibilidad.asientos_disponibles >= usuarioActual.cantidad;
+          puedeSeleccionar =
+            disponibilidad.esta_disponible &&
+            disponibilidad.asientos_disponibles >= usuarioActual.cantidad;
         }
         // Si no hay disponibilidad en sistema de turnos, la mesa NO es seleccionable
       } else {
@@ -943,10 +1006,10 @@ export default function AsignacionUser({
     const scale = element.scale || 1;
     const scaleX = element.scaleX || scale;
     const scaleY = element.scaleY || scale;
-    
-    const transformStyle = { 
+
+    const transformStyle = {
       transform: `rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`,
-      transformOrigin: 'center center'
+      transformOrigin: "center center",
     };
 
     const handleClick = (e) => {
@@ -986,9 +1049,11 @@ export default function AsignacionUser({
         />
         {/* Overlay para mesa bloqueada */}
         {mesaBloqueada && (
-          <div 
+          <div
             className="absolute inset-0 bg-red-500/30 backdrop-blur-[1px] rounded-lg flex items-center justify-center pointer-events-none border-2 border-red-500 z-20"
-            title={motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : 'Mesa bloqueada'}
+            title={
+              motivoBloqueo ? `Bloqueada: ${motivoBloqueo}` : "Mesa bloqueada"
+            }
           >
             <div className="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold shadow-lg">
               🔒 BLOQUEADA
@@ -1013,10 +1078,10 @@ export default function AsignacionUser({
     const scale = element.scale || 1;
     const scaleX = element.scaleX || scale;
     const scaleY = element.scaleY || scale;
-    
-    const transformStyle = { 
+
+    const transformStyle = {
       transform: `rotate(${rotation}deg) scale(${scaleX}, ${scaleY})`,
-      transformOrigin: 'center center'
+      transformOrigin: "center center",
     };
 
     // Elementos decorativos (no interactivos)
@@ -1084,11 +1149,7 @@ export default function AsignacionUser({
     })();
 
     // Envolver el contenido con las transformaciones
-    return (
-      <div style={transformStyle}>
-        {elementContent}
-      </div>
-    );
+    return <div style={transformStyle}>{elementContent}</div>;
   };
 
   if (temporizadorExpiro) {
@@ -1121,25 +1182,25 @@ export default function AsignacionUser({
 
     // Filtrar mesas con invitados (usar disponibilidad del backend si existe)
     const mesasConInvitados = todasLasMesas.filter((el) => {
-      const invitados = el.disponibilidad 
-        ? el.disponibilidad.asientos_ocupados 
+      const invitados = el.disponibilidad
+        ? el.disponibilidad.asientos_ocupados
         : el.invitados;
       return invitados > 0;
     });
 
     // Calcular total de personas ocupadas
     const totalPersonasOcupadas = mesasConInvitados.reduce((total, mesa) => {
-      const ocupados = mesa.disponibilidad 
-        ? mesa.disponibilidad.asientos_ocupados 
+      const ocupados = mesa.disponibilidad
+        ? mesa.disponibilidad.asientos_ocupados
         : mesa.invitados;
       return total + ocupados;
     }, 0);
 
     // Calcular espacio total disponible en mesas ocupadas
     const espacioTotalDisponible = mesasConInvitados.reduce((total, mesa) => {
-      const disponibles = mesa.disponibilidad 
-        ? mesa.disponibilidad.asientos_disponibles 
-        : (mesa.capacidad - mesa.invitados);
+      const disponibles = mesa.disponibilidad
+        ? mesa.disponibilidad.asientos_disponibles
+        : mesa.capacidad - mesa.invitados;
       return total + disponibles;
     }, 0);
 
@@ -1169,7 +1230,9 @@ export default function AsignacionUser({
       return {
         puede: false,
         razon: "grupo-pequeno",
-        mensaje: `Tu grupo tiene ${usuarioActual.cantidad} ${usuarioActual.cantidad === 1 ? 'persona' : 'personas'}. Solo grupos de 8 o más personas pueden abrir mesas nuevas.\n\nPor favor, selecciona una mesa que ya tenga invitados asignados.`,
+        mensaje: `Tu grupo tiene ${usuarioActual.cantidad} ${
+          usuarioActual.cantidad === 1 ? "persona" : "personas"
+        }. Solo grupos de 8 o más personas pueden abrir mesas nuevas.\n\nPor favor, selecciona una mesa que ya tenga invitados asignados.`,
       };
     }
 
@@ -1186,7 +1249,8 @@ export default function AsignacionUser({
     return {
       puede: true,
       razon: "grupo-grande-sin-espacio",
-      mensaje: "Tu grupo es grande y no hay suficiente espacio continuo en las mesas ocupadas. Puedes abrir una mesa nueva.",
+      mensaje:
+        "Tu grupo es grande y no hay suficiente espacio continuo en las mesas ocupadas. Puedes abrir una mesa nueva.",
     };
   };
 
@@ -1204,20 +1268,21 @@ export default function AsignacionUser({
       .filter((el) => {
         if (!(el.type === "mesa" || el.type === "mesaRectangular"))
           return false;
-        
+
         // 🔒 Excluir mesas bloqueadas
-        const mesaBloqueada = el.disponibilidad?.esta_bloqueada || 
-                              el.disponibilidad?.bloqueada || 
-                              el.bloqueada;
+        const mesaBloqueada =
+          el.disponibilidad?.esta_bloqueada ||
+          el.disponibilidad?.bloqueada ||
+          el.bloqueada;
         if (mesaBloqueada) return false;
-        
+
         // Obtener datos correctos (disponibilidad del backend si existe)
-        const invitados = el.disponibilidad 
-          ? el.disponibilidad.asientos_ocupados 
+        const invitados = el.disponibilidad
+          ? el.disponibilidad.asientos_ocupados
           : el.invitados;
-        const espacioDisponible = el.disponibilidad 
-          ? el.disponibilidad.asientos_disponibles 
-          : (el.capacidad - el.invitados);
+        const espacioDisponible = el.disponibilidad
+          ? el.disponibilidad.asientos_disponibles
+          : el.capacidad - el.invitados;
 
         // Verificar si tiene espacio suficiente
         if (espacioDisponible < usuarioActual.cantidad) return false;
@@ -1229,12 +1294,12 @@ export default function AsignacionUser({
       })
       .map((mesa) => {
         // Usar disponibilidad del backend si existe
-        const invitados = mesa.disponibilidad 
-          ? mesa.disponibilidad.asientos_ocupados 
+        const invitados = mesa.disponibilidad
+          ? mesa.disponibilidad.asientos_ocupados
           : mesa.invitados;
-        const espacioDisponible = mesa.disponibilidad 
-          ? mesa.disponibilidad.asientos_disponibles 
-          : (mesa.capacidad - mesa.invitados);
+        const espacioDisponible = mesa.disponibilidad
+          ? mesa.disponibilidad.asientos_disponibles
+          : mesa.capacidad - mesa.invitados;
 
         return {
           ...mesa,
@@ -1300,49 +1365,66 @@ export default function AsignacionUser({
     <div className="bg-fondoVs min-h-screen max-w-7xl mx-auto px-4 sm:px-2 lg:px-8">
       <div className="py-4">
         {/* Header con información del usuario */}
-        <div className="mb-6">
+        <div className="">
           {/* Título y temporizador */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
             <div className="flex-1">
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-                  <User className="w-8 h-8 text-casal" />
+                <h1 className="text-3xl font-bold text-casal flex items-center gap-2">
+                  <img src={MesaSilla} alt="Logo" className="w-12 h-12 me-3" />
                   Selección de Mesa
                 </h1>
-                
+
                 {/* Indicador de estado SignalR */}
-                <div 
+                <div
                   className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
-                    signalRConectado 
-                      ? 'bg-green-100 text-green-800 border border-green-300' 
-                      : 'bg-gray-100 text-gray-600 border border-gray-300'
+                    signalRConectado
+                      ? "bg-green-100 text-green-800 border border-green-300"
+                      : "bg-gray-100 text-gray-600 border border-gray-300"
                   }`}
-                  title={signalRConectado ? 'Notificaciones en tiempo real activas' : 'Reconectando...'}
+                  title={
+                    signalRConectado
+                      ? "Notificaciones en tiempo real activas"
+                      : "Reconectando..."
+                  }
                 >
-                  <span className={`w-2 h-2 rounded-full ${signalRConectado ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
-                  {signalRConectado ? 'En vivo' : 'Offline'}
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      signalRConectado
+                        ? "bg-green-500 animate-pulse"
+                        : "bg-gray-400"
+                    }`}
+                  ></span>
+                  {signalRConectado ? "En vivo" : "Offline"}
                 </div>
 
                 {/* Mostrar temporizador del turno si está disponible, sino el local */}
-                {((usandoSistemaTurnos && tiempoRestanteTurno !== null && tiempoRestanteTurno > 0) || 
-                  (!usandoSistemaTurnos && tiempoRestante !== null)) && !asignacionActual && (
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`px-3 py-1 rounded-full font-mono text-lg font-bold ${
-                        (usandoSistemaTurnos ? tiempoRestanteTurno : tiempoRestante) < 300
-                          ? "bg-red-100 text-red-800 border border-red-300"
-                          : (usandoSistemaTurnos ? tiempoRestanteTurno : tiempoRestante) < 600
-                          ? "bg-yellow-100 text-yellow-800 border border-yellow-300"
-                          : "bg-green-100 text-green-800 border border-green-300"
-                      }`}
-                    >
-                      <Clock2 className="w-4 h-4 inline mr-1" />{" "}
-                      {usandoSistemaTurnos 
-                        ? formatearTiempo((tiempoRestanteTurno || 0) * 1000) 
-                        : formatearTiempo(tiempoRestante)}
+                {((usandoSistemaTurnos &&
+                  tiempoRestanteTurno !== null &&
+                  tiempoRestanteTurno > 0) ||
+                  (!usandoSistemaTurnos && tiempoRestante !== null)) &&
+                  !asignacionActual && (
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`px-3 py-1 rounded-full font-mono text-lg font-bold ${
+                          (usandoSistemaTurnos
+                            ? tiempoRestanteTurno
+                            : tiempoRestante) < 300
+                            ? "bg-red-100 text-red-800 border border-red-300"
+                            : (usandoSistemaTurnos
+                                ? tiempoRestanteTurno
+                                : tiempoRestante) < 600
+                            ? "bg-yellow-100 text-yellow-800 border border-yellow-300"
+                            : "bg-green-100 text-green-800 border border-green-300"
+                        }`}
+                      >
+                        <Clock2 className="w-4 h-4 inline mr-1" />{" "}
+                        {usandoSistemaTurnos
+                          ? formatearTiempo((tiempoRestanteTurno || 0) * 1000)
+                          : formatearTiempo(tiempoRestante)}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
               <div className="text-gray-600 mt-2">
                 <p>
@@ -1360,7 +1442,8 @@ export default function AsignacionUser({
                     <div className="flex items-center gap-2 text-yellow-800">
                       <Clock2 className="w-5 h-5" />
                       <span className="font-medium">
-                        Mesa {asignacionTemporal.numeroMesa} (pendiente de confirmar)
+                        Mesa {asignacionTemporal.numeroMesa} (pendiente de
+                        confirmar)
                       </span>
                     </div>
                   </div>
@@ -1374,7 +1457,7 @@ export default function AsignacionUser({
                     </div>
                   </div>
                 )}
-                
+
                 {/* Botones de Guardar y Cancelar cuando hay asignación temporal */}
                 {asignacionTemporal && (
                   <div className="flex gap-2">
@@ -1394,136 +1477,188 @@ export default function AsignacionUser({
                     </Button>
                   </div>
                 )}
-                
+
                 {/* Botón de cancelar solo para asignaciones ya confirmadas Y en sistema legacy (sin turnos) */}
-                {asignacionActual && !usandoSistemaTurnos && !seleccionGuardada?.confirmada && (
-                  <Button
-                    onClick={cancelarAsignacion}
-                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    Cancelar Asignación
-                  </Button>
-                )}
+                {asignacionActual &&
+                  !usandoSistemaTurnos &&
+                  !seleccionGuardada?.confirmada && (
+                    <Button
+                      onClick={cancelarAsignacion}
+                      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Cancelar Asignación
+                    </Button>
+                  )}
               </div>
             )}
           </div>
-
-          {/* Información del usuario en horizontal */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-            <div className="flex flex-wrap items-center gap-6">
-              {/* Nombre */}
-              <div className="flex items-center gap-2">
-                <User className="w-5 h-5 text-gray-600" />
-                <div>
-                  <label className="text-xs text-gray-500">Nombre</label>
-                  <p className="font-semibold text-gray-800">{usuarioActual.nombre}</p>
-                </div>
-              </div>
-
-              {/* Personas */}
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-gray-600" />
-                <div>
-                  <label className="text-xs text-gray-500">Personas</label>
-                  <p className="font-semibold text-gray-800">
-                    {usuarioActual.cantidad} {usuarioActual.cantidad === 1 ? "persona" : "personas"}
-                  </p>
-                </div>
-              </div>
-
-              {/* Necesidad especial */}
-              {usuarioActual.necesidadEspecial && (
-                <div className="flex items-center gap-2">
-                  <Accessibility className="w-5 h-5 text-orange-600" />
-                  <div>
-                    <label className="text-xs text-gray-500">Necesidades especiales</label>
-                    <p className="font-semibold text-orange-600">Silla de accesibilidad</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Asignación actual o temporal */}
-              {(asignacionTemporal || asignacionActual) && (
-                <>
-                  <div className="w-px h-10 bg-gray-300"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
+            <div className="w-full">
+              {/* Información del usuario en horizontal */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div className=" items-center gap-4">
+                  {/* Nombre */}
                   <div className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-casal" />
+                    {/* <User className="w-5 h-5 text-gray-600" /> */}
+                    <img src={IconPersona} alt="" className="w-6 h-6 text-gray-600" />
                     <div>
-                      <label className="text-xs text-gray-500">Mesa {asignacionTemporal ? 'seleccionada' : 'asignada'}</label>
-                      <p className="font-semibold text-gray-800">Mesa {(asignacionTemporal || asignacionActual).numeroMesa}</p>
+                      <label className="text-xs text-gray-500">Nombre</label>
+                      <p className="font-semibold text-gray-800">
+                        {usuarioActual.nombre}
+                      </p>
                     </div>
                   </div>
+
+                  {/* Personas */}
                   <div className="flex items-center gap-2">
+                    <img src={IconGrupo} alt="" className="w-6 h-6 text-gray-600" />
                     <div>
-                      <label className="text-xs text-gray-500">Fecha selección</label>
-                      <p className="font-semibold text-gray-800">{(asignacionTemporal || asignacionActual).fechaFormateada}</p>
+                      <label className="text-xs text-gray-500">Personas</label>
+                      <p className="font-semibold text-gray-800">
+                        {usuarioActual.cantidad}{" "}
+                        {usuarioActual.cantidad === 1 ? "persona" : "personas"}
+                      </p>
                     </div>
                   </div>
-                </>
-              )}
+
+                  {/* Necesidad especial */}
+                  {usuarioActual.necesidadEspecial && (
+                    <div className="flex items-center gap-2">
+                      <Accessibility className="w-5 h-5 text-orange-600" />
+                      <div>
+                        <label className="text-xs text-gray-500">
+                          Necesidades especiales
+                        </label>
+                        <p className="font-semibold text-orange-600">
+                          Silla de accesibilidad
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Asignación actual o temporal */}
+                  {(asignacionTemporal || asignacionActual) && (
+                    <>
+                      <div className="w-full h-px bg-gray-300 border"></div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-5 h-5 text-casal" />
+                        <div>
+                          <label className="text-xs text-gray-500">
+                            Mesa{" "}
+                            {asignacionTemporal ? "seleccionada" : "asignada"}
+                          </label>
+                          <p className="font-semibold text-gray-800">
+                            Mesa{" "}
+                            {
+                              (asignacionTemporal || asignacionActual)
+                                .numeroMesa
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <label className="text-xs text-gray-500">
+                            Fecha selección
+                          </label>
+                          <p className="font-semibold text-gray-800">
+                            {
+                              (asignacionTemporal || asignacionActual)
+                                .fechaFormateada
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="w-full md:col-span-2 lg:col-span-4">
+              {/* Panel de mesas sugeridas (ahora en la parte superior del layout) */}
+              {!asignacionTemporal &&
+                !asignacionActual &&
+                sugerenciasMesas.length > 0 && (
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 ">
+                    <div className="flex justify-between items-center gap-2 mb-2">
+                      <div>
+                        <p className="font-semibold text-2xl text-gray-800 mb-3 flex items-center gap-2">
+                          <Eye className="w-6 h-6 text-casal" />
+                          Mesas Sugeridas para Ti
+                        </p>
+                      </div>
+                      <div>
+                        {(() => {
+                          const stats = obtenerEstadisticasOcupacion();
+                          return (
+                            <div className="text-xs inline-block">
+                              <div className="flex flex-col md:flex-row gap-4 text-center p-2 bg-gray-50 border border-gray-200 rounded-lg shadow-md">
+                                <Tooltip
+                                  content="Total de invitados asignados"
+                                  position="top"
+                                >
+                                  <div className="">
+                                    <div className="font-semibold text-gray-800">
+                                      {stats.totalPersonasOcupadas}
+                                    </div>
+                                    <div className="text-gray-600">
+                                      Personas
+                                    </div>
+                                  </div>
+                                </Tooltip>
+                                <Tooltip
+                                  content="Total de espacios disponibles"
+                                  position="top"
+                                >
+                                  <div>
+                                    <div className="font-semibold text-gray-800">
+                                      {stats.espacioTotalDisponible}
+                                    </div>
+                                    <div className="text-gray-600">
+                                      Espacios libres
+                                    </div>
+                                  </div>
+                                </Tooltip>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center w-full gap-3 overflow-y-auto">
+                      {sugerenciasMesas.map((mesa, index) => (
+                        <div
+                          key={mesa.numero}
+                          className="flex min-w-[14rem] mb-2 max-w-xs items-center justify-between px-2 py-1 bg-Acapulco border border-Acapulco rounded cursor-pointer hover:bg-casalds-700/80 transition-colors group"
+                          onClick={() => seleccionarMesa(mesa.numero)}
+                        >
+                          <div className="flex items-center gap-1">
+                            {/* <div className=" text-white group-hover:border group-hover:border-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                              {index + 1}
+                            </div> */}
+                            <span className="font-semibold text-white group-hover:text-gray-100">
+                              {mesa.numero} Mesa
+                            </span>
+                          </div>
+                          <div className="text-sm text-white group-hover:text-gray-100">
+                            {mesa.espacioDisponible}
+                            {mesa.invitados > 0 && (
+                              <span className="ml-1 text-casal group-hover:text-gray-200">
+                                ({mesa.invitados})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
           </div>
         </div>
-
-        {/* Panel de mesas sugeridas (ahora en la parte superior del layout) */}
-        {!asignacionTemporal && !asignacionActual && sugerenciasMesas.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-            {(() => {
-              const stats = obtenerEstadisticasOcupacion();
-              return (
-                <div className="mb-3 p-2 bg-gray-50 border border-gray-200 rounded text-xs inline-block">
-                  <div className="flex gap-4 text-center">
-                    <div>
-                      <div className="font-semibold text-gray-800">
-                        {stats.totalPersonasOcupadas}
-                      </div>
-                      <div className="text-gray-600">Personas</div>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-800">
-                        {stats.espacioTotalDisponible}
-                      </div>
-                      <div className="text-gray-600">Espacios libres</div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-            <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Eye className="w-4 h-4 text-casal" />
-              Mesas Sugeridas para Ti
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-              {sugerenciasMesas.map((mesa, index) => (
-                <div
-                  key={mesa.numero}
-                  className="flex items-center justify-between p-2 bg-fondoVs border border-casalds-700 rounded cursor-pointer hover:bg-casalds-600/80 transition-colors group"
-                  onClick={() => seleccionarMesa(mesa.numero)}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="bg-casal text-white group-hover:border group-hover:border-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                      {index + 1}
-                    </div>
-                    <span className="font-medium text-gray-800 group-hover:text-gray-100">
-                      Mesa {mesa.numero}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-600 group-hover:text-gray-100">
-                    {mesa.espacioDisponible}
-                    {mesa.invitados > 0 && (
-                      <span className="ml-1 text-casal group-hover:text-gray-200">
-                        ({mesa.invitados})
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
+        <div className="h-px w-full border my-3"></div>
         <div className="flex flex-col gap-6">
-
           {/* Plano del Salón */}
           <div className="flex-1 min-w-0">
             <div className="border border-gray-100 rounded-lg bg-white overflow-hidden shadow-sm">
