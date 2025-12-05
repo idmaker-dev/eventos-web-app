@@ -107,10 +107,10 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
                 <button
                   onClick={() => setModalBoletosOpen(true)}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-casal text-white rounded-lg hover:bg-casal/90 transition-colors font-medium text-sm shadow-sm"
-                  title="Aumentar boletos"
+                  title="Modificar cantidad de boletos"
                 >
                   <Plus className="w-4 h-4" />
-                  Aumentar boletos
+                  Modificar boletos
                 </button>
               </div>
             </div>
@@ -270,7 +270,7 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
         </Dialog.Panel>
       </div>
 
-      {/* Modal de Aumentar Boletos */}
+      {/* Modal de Modificar Boletos */}
       <ModalAumentarBoletos
         isOpen={modalBoletosOpen}
         onClose={() => setModalBoletosOpen(false)}
