@@ -311,6 +311,36 @@ class EventService {
       };
     }
   }
+
+  /**
+   * Actualizar cantidad de boletos de un invitado
+   * @param {string} invitadoId - ID del invitado
+   * @param {number} nuevaCantidad - Nueva cantidad de boletos
+   * @param {string} opcionProrrateo - Opción de prorrateo ('prorratear' o 'crear_nuevas')
+   */
+  async updateInvitadoBoletos(invitadoId, nuevaCantidad, opcionProrrateo = "crear_nuevas") {
+    try {
+      const response = await httpService.patch(
+        `/invitadosAlumnos/${invitadoId}/boletos`,
+        {
+          id_invitado: invitadoId,
+          nueva_cantidad_boletos: nuevaCantidad,
+          opcion_prorrateo: opcionProrrateo,
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data || response,
+        message: "Boletos actualizados correctamente",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al actualizar boletos",
+      };
+    }
+  }
 }
 
 // Crear instancia singleton
