@@ -12,10 +12,16 @@ import {
   Minus,
   Plus,
   ArrowLeft,
+  Check,
+  X,
+  ChevronDown,
 } from "lucide-react";
-import { Button, Input } from "@headlessui/react";
+import { Button, Input, Menu as HeadlessMenu, MenuButton, MenuItems, MenuItem } from "@headlessui/react";
 import clsx from "clsx";
 import { Tooltip } from "../../ui/Tooltip";
+import eventService from "../../../services/eventService";
+import { useSelectedEvent } from "../../../contexts/SelectedEventContext";
+import { useNotifications } from "../../../contexts/NotificationContext";
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -31,6 +37,118 @@ function useIsMobile() {
 export default function Destalles({ ticket, onBack, isMobileView }) {
   const [tabActivo, setTabActivo] = useState("cliente");
   const isMobile = useIsMobile();
+  
+  // Estados para modificación de boletos
+  const [modificandoBoletos, setModificandoBoletos] = useState(false);
+  const [nuevaCantidad, setNuevaCantidad] = useState(0);
+  const [opcionProrrateo, setOpcionProrrateo] = useState("crear_nuevas");
+  const [cargando, setCargando] = useState(false);
+  
+  const { eventoActual } = useSelectedEvent();
+  const { addNotification } = useNotifications();
+  
+  // Obtener cantidad actual de boletos del ticket
+  const cantidadActual = ticket?.cliente?.catidadPedido || ticket?.cliente?.boletos?.length || 2;
+  
+  const handleIniciarModificacion = (incremento) => {
+    if (!modificandoBoletos) {
+      // Primera vez: iniciar modo edición
+      const nuevaCant = Number(cantidadActual) + Number(incremento);
+      
+      if (nuevaCant <= 0) {
+        addNotification({
+          type: "error",
+          message: "La cantidad de boletos no puede ser menor a 1"
+        });
+        return;
+      }
+      
+      setNuevaCantidad(nuevaCant);
+      setModificandoBoletos(true);
+      
+      // Si es disminución, auto-seleccionar "eliminar_completas"
+      if (incremento < 0) {
+        setOpcionProrrateo("eliminar_completas");
+      } else {
+        setOpcionProrrateo("crear_nuevas");
+      }
+    } else {
+      // Ya está en modo edición: solo actualizar cantidad
+      const nuevaCant = Number(nuevaCantidad) + Number(incremento);
+      
+      if (nuevaCant <= 0) {
+        addNotification({
+          type: "error",
+          message: "La cantidad de boletos no puede ser menor a 1"
+        });
+        return;
+      }
+      
+      setNuevaCantidad(nuevaCant);
+      
+      // Actualizar opción prorrateo según dirección
+      if (nuevaCant < Number(cantidadActual)) {
+        setOpcionProrrateo("eliminar_completas");
+      } else if (opcionProrrateo === "eliminar_completas" && nuevaCant > Number(cantidadActual)) {
+        setOpcionProrrateo("crear_nuevas");
+      }
+    }
+  };
+  
+  const handleCancelar = () => {
+    setModificandoBoletos(false);
+    setNuevaCantidad(0);
+    setOpcionProrrateo("crear_nuevas");
+  };
+  
+  const handleConfirmar = async () => {
+    try {
+      setCargando(true);
+      
+      // Obtener invitado_id del ticket
+      const invitadoId = ticket?.cliente?.invitado_id || ticket?.invitado_id;
+      
+      if (!invitadoId) {
+        addNotification({
+          type: "error",
+          message: "No se encontró el ID del invitado"
+        });
+        return;
+      }
+      
+      if (!eventoActual) {
+        addNotification({
+          type: "error",
+          message: "No hay evento seleccionado"
+        });
+        return;
+      }
+      
+      await eventService.updateInvitadoBoletos(
+        invitadoId,
+        nuevaCantidad,
+        opcionProrrateo
+      );
+      
+      addNotification({
+        type: "success",
+        message: `Boletos ${nuevaCantidad > cantidadActual ? 'aumentados' : 'disminuidos'} exitosamente`
+      });
+      
+      handleCancelar();
+      
+      // TODO: Recargar datos del ticket para reflejar cambios
+      
+    } catch (error) {
+      console.error("Error al actualizar boletos:", error);
+      addNotification({
+        type: "error",
+        message: error.response?.data?.message || "Error al actualizar boletos"
+      });
+    } finally {
+      setCargando(false);
+    }
+  };
 
   if (!ticket) {
     return (
@@ -505,31 +623,111 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                         </span>{" "}
                         {ticket.cliente.catidadPedido}
                       </div>
-                      <div className="flex flex-row justify-between items-center gap-1 w-full">
-                        <div className="font-semibold text-casal w-full">
-                          Número de boletos:
-                        </div>{" "}
-                        <div className="flex gap-1 items-center w-full py-1 px-2 bg-fondoVs dark:bg-black rounded-full">
-                          <Tooltip content="Reducir boletos">
-                            <Button
-                              className={
-                                "border border-red-500 bg-red-100 text-red-500 rounded-full w-4 h-4 flex items-center justify-center"
-                              }
-                            >
-                              <Minus className="w-3 h-3" />
-                            </Button>
-                          </Tooltip>
-                          <Tooltip content="Agregar boletos">
-                            <Button
-                              className={
-                                "border border-green-600 bg-green-200 text-green-600 rounded-full w-4 h-4 flex items-center justify-center"
-                              }
-                            >
-                              <Plus className="w-3 h-3" />
-                            </Button>
-                          </Tooltip>
-                          <div className="text-casal font-bold">2 boletos</div>
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="flex flex-row justify-between items-center gap-1 w-full">
+                          <div className="font-semibold text-casal">
+                            Número de boletos:
+                          </div>
+                          <div className="flex gap-1 items-center py-1 px-2 bg-fondoVs dark:bg-black rounded-full">
+                            <Tooltip content="Reducir boletos">
+                              <Button
+                                onClick={() => handleIniciarModificacion(-1)}
+                                disabled={cargando}
+                                className="border border-red-500 bg-red-100 text-red-500 rounded-full w-4 h-4 flex items-center justify-center hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </Button>
+                            </Tooltip>
+                            <Tooltip content="Agregar boletos">
+                              <Button
+                                onClick={() => handleIniciarModificacion(1)}
+                                disabled={cargando}
+                                className="border border-green-600 bg-green-200 text-green-600 rounded-full w-4 h-4 flex items-center justify-center hover:bg-green-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </Tooltip>
+                            <div className="text-casal font-bold">
+                              {modificandoBoletos ? nuevaCantidad : cantidadActual} boletos
+                            </div>
+                          </div>
                         </div>
+                        
+                        {/* Panel de confirmación inline */}
+                        {modificandoBoletos && (
+                          <div className="p-3 bg-casal/10 dark:bg-casal/20 rounded-lg border border-casal/30">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                Nueva cantidad: <span className="text-casal font-bold">{nuevaCantidad}</span>
+                              </span>
+                            </div>
+                            
+                            {/* Selector de opción prorrateo (solo si es aumento) */}
+                            {nuevaCantidad > cantidadActual && (
+                              <div className="mb-3">
+                                <HeadlessMenu as="div" className="relative">
+                                  <MenuButton className="w-full flex items-center justify-between px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    <span className="text-gray-700 dark:text-gray-200">
+                                      {opcionProrrateo === "crear_nuevas" ? "Crear nuevas facturas" : "Aumentar facturas existentes"}
+                                    </span>
+                                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                                  </MenuButton>
+                                  <MenuItems className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden">
+                                    <MenuItem>
+                                      {({ focus }) => (
+                                        <button
+                                          onClick={() => setOpcionProrrateo("crear_nuevas")}
+                                          className={clsx(
+                                            "w-full text-left px-3 py-2 text-sm transition-colors",
+                                            focus ? "bg-casal/10 dark:bg-casal/20" : "",
+                                            opcionProrrateo === "crear_nuevas" ? "text-casal font-medium" : "text-gray-700 dark:text-gray-200"
+                                          )}
+                                        >
+                                          Crear nuevas facturas
+                                        </button>
+                                      )}
+                                    </MenuItem>
+                                    <MenuItem>
+                                      {({ focus }) => (
+                                        <button
+                                          onClick={() => setOpcionProrrateo("aumentar_existentes")}
+                                          className={clsx(
+                                            "w-full text-left px-3 py-2 text-sm transition-colors",
+                                            focus ? "bg-casal/10 dark:bg-casal/20" : "",
+                                            opcionProrrateo === "aumentar_existentes" ? "text-casal font-medium" : "text-gray-700 dark:text-gray-200"
+                                          )}
+                                        >
+                                          Aumentar facturas existentes
+                                        </button>
+                                      )}
+                                    </MenuItem>
+                                  </MenuItems>
+                                </HeadlessMenu>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center gap-2">
+                              <Button
+                                onClick={handleConfirmar}
+                                disabled={cargando}
+                                className="flex-1 flex items-center justify-center gap-1 text-sm px-3 py-1.5 text-white font-semibold rounded-lg bg-casal hover:bg-casal/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              >
+                                {cargando ? (
+                                  <>Procesando...</>
+                                ) : (
+                                  <><Check className="h-4 w-4" /> Confirmar</>
+                                )}
+                              </Button>
+                              <Button
+                                onClick={handleCancelar}
+                                disabled={cargando}
+                                className="flex-1 flex items-center justify-center gap-1 text-sm px-3 py-1.5 text-gray-700 dark:text-gray-200 font-semibold rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              >
+                                <X className="h-4 w-4" /> Cancelar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="mb-4">
                         <h3 className="font-bold text-casal mb-2">

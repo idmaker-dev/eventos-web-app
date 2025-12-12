@@ -16,22 +16,24 @@ const ModalAumentarBoletos = ({ isOpen, onClose, deuda, onBoletosActualizados })
 
   const cantidadActual = deuda.asistente.cantidad_boletos;
   const diferencia = nuevaCantidad - cantidadActual;
+  const esDisminucion = diferencia < 0;
   const precioPorBoleto = eventoActual?.costo || 0;
   const costoAdicional = diferencia > 0 ? precioPorBoleto * diferencia : 0;
+  const montoReduccion = diferencia < 0 ? precioPorBoleto * Math.abs(diferencia) : 0;
 
   const handleIncrement = () => {
     setNuevaCantidad((prev) => prev + 1);
   };
 
   const handleDecrement = () => {
-    if (nuevaCantidad > cantidadActual) {
+    if (nuevaCantidad > 0) {
       setNuevaCantidad((prev) => prev - 1);
     }
   };
 
   const handleInputChange = (e) => {
-    const value = parseInt(e.target.value) || cantidadActual;
-    if (value >= cantidadActual) {
+    const value = parseInt(e.target.value) || 0;
+    if (value >= 0) {
       setNuevaCantidad(value);
     }
   };
@@ -39,25 +41,29 @@ const ModalAumentarBoletos = ({ isOpen, onClose, deuda, onBoletosActualizados })
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (nuevaCantidad <= cantidadActual) {
-      showError("La nueva cantidad debe ser mayor a la actual");
+    if (nuevaCantidad === cantidadActual) {
+      showError("La nueva cantidad debe ser diferente a la actual");
       return;
     }
 
     setLoading(true);
 
     try {
+      // Para disminución, siempre usar "eliminar_completas"
+      const opcionFinal = esDisminucion ? "eliminar_completas" : opcionProrrateo;
+      
       const resultado = await eventService.updateInvitadoBoletos(
         deuda.invitado_id,
         nuevaCantidad,
-        opcionProrrateo
+        opcionFinal
       );
 
       if (resultado.success) {
-        showSuccess(
-          `Boletos actualizados correctamente. Se agregaron ${diferencia} boleto(s)`,
-          { duration: 5000 }
-        );
+        const mensaje = esDisminucion
+          ? `Boletos actualizados correctamente. Se eliminaron ${Math.abs(diferencia)} boleto(s)`
+          : `Boletos actualizados correctamente. Se agregaron ${diferencia} boleto(s)`;
+        
+        showSuccess(mensaje, { duration: 5000 });
         
         // Llamar al callback para actualizar la vista
         if (onBoletosActualizados) {
@@ -90,7 +96,7 @@ const ModalAumentarBoletos = ({ isOpen, onClose, deuda, onBoletosActualizados })
               </div>
               <div>
                 <Dialog.Title className="text-xl font-bold text-gray-900 dark:text-white">
-                  Aumentar Boletos
+                  {esDisminucion ? "Disminuir Boletos" : "Aumentar Boletos"}
                 </Dialog.Title>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
                   {deuda.asistente.nombre_completo}
@@ -136,7 +142,7 @@ const ModalAumentarBoletos = ({ isOpen, onClose, deuda, onBoletosActualizados })
                   <button
                     type="button"
                     onClick={handleDecrement}
-                    disabled={nuevaCantidad <= cantidadActual}
+                    disabled={nuevaCantidad <= 0}
                     className="p-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     <Minus className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -146,7 +152,7 @@ const ModalAumentarBoletos = ({ isOpen, onClose, deuda, onBoletosActualizados })
                     type="number"
                     value={nuevaCantidad}
                     onChange={handleInputChange}
-                    min={cantidadActual}
+                    min={0}
                     className="w-24 text-center text-2xl font-bold py-3 px-4 border-2 border-casal/30 dark:border-casal/50 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-casal"
                   />
                   
@@ -158,22 +164,27 @@ const ModalAumentarBoletos = ({ isOpen, onClose, deuda, onBoletosActualizados })
                     <Plus className="w-5 h-5 text-white" />
                   </button>
 
-                  {diferencia > 0 && (
+                  {diferencia !== 0 && (
                     <div className="flex items-center gap-2 ml-2">
-                      <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                        +{diferencia} boleto{diferencia !== 1 ? "s" : ""}
+                      <span className={`text-sm font-medium ${
+                        diferencia > 0 
+                          ? "text-green-600 dark:text-green-400" 
+                          : "text-red-600 dark:text-red-400"
+                      }`}>
+                        {diferencia > 0 ? "+" : ""}{diferencia} boleto{Math.abs(diferencia) !== 1 ? "s" : ""}
                       </span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Opción de prorrateo */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Gestión de facturas
-                </label>
-                <div className="space-y-3">
+              {/* Opción de prorrateo - Solo para aumento */}
+              {!esDisminucion && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Gestión de facturas
+                  </label>
+                  <div className="space-y-3">
                   <label className="flex items-start gap-3 p-4 border-2 border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <input
                       type="radio"
@@ -211,22 +222,42 @@ const ModalAumentarBoletos = ({ isOpen, onClose, deuda, onBoletosActualizados })
                       </p>
                     </div>
                   </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Resumen del cambio */}
-              {diferencia > 0 && (
-                <div className="bg-gradient-to-br from-casal/5 to-casal/10 dark:from-casal/10 dark:to-casal/20 border border-casal/30 dark:border-casal/50 rounded-lg p-4">
+              {diferencia !== 0 && (
+                <div className={`bg-gradient-to-br border rounded-lg p-4 ${
+                  esDisminucion
+                    ? "from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-900/30 border-red-300 dark:border-red-700"
+                    : "from-casal/5 to-casal/10 dark:from-casal/10 dark:to-casal/20 border-casal/30 dark:border-casal/50"
+                }`}>
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-casal dark:text-Acapulco mt-0.5 flex-shrink-0" />
+                    <AlertCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                      esDisminucion
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-casal dark:text-Acapulco"
+                    }`} />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">
                         Resumen del cambio
                       </p>
                       <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
-                        <p>• Se agregarán <span className="font-semibold">{diferencia}</span> boleto{diferencia !== 1 ? "s" : ""}</p>
-                        <p>• Costo adicional: <span className="font-semibold">${costoAdicional.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
-                        <p>• Nuevo total: <span className="font-semibold">${(deuda.financiero.monto_total + costoAdicional).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+                        {esDisminucion ? (
+                          <>
+                            <p>• Se eliminarán <span className="font-semibold">{Math.abs(diferencia)}</span> boleto{Math.abs(diferencia) !== 1 ? "s" : ""}</p>
+                            <p>• Reducción de monto: <span className="font-semibold">${montoReduccion.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+                            <p>• Nuevo total: <span className="font-semibold">${(deuda.financiero.monto_total - montoReduccion).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+                            <p className="text-xs text-red-600 dark:text-red-400 mt-2">⚠️ Se eliminarán facturas completas automáticamente</p>
+                          </>
+                        ) : (
+                          <>
+                            <p>• Se agregarán <span className="font-semibold">{diferencia}</span> boleto{diferencia !== 1 ? "s" : ""}</p>
+                            <p>• Costo adicional: <span className="font-semibold">${costoAdicional.toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+                            <p>• Nuevo total: <span className="font-semibold">${(deuda.financiero.monto_total + costoAdicional).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -246,7 +277,7 @@ const ModalAumentarBoletos = ({ isOpen, onClose, deuda, onBoletosActualizados })
               </button>
               <button
                 type="submit"
-                disabled={loading || diferencia <= 0}
+                disabled={loading || diferencia === 0}
                 className="px-5 py-2.5 bg-casal text-white rounded-lg hover:bg-casal/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {loading ? (
@@ -256,8 +287,17 @@ const ModalAumentarBoletos = ({ isOpen, onClose, deuda, onBoletosActualizados })
                   </>
                 ) : (
                   <>
-                    <Plus className="w-4 h-4" />
-                    Aumentar boletos
+                    {esDisminucion ? (
+                      <>
+                        <Minus className="w-4 h-4" />
+                        Disminuir boletos
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Aumentar boletos
+                      </>
+                    )}
                   </>
                 )}
               </button>
