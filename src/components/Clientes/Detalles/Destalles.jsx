@@ -831,25 +831,31 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                         </div>
                       </div>
 
-                      <div>
+                      {/* <div>
                         <span className="font-semibold text-casal">
                           Contacto de emergencia:
                         </span>{" "}
                         {ticket.cliente.contactoErme.tutorER} -{" "}
                         {ticket.cliente.contactoErme.telefonoER}
-                      </div>
-                      <div>
-                        <span className="font-semibold text-casal">
-                          Datos del tutor:
-                        </span>{" "}
-                        {ticket.cliente.contacto.tutor}
-                      </div>
-                      <div>
-                        <span className="font-semibold text-casal">
-                          Teléfono del tutor:
-                        </span>{" "}
-                        {ticket.cliente.contacto.telefono}
-                      </div>
+                      </div> */}
+
+                      {ticket?.cliente?.contacto && (
+                        <div>
+                          <div>
+                            <span className="font-semibold text-casal">
+                              Datos del tutor:
+                            </span>{" "}
+                            {ticket.cliente.contacto.tutor}
+                          </div>
+
+                          <div>
+                            <span className="font-semibold text-casal">
+                              Teléfono del tutor:
+                            </span>{" "}
+                            {ticket.cliente.contacto.telefono}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="bg-white dark:bg-[#1a1a1a] rounded-lg p-4 shadow mt-4">
