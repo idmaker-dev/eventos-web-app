@@ -17,8 +17,7 @@ export function calcularTiempoTranscurrido(fechaISO) {
   const minutos = Math.floor(diff / 60000);
 
   if (minutos < 1) return "Hace menos de 1 minuto";
-  if (minutos < 60)
-    return `Hace ${minutos} minuto${minutos > 1 ? "s" : ""}`;
+  if (minutos < 60) return `Hace ${minutos} minuto${minutos > 1 ? "s" : ""}`;
 
   const horas = Math.floor(minutos / 60);
   if (horas < 24) return `Hace ${horas} hora${horas > 1 ? "s" : ""}`;
@@ -38,13 +37,17 @@ export function calcularTiempoTranscurrido(fechaISO) {
 export function mapearEstadoTicket(estatusAPI) {
   // Normalizar el estado a solo dos opciones
   const estadoNormalizado = estatusAPI?.toLowerCase();
-  
+
   // Mapear cualquier variación a activo o cerrado
-  if (estadoNormalizado === 'cerrado' || estadoNormalizado === 'closed' || estadoNormalizado === 'resuelto') {
-    return 'cerrado';
+  if (
+    estadoNormalizado === "cerrado" ||
+    estadoNormalizado === "closed" ||
+    estadoNormalizado === "resuelto"
+  ) {
+    return "cerrado";
   }
-  
-  return 'activo'; // Por defecto, cualquier otro estado es activo
+
+  return "activo"; // Por defecto, cualquier otro estado es activo
 }
 
 /**
@@ -164,8 +167,7 @@ export function transformarClienteParaUI(clientInfoAPI) {
     nombre: datos_personales?.nombre_completo || "",
     estudios: datos_personales?.estudios || "No especificado",
     institución: datos_personales?.institucion || "No especificado",
-    catidadPedido:
-      informacion_boletos?.cantidad_solicitada?.toString() || "0",
+    catidadPedido: informacion_boletos?.cantidad_solicitada?.toString() || "0",
     contactoErme: {
       telefonoER: datos_personales?.contacto_emergencia_telefono || "",
       tutorER: datos_personales?.contacto_emergencia_nombre || "",
@@ -179,8 +181,9 @@ export function transformarClienteParaUI(clientInfoAPI) {
         codigo: b.codigo,
         asiento: b.asiento || "Sin asiento",
         status: b.estado === "confirmado",
-        retriciones:
-          b.restricciones?.map((r) => ({ item: r })) || [{ item: null }],
+        retriciones: b.restricciones?.map((r) => ({ item: r })) || [
+          { item: null },
+        ],
       })) || [],
   };
 }
@@ -241,11 +244,11 @@ export function transformarHistorialParaUI(historialAcciones) {
   if (!historialAcciones || !Array.isArray(historialAcciones)) return [];
 
   return historialAcciones.map((accion) => ({
-    fecha: formatearFecha(accion.fecha),
-    hora: formatearHora(accion.fecha),
-    evento: accion.tipo_accion,
+    fecha: formatearFecha(accion.created_at),
+    hora: formatearHora(accion.created_at),
+    evento: accion.accion,
     detalle: accion.descripcion,
-    responsable: accion.admin_nombre || "Sistema automático",
+    // responsable: accion.admin_nombre || "Sistema automático",
   }));
 }
 
@@ -346,7 +349,7 @@ export function crearEstructuraTicketBasico(ticketAPI) {
       descripcion: ticketAPI.ultimo_mensaje || ticketAPI.mensaje || "",
       boletos: {
         anteriores: [],
-        adicionales: []
+        adicionales: [],
       },
       cantidadPagada: "$0 MXN",
       formaPago: "N/A",
@@ -383,7 +386,7 @@ export function crearEstructuraTicketBasico(ticketAPI) {
       progreso: 0,
       monto_pagado: 0,
       monto_total: 0,
-    }
+    },
   };
 }
 
@@ -396,32 +399,62 @@ export function crearEstructuraTicketBasico(ticketAPI) {
 export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
   if (!ticketDetail?.ticket) return null;
 
-  console.log("🔄 [transformarTicketCompletoParaUI] Transformando datos del ticket y cliente para la UI", { ticketDetail, clientInfo }  );
+  console.log(
+    "🔄 [transformarTicketCompletoParaUI] Transformando datos del ticket y cliente para la UI",
+    { ticketDetail, clientInfo }
+  );
 
   const ticket = ticketDetail.ticket;
   const invitado = ticketDetail.invitado || {};
   const historialAcciones = ticketDetail.historial_acciones || [];
   const conversacion = ticketDetail.conversacion || {};
-  
+
   const datosPersonales = clientInfo?.datos_personales || {};
   const evento = clientInfo?.evento || {};
   const lugar = evento?.lugar || {};
   const informacionPago = clientInfo?.informacion_pago || {};
   const informacionBoletos = clientInfo?.informacion_boletos || {};
-  const historialAccionesCliente = clientInfo?.historial_acciones?.acciones || [];
+  const historialAccionesCliente =
+    clientInfo?.historial_acciones?.acciones || [];
   const historialTickets = clientInfo?.tickets?.lista || [];
 
   // Formatear boletos para la UI
-  const boletosFormateados = (informacionBoletos.boletos || []).map(boleto => ({
+  let boletosFormateados = (informacionBoletos.boletos || []).map((boleto) => ({
     codigo: boleto.codigo,
     asiento: boleto.mesa_numero ? `Mesa ${boleto.mesa_numero}` : "Sin asignar",
     menu: boleto.menu || "No especificado",
     status: true,
-    retriciones: boleto.restricciones ? boleto.restricciones.map(r => ({ item: r })) : [],
+    retriciones: boleto.restricciones
+      ? boleto.restricciones.map((r) => ({ item: r }))
+      : [],
   }));
 
+  // Ajustar la cantidad de boletos para coincidir con la cantidad solicitada
+  // Esto maneja el caso donde el backend actualiza el contador pero aún no genera los registros individuales
+  const cantidadSolicitada =
+    parseInt(informacionBoletos.cantidad_solicitada) ||
+    boletosFormateados.length;
+
+  if (boletosFormateados.length < cantidadSolicitada) {
+    // Faltan boletos (recién agregados), agregar placeholders
+    const faltantes = cantidadSolicitada - boletosFormateados.length;
+    for (let i = 0; i < faltantes; i++) {
+      boletosFormateados.push({
+        codigo: `Pendiente-${Date.now()}-${i}`, // ID temporal único
+        asiento: "Procesando...",
+        menu: "No especificado",
+        status: false, // Marcar como incompleto/pendiente
+        retriciones: [],
+      });
+    }
+  } else if (boletosFormateados.length > cantidadSolicitada) {
+    // Sobran boletos (recién eliminados), recortar la lista
+    // Asumimos que se eliminan los últimos (o el backend los eliminará pronto)
+    boletosFormateados = boletosFormateados.slice(0, cantidadSolicitada);
+  }
+
   // Formatear historial de tickets del cliente (endpoint 3)
-  const historialTicketsFormateado = historialTickets.map(t => ({
+  const historialTicketsFormateado = historialTickets.map((t) => ({
     motivo: t.mensaje || "Sin descripción",
     fecha: formatearFecha(t.fecha_creacion),
     estado: mapearEstadoTicket(t.estatus),
@@ -430,7 +463,10 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
   }));
 
   // Formatear historial de acciones
-  const historialFormateado = [...historialAcciones, ...historialAccionesCliente].map(accion => ({
+  const historialFormateado = [
+    ...historialAcciones,
+    ...historialAccionesCliente,
+  ].map((accion) => ({
     fecha: formatearFecha(accion.fecha_accion),
     hora: formatearHora(accion.fecha_accion),
     evento: mapearTipoAccion(accion.tipo_accion),
@@ -439,7 +475,7 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
   }));
 
   // Formatear mensajes del chat
-  const mensajesFormateados = (conversacion.mensajes || []).map(msg => ({
+  const mensajesFormateados = (conversacion.mensajes || []).map((msg) => ({
     id: msg.id,
     remitente: msg.from === "usuario" ? "Cliente" : "Soporte",
     from: msg.from,
@@ -462,21 +498,39 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
       nombreEvento: evento.descripcion || "Evento principal",
       estadoDelTicket: ticket.estatus,
       movimiento: ticket.mensaje,
-      escuela:evento.instituto || "N/A",
+      escuela: evento.instituto || "N/A",
       descripcion: ticket.ultimo_mensaje || ticket.mensaje,
       boletos: {
-        anteriores: boletosFormateados.slice(0, Math.floor(boletosFormateados.length / 2)),
-        adicionales: boletosFormateados.slice(Math.floor(boletosFormateados.length / 2))
+        anteriores: boletosFormateados.slice(
+          0,
+          Math.floor(boletosFormateados.length / 2)
+        ),
+        adicionales: boletosFormateados.slice(
+          Math.floor(boletosFormateados.length / 2)
+        ),
       },
       cantidadPagada: `$${informacionPago.progreso?.monto_pagado || 0} MXN`,
       formaPago: "Tarjeta vinculada - Toku",
       responsableCambio: ticket.nombre_promotor || "Sin asignar",
-      fechaPago: informacionPago.ultima_actualizacion ? formatearFecha(informacionPago.ultima_actualizacion) : "N/A",
+      fechaPago: informacionPago.ultima_actualizacion
+        ? formatearFecha(informacionPago.ultima_actualizacion)
+        : "N/A",
       lugarPago: lugar.nombre || "Portal de pagos",
-      fechaEvento: evento.fecha_evento ? formatearFechaHora(evento.fecha_evento) : "N/A",
+      fechaEvento: evento.fecha_evento
+        ? formatearFechaHora(evento.fecha_evento)
+        : "N/A",
       boletosTotales: informacionBoletos.cantidad_solicitada || 0,
-      precioBoleto: informacionPago.progreso?.monto_total ? `$${Math.floor(informacionPago.progreso.monto_total / (informacionBoletos.cantidad_solicitada || 1))} MXN` : "$0 MXN",
-      fechaDePagos: informacionPago.cuotas?.lista_cuotas?.[0]?.fecha_vencimiento ? formatearFecha(informacionPago.cuotas.lista_cuotas[0].fecha_vencimiento) : "N/A",
+      precioBoleto: informacionPago.progreso?.monto_total
+        ? `$${Math.floor(
+            informacionPago.progreso.monto_total /
+              (informacionBoletos.cantidad_solicitada || 1)
+          )} MXN`
+        : "$0 MXN",
+      fechaDePagos: informacionPago.cuotas?.lista_cuotas?.[0]?.fecha_vencimiento
+        ? formatearFecha(
+            informacionPago.cuotas.lista_cuotas[0].fecha_vencimiento
+          )
+        : "N/A",
       coordinadorEvento: lugar.numero_contacto || "N/A",
     },
     cliente: {
@@ -499,29 +553,48 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
     historialSecuencial: historialFormateado, // Historial de acciones
     chat: mensajesFormateados,
     pago: {
-      estadoGeneral: informacionPago.cuotas?.vencidas > 0 ? "Con cuotas vencidas" : informacionPago.cuotas?.pendientes > 0 ? "Pago pendiente" : "Al corriente",
+      estadoGeneral:
+        informacionPago.cuotas?.vencidas > 0
+          ? "Con cuotas vencidas"
+          : informacionPago.cuotas?.pendientes > 0
+          ? "Pago pendiente"
+          : "Al corriente",
       totalBoletos: informacionBoletos.cantidad_asignada || 0,
       totalPagado: formatearMonto(informacionPago.progreso?.monto_pagado || 0),
       formaPago: "Tarjeta vinculada - Toku",
-      fechaDePago: informacionPago.ultima_actualizacion ? formatearFecha(informacionPago.ultima_actualizacion) : "N/A",
-      fechaVencimiento: informacionPago.cuotas?.lista_cuotas?.[0]?.fecha_vencimiento ? formatearFecha(informacionPago.cuotas.lista_cuotas[0].fecha_vencimiento) : "N/A",
-      transacciones: (informacionPago.detalle_transacciones || []).map(tx => ({
-        fecha: formatearFecha(tx.fecha),
-        monto: formatearMonto(tx.monto),
-        método: tx.metodo || "Tarjeta",
-        estado: tx.estado || "Pendiente"
-      })),
+      fechaDePago: informacionPago.ultima_actualizacion
+        ? formatearFecha(informacionPago.ultima_actualizacion)
+        : "N/A",
+      fechaVencimiento: informacionPago.cuotas?.lista_cuotas?.[0]
+        ?.fecha_vencimiento
+        ? formatearFecha(
+            informacionPago.cuotas.lista_cuotas[0].fecha_vencimiento
+          )
+        : "N/A",
+      transacciones: (informacionPago.detalle_transacciones || []).map(
+        (tx) => ({
+          fecha: formatearFecha(tx.fecha),
+          monto: formatearMonto(tx.monto),
+          método: tx.metodo || "Tarjeta",
+          estado: tx.estado || "Pendiente",
+        })
+      ),
       adicional: {
         devoluciones: informacionPago.devoluciones || "No registradas",
         opcionesDevolucion: [],
         progresoPago: `${informacionPago.progreso?.porcentaje || 0}%`,
-        últimaActualización: informacionPago.ultima_actualizacion ? formatearFechaHora(informacionPago.ultima_actualizacion) : "N/A",
-        responsableRegistro: informacionPago.responsable_registro || "Sistema automático"
+        últimaActualización: informacionPago.ultima_actualizacion
+          ? formatearFechaHora(informacionPago.ultima_actualizacion)
+          : "N/A",
+        responsableRegistro:
+          informacionPago.responsable_registro || "Sistema automático",
       },
-      detalleExtra: (informacionPago.cuotas?.lista_cuotas || []).map(cuota => ({
-        fecha: formatearFecha(cuota.fecha_vencimiento),
-        detalle: `${cuota.descripcion} - ${cuota.estado_display}`
-      })),
+      detalleExtra: (informacionPago.cuotas?.lista_cuotas || []).map(
+        (cuota) => ({
+          fecha: formatearFecha(cuota.fecha_vencimiento),
+          detalle: `${cuota.descripcion} - ${cuota.estado_display}`,
+        })
+      ),
       // Datos originales para uso interno
       estado: informacionPago.estado_deuda || "PENDIENTE",
       progreso: informacionPago.progreso?.porcentaje || 0,
@@ -529,6 +602,7 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
       monto_total: informacionPago.progreso?.monto_total || 0,
       monto_pendiente: informacionPago.progreso?.monto_pendiente || 0,
       cuotas: informacionPago.cuotas || {},
-    }
+    },
+    invitado_id: clientInfo?.invitado_id || null,
   };
 }

@@ -16,7 +16,14 @@ import {
   X,
   ChevronDown,
 } from "lucide-react";
-import { Button, Input, Menu as HeadlessMenu, MenuButton, MenuItems, MenuItem } from "@headlessui/react";
+import {
+  Button,
+  Input,
+  Menu as HeadlessMenu,
+  MenuButton,
+  MenuItems,
+  MenuItem,
+} from "@headlessui/react";
 import clsx from "clsx";
 import { Tooltip } from "../../ui/Tooltip";
 import eventService from "../../../services/eventService";
@@ -34,38 +41,36 @@ function useIsMobile() {
   return isMobile;
 }
 
-export default function Destalles({ ticket, onBack, isMobileView }) {
+export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
   const [tabActivo, setTabActivo] = useState("cliente");
   const isMobile = useIsMobile();
-  
+
   // Estados para modificación de boletos
   const [modificandoBoletos, setModificandoBoletos] = useState(false);
   const [nuevaCantidad, setNuevaCantidad] = useState(0);
   const [opcionProrrateo, setOpcionProrrateo] = useState("crear_nuevas");
   const [cargando, setCargando] = useState(false);
-  
+
   const { eventoActual } = useSelectedEvent();
-  const { addNotification } = useNotifications();
-  
+  const { showError, showSuccess } = useNotifications();
+
   // Obtener cantidad actual de boletos del ticket
-  const cantidadActual = ticket?.cliente?.catidadPedido || ticket?.cliente?.boletos?.length || 2;
-  
+  const cantidadActual =
+    ticket?.cliente?.catidadPedido || ticket?.cliente?.boletos?.length || 2;
+
   const handleIniciarModificacion = (incremento) => {
     if (!modificandoBoletos) {
       // Primera vez: iniciar modo edición
       const nuevaCant = Number(cantidadActual) + Number(incremento);
-      
+
       if (nuevaCant <= 0) {
-        addNotification({
-          type: "error",
-          message: "La cantidad de boletos no puede ser menor a 1"
-        });
+        showError("La cantidad de boletos no puede ser menor a 1");
         return;
       }
-      
+
       setNuevaCantidad(nuevaCant);
       setModificandoBoletos(true);
-      
+
       // Si es disminución, auto-seleccionar "eliminar_completas"
       if (incremento < 0) {
         setOpcionProrrateo("eliminar_completas");
@@ -75,76 +80,77 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
     } else {
       // Ya está en modo edición: solo actualizar cantidad
       const nuevaCant = Number(nuevaCantidad) + Number(incremento);
-      
+
       if (nuevaCant <= 0) {
-        addNotification({
-          type: "error",
-          message: "La cantidad de boletos no puede ser menor a 1"
-        });
+        showError("La cantidad de boletos no puede ser menor a 1");
         return;
       }
-      
+
       setNuevaCantidad(nuevaCant);
-      
+
       // Actualizar opción prorrateo según dirección
       if (nuevaCant < Number(cantidadActual)) {
         setOpcionProrrateo("eliminar_completas");
-      } else if (opcionProrrateo === "eliminar_completas" && nuevaCant > Number(cantidadActual)) {
+      } else if (
+        opcionProrrateo === "eliminar_completas" &&
+        nuevaCant > Number(cantidadActual)
+      ) {
         setOpcionProrrateo("crear_nuevas");
       }
     }
   };
-  
+
   const handleCancelar = () => {
     setModificandoBoletos(false);
     setNuevaCantidad(0);
     setOpcionProrrateo("crear_nuevas");
   };
-  
+
   const handleConfirmar = async () => {
     try {
       setCargando(true);
-      
+
       // Obtener invitado_id del ticket
       const invitadoId = ticket?.cliente?.invitado_id || ticket?.invitado_id;
-      
+
       if (!invitadoId) {
-        addNotification({
-          type: "error",
-          message: "No se encontró el ID del invitado"
-        });
+        showError("No se encontró el ID del invitado");
         return;
       }
-      
+
       if (!eventoActual) {
-        addNotification({
-          type: "error",
-          message: "No hay evento seleccionado"
-        });
+        showError("No hay evento seleccionado");
         return;
       }
-      
-      await eventService.updateInvitadoBoletos(
+      console.log(ticket);
+
+      const response = await eventService.updateInvitadoBoletos(
         invitadoId,
         nuevaCantidad,
-        opcionProrrateo
+        opcionProrrateo,
+        ticket?.id,
+        nuevaCantidad > cantidadActual ? "AGREGAR BOLETO" : "ELIMINAR BOLETO"
       );
-      
-      addNotification({
-        type: "success",
-        message: `Boletos ${nuevaCantidad > cantidadActual ? 'aumentados' : 'disminuidos'} exitosamente`
-      });
-      
-      handleCancelar();
-      
-      // TODO: Recargar datos del ticket para reflejar cambios
-      
+
+      if (response.success) {
+        showSuccess(
+          `Boletos ${
+            nuevaCantidad > cantidadActual ? "aumentados" : "disminuidos"
+          } exitosamente`
+        );
+        handleCancelar();
+        if (onRefresh) {
+          console.log("🔄 [Destalles] Solicitando refresh silencioso...");
+          onRefresh();
+        } else {
+          console.warn("⚠️ [Destalles] onRefresh prop no proporcionada");
+        }
+      } else {
+        showError(response.error || "Error al actualizar boletos");
+      }
     } catch (error) {
       console.error("Error al actualizar boletos:", error);
-      addNotification({
-        type: "error",
-        message: error.response?.data?.message || "Error al actualizar boletos"
-      });
+      showError(error.response?.data?.message || "Error al actualizar boletos");
     } finally {
       setCargando(false);
     }
@@ -167,9 +173,19 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
   }
 
   return (
-    <div className={`${isMobileView ? 'h-screen' : 'h-full'} ${isMobileView ? 'bg-white dark:bg-[#1a1a1a]' : 'bg-fondoVs dark:bg-[#1a1a1a] rounded-r-3xl'} flex flex-col`}>
+    <div
+      className={`${isMobileView ? "h-screen" : "h-full"} ${
+        isMobileView
+          ? "bg-white dark:bg-[#1a1a1a]"
+          : "bg-fondoVs dark:bg-[#1a1a1a] rounded-r-3xl"
+      } flex flex-col`}
+    >
       {/* Header del Chat */}
-      <div className={`p-3 border-b border-gray-200 ${isMobileView ? '' : 'rounded-tr-3xl'} dark:border-gray-700 bg-white dark:bg-[#1a1a1a] flex-shrink-0`}>
+      <div
+        className={`p-3 border-b border-gray-200 ${
+          isMobileView ? "" : "rounded-tr-3xl"
+        } dark:border-gray-700 bg-white dark:bg-[#1a1a1a] flex-shrink-0`}
+      >
         <div className="flex items-center gap-3">
           {isMobileView && onBack && (
             <Button
@@ -179,7 +195,7 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
               <ArrowLeft className="w-5 h-5 text-casal" />
             </Button>
           )}
-          
+
           {/* Avatar */}
           <div className="relative">
             <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
@@ -293,7 +309,13 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
       <div className="flex-1 overflow-y-auto">
         <div className={isMobile ? "p-2" : "grid grid-cols-3"}>
           {(!isMobile || tabActivo === "historial") && (
-            <div className={isMobile ? "" : "p-2 bg-casalds-700/25 dark:bg-Acapulco/5 border-r border-gray-200 dark:border-gray-700 h-[calc(100vh)] lg:h-[calc(63vh)] px-4 overflow-y-auto"}>
+            <div
+              className={
+                isMobile
+                  ? ""
+                  : "p-2 bg-casalds-700/25 dark:bg-Acapulco/5 border-r border-gray-200 dark:border-gray-700 h-[calc(100vh)] lg:h-[calc(63vh)] px-4 overflow-y-auto"
+              }
+            >
               {/* Historial de tickets */}
               <div>
                 <div className="text-xs text-casal dark:text-Acapulco leading-5">
@@ -316,7 +338,8 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {ticket.ticketHistorial && ticket.ticketHistorial.length > 0 ? (
+                      {ticket.ticketHistorial &&
+                      ticket.ticketHistorial.length > 0 ? (
                         ticket.ticketHistorial.map((item, index) => (
                           <tr
                             key={index}
@@ -508,7 +531,13 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
             </div>
           )}
           {(!isMobile || tabActivo === "registro") && (
-            <div className={isMobile ? "" : "bg-white dark:bg-[#1a1a1a] p-2 rounded-lg h-[calc(100vh)] lg:h-[calc(63vh)] overflow-y-auto"}>
+            <div
+              className={
+                isMobile
+                  ? ""
+                  : "bg-white dark:bg-[#1a1a1a] p-2 rounded-lg h-[calc(100vh)] lg:h-[calc(63vh)] overflow-y-auto"
+              }
+            >
               {/* Registro secuencial */}
               <div>
                 <div className="font-semibold text-center bg-gray-200 dark:bg-black text-casal py-1 px-2 rounded text-sm leading-5">
@@ -577,10 +606,10 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                             <div className="text-gray-700 dark:text-gray-300 mb-2 text-xs">
                               {item.detalle}
                             </div>
-                            <div className="text-xs font-semibold text-casal">
+                            {/* <div className="text-xs font-semibold text-casal">
                               <span className="font-bold">Responsable:</span>{" "}
                               {item.responsable}
-                            </div>
+                            </div> */}
                           </div>
                         </div>
                       ))
@@ -596,7 +625,13 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
           )}
 
           {(!isMobile || tabActivo === "cliente" || tabActivo === "pago") && (
-            <div className={isMobile ? "" : "p-2 bg-casalds-700/25 dark:bg-Acapulco/5 h-[calc(100vh)] lg:h-[calc(63vh)] px-3 overflow-y-auto rounded-br-lg"}>
+            <div
+              className={
+                isMobile
+                  ? ""
+                  : "p-2 bg-casalds-700/25 dark:bg-Acapulco/5 h-[calc(100vh)] lg:h-[calc(63vh)] px-3 overflow-y-auto rounded-br-lg"
+              }
+            >
               {/* Cliente o Pago */}
               {tabActivo === "cliente" && (
                 <>
@@ -648,27 +683,35 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                               </Button>
                             </Tooltip>
                             <div className="text-casal font-bold">
-                              {modificandoBoletos ? nuevaCantidad : cantidadActual} boletos
+                              {modificandoBoletos
+                                ? nuevaCantidad
+                                : cantidadActual}{" "}
+                              boletos
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Panel de confirmación inline */}
                         {modificandoBoletos && (
                           <div className="p-3 bg-casal/10 dark:bg-casal/20 rounded-lg border border-casal/30">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                Nueva cantidad: <span className="text-casal font-bold">{nuevaCantidad}</span>
+                                Nueva cantidad:{" "}
+                                <span className="text-casal font-bold">
+                                  {nuevaCantidad}
+                                </span>
                               </span>
                             </div>
-                            
+
                             {/* Selector de opción prorrateo (solo si es aumento) */}
                             {nuevaCantidad > cantidadActual && (
                               <div className="mb-3">
                                 <HeadlessMenu as="div" className="relative">
                                   <MenuButton className="w-full flex items-center justify-between px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                     <span className="text-gray-700 dark:text-gray-200">
-                                      {opcionProrrateo === "crear_nuevas" ? "Crear nuevas facturas" : "Aumentar facturas existentes"}
+                                      {opcionProrrateo === "crear_nuevas"
+                                        ? "Crear nuevas facturas"
+                                        : "Aumentar facturas existentes"}
                                     </span>
                                     <ChevronDown className="h-4 w-4 text-gray-500" />
                                   </MenuButton>
@@ -676,11 +719,17 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                                     <MenuItem>
                                       {({ focus }) => (
                                         <button
-                                          onClick={() => setOpcionProrrateo("crear_nuevas")}
+                                          onClick={() =>
+                                            setOpcionProrrateo("crear_nuevas")
+                                          }
                                           className={clsx(
                                             "w-full text-left px-3 py-2 text-sm transition-colors",
-                                            focus ? "bg-casal/10 dark:bg-casal/20" : "",
-                                            opcionProrrateo === "crear_nuevas" ? "text-casal font-medium" : "text-gray-700 dark:text-gray-200"
+                                            focus
+                                              ? "bg-casal/10 dark:bg-casal/20"
+                                              : "",
+                                            opcionProrrateo === "crear_nuevas"
+                                              ? "text-casal font-medium"
+                                              : "text-gray-700 dark:text-gray-200"
                                           )}
                                         >
                                           Crear nuevas facturas
@@ -690,11 +739,20 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                                     <MenuItem>
                                       {({ focus }) => (
                                         <button
-                                          onClick={() => setOpcionProrrateo("aumentar_existentes")}
+                                          onClick={() =>
+                                            setOpcionProrrateo(
+                                              "aumentar_existentes"
+                                            )
+                                          }
                                           className={clsx(
                                             "w-full text-left px-3 py-2 text-sm transition-colors",
-                                            focus ? "bg-casal/10 dark:bg-casal/20" : "",
-                                            opcionProrrateo === "aumentar_existentes" ? "text-casal font-medium" : "text-gray-700 dark:text-gray-200"
+                                            focus
+                                              ? "bg-casal/10 dark:bg-casal/20"
+                                              : "",
+                                            opcionProrrateo ===
+                                              "aumentar_existentes"
+                                              ? "text-casal font-medium"
+                                              : "text-gray-700 dark:text-gray-200"
                                           )}
                                         >
                                           Aumentar facturas existentes
@@ -705,7 +763,7 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                                 </HeadlessMenu>
                               </div>
                             )}
-                            
+
                             <div className="flex items-center gap-2">
                               <Button
                                 onClick={handleConfirmar}
@@ -715,7 +773,9 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                                 {cargando ? (
                                   <>Procesando...</>
                                 ) : (
-                                  <><Check className="h-4 w-4" /> Confirmar</>
+                                  <>
+                                    <Check className="h-4 w-4" /> Confirmar
+                                  </>
                                 )}
                               </Button>
                               <Button
@@ -752,7 +812,7 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                               </div>
                               <span className="text-gray-400">
                                 Menú: {boleto.menu || "No especificado"}
-                                  </span>
+                              </span>
                               <div className="text-xs text-gray-700 dark:text-gray-300 mb-1">
                                 {boleto.status &&
                                 boleto.retriciones &&
@@ -801,7 +861,9 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                         <span className="font-semibold text-casal">
                           Nombre de la escuela:
                         </span>{" "}
-                        <span className="break-words">{ticket.cliente.institución}</span>
+                        <span className="break-words">
+                          {ticket.cliente.institución}
+                        </span>
                       </div>
                       <div>
                         <span className="font-semibold text-casal">

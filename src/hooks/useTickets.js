@@ -21,7 +21,7 @@ export const useTickets = (filtrosIniciales = {}) => {
   /**
    * Cargar tickets desde el servidor
    */
-  const cargarTickets = useCallback(async () => {
+  const cargarTickets = useCallback(async (options = {}) => {
     if (EnvConfig.DEBUG_MODE) {
       console.log("🎫 [useTickets] Cargando tickets con filtros:", filtros);
     }
@@ -30,6 +30,7 @@ export const useTickets = (filtrosIniciales = {}) => {
       () => ticketsService.getAllTickets(filtros),
       {
         showSuccessMsg: false,
+        showLoading: options.silent ? false : true,
       }
     );
 

@@ -19,7 +19,7 @@ export const useClientInfo = (telefono) => {
   /**
    * Cargar información completa del cliente desde el servidor
    */
-  const cargarClientInfo = useCallback(async () => {
+  const cargarClientInfo = useCallback(async (options = {}) => {
     if (!telefono) {
       if (EnvConfig.DEBUG_MODE) {
         console.warn("⚠️ [useClientInfo] No se proporcionó teléfono");
@@ -35,6 +35,7 @@ export const useClientInfo = (telefono) => {
       () => ticketsService.getClientInfo(telefono),
       {
         showSuccessMsg: false,
+        showLoading: options.silent ? false : true,
       }
     );
 

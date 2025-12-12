@@ -19,7 +19,7 @@ export const useTicketDetail = (ticketId) => {
   /**
    * Cargar detalle del ticket desde el servidor
    */
-  const cargarTicket = useCallback(async () => {
+  const cargarTicket = useCallback(async (options = {}) => {
     if (!ticketId) {
       if (EnvConfig.DEBUG_MODE) {
         console.warn("⚠️ [useTicketDetail] No se proporcionó ticketId");
@@ -35,6 +35,7 @@ export const useTicketDetail = (ticketId) => {
       () => ticketsService.getTicketDetail(ticketId),
       {
         showSuccessMsg: false,
+        showLoading: options.silent ? false : true,
       }
     );
 

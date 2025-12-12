@@ -318,7 +318,13 @@ class EventService {
    * @param {number} nuevaCantidad - Nueva cantidad de boletos
    * @param {string} opcionProrrateo - Opción de prorrateo ('prorratear' o 'crear_nuevas')
    */
-  async updateInvitadoBoletos(invitadoId, nuevaCantidad, opcionProrrateo = "crear_nuevas") {
+  async updateInvitadoBoletos(
+    invitadoId,
+    nuevaCantidad,
+    opcionProrrateo = "crear_nuevas",
+    ticket_id,
+    accion
+  ) {
     try {
       const response = await httpService.patch(
         `/invitadosAlumnos/${invitadoId}/boletos`,
@@ -326,6 +332,8 @@ class EventService {
           id_invitado: invitadoId,
           nueva_cantidad_boletos: nuevaCantidad,
           opcion_prorrateo: opcionProrrateo,
+          ticket_id: ticket_id,
+          accion: accion,
         }
       );
 
@@ -335,9 +343,10 @@ class EventService {
         message: "Boletos actualizados correctamente",
       };
     } catch (error) {
+      console.error("Error al actualizar boletos:", error);
       return {
         success: false,
-        error: error.userMessage || "Error al actualizar boletos",
+        error: error?.data?.error || "Error al actualizar boletos",
       };
     }
   }
