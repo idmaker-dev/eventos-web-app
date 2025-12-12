@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Outlet } from "react-router-dom";
-import { Bell, ChevronDown, CalendarPlus2, LogOut, Menu } from "lucide-react";
+import { Outlet, useLocation } from "react-router-dom";
+import { Bell, ChevronDown, CalendarPlus2, LogOut, Menu, FileText, Link } from "lucide-react";
 import Eventos from "../Modales/Eventos";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 import temaClaro from "../../assets/recursos/temaClaro.svg";
 import temaOscuro from "../../assets/recursos/temaOscuro.svg";
 import InlineSpinner from "../ui/InlineSpinner";
 import { useAuth } from "../../hooks/useAuth";
+import CrearCuestionarioPages from "../Comunicacion/CrearCuestionarioPages";
 
 import DesktopSidebar from "./Menu/DesktopSidebar";
 import MobileSidebar from "./Menu/MobilSidebar";
+
+import { useNotifications } from "../../contexts/NotificationContext";
 
 export default function AdminPage() {
   const [darkMode, setDarkMode] = useState(false);
@@ -21,6 +24,24 @@ export default function AdminPage() {
   const configMenuRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const { logout } = useAuth();
+  const [showCuestionario, setShowCuestionario] = useState(false);
+  const location = useLocation();
+
+  // const { eventoActual } = useSelectedEvent();
+  const { showSuccess, showError } = useNotifications();
+
+  const handleCopyLink = () => {
+    const eventId = eventoActual?.id || "mg07vfc5ma7io4axa";
+    const link = `${window.location.origin}/cuestionario/${eventId}`;
+    navigator.clipboard
+      .writeText(link)
+      .then(() => {
+        showSuccess("Enlace copiado");
+      })
+      .catch(() => {
+        showError("Error al copiar el enlace");
+      });
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -117,6 +138,10 @@ export default function AdminPage() {
       setIsLoggingOut(false);
     }
   };
+
+  useEffect(() => {
+    setShowCuestionario(false);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-fondoVs dark:bg-[#1a1a1a]">
@@ -223,6 +248,18 @@ export default function AdminPage() {
               >
                 <CalendarPlus2 size={18} />
               </button>
+              <button
+                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                onClick={() => setShowCuestionario(true)}
+              >
+                <FileText size={18} />
+              </button>
+              <button
+                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+                onClick={handleCopyLink}
+              >
+                <Link size={18} />
+              </button>
             </div>
 
             {/* Botones de acción */}
@@ -324,10 +361,32 @@ export default function AdminPage() {
               />
             )}
           </div>
+        
+            <div className="md:hidden mt-4 flex justify-center gap-4">
+               <button
+                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                onClick={() => setShowCuestionario(true)}
+              >
+                <FileText size={18} />
+              </button>
+              <button
+                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+                onClick={handleCopyLink}
+              >
+                <Link size={18} />
+              </button>
+            </div>
         </div>
 
         <div className="p-3 lg:p-6 min-h-[calc(100vh-80px)]">
+           {showCuestionario ? (
+            <CrearCuestionarioPages
+              onClose={() => setShowCuestionario(false)}
+            />
+          ) : (
+            
           <Outlet context={{ selectedEvent: selectedOption }} />
+          )}
         </div>
       </main>
 

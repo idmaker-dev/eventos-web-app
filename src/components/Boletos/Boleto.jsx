@@ -137,7 +137,7 @@ const handleDescargar = async () => {
   // Vista 1: Subir imagen
   if (!imagen) {
     return (
-      <div className="min-h-min flex flex-col items-center justify-center bg-fondoVs dark:bg-[#1a1a1a] rounded-xl p-4">
+      <div className="min-h-full flex flex-col items-center justify-center bg-fondoVs dark:bg-[#1a1a1a] rounded-xl p-4">
         <div className="w-full max-w-5xl flex flex-col items-center">
           <div className="w-full flex flex-col items-center justify-center">
             <div
@@ -322,6 +322,9 @@ if (finalizado && qrConfigPercent) {
           >
             <img src={Descargar} className="w-5 h-5" alt="" />
             Guardar
+          </button>
+          <button className="bg-casal text-white px-4 py-3 rounded-full text-base sm:text-lg font-semibold shadow hover:bg-casal/90 transition flex items-center gap-2 w-full justify-center">
+            Descargar todos los boletos
           </button>
         </div>
       </div>

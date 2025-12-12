@@ -27,6 +27,7 @@ import AsignacionUser from "../../pages/AsignacionUser"
 import ConfiguracionLayout from "../../pages/ConfiguracionLayout"
 import Clientes from "../../pages/Clientes"
 import Campanas from "../../pages/Campanas"
+import Boletos from "../../pages/Boletos"
 // import Comunicacion from "../../pages/Comunicacion"
 
 /* Componentes de protección de rutas */
@@ -88,6 +89,7 @@ export default function AppRoutes() {
         <Route path="asignacion" element={<Asignacion />} />
         <Route path="clientes" element={<Clientes />} />
         <Route path="campanas" element={<Campanas />} />
+        <Route path="boletos" element={<Boletos />} />
       </Route>
       {/* Ruta pública - Accesible sin autenticación */}
       <Route path="/Cuestionario/:eventId" element={<Cuestionario />} />
