@@ -4,20 +4,36 @@ import CompClientes from "../components/Clientes/CompClientes.jsx";
 import clsx from "clsx";
 import { Button } from "@headlessui/react";
 
+import infVerd from "../assets/campanas/icono info verde.svg";
+import { Tooltip } from "../components/ui/Tooltip.jsx";
+import ModalInfoCampanas from "../components/Modales/infoCam.jsx";
+
 export default function Campanas() {
   const [modulo, setModulo] = useState("campana"); // "campana" o "tickets"
-
+  const [showInfoModal, setShowInfoModal] = useState(false);
   return (
-    <div className="p-3 md:p-6 bg-white dark:bg-fodoBlack rounded-3xl shadow-md min-h-screen">
+    <div className="p-3 md:p-6 bg-white dark:bg-fodoBlack rounded-3xl shadow-md h-full">
+      <ModalInfoCampanas open={showInfoModal} onClose={() => setShowInfoModal(false)} />
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         {modulo === "campana" ? (
           <div>
             <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
               Módulo de Campaña
             </h1>
-            <p className="text-gray-500 dark:text-gray-200">
-              Automatiza y personaliza las respuestas de atención al cliente.
-            </p>
+            <div className="flex gap-2">
+              <p className="text-gray-500 dark:text-gray-200">
+                Automatiza y personaliza las respuestas de atención al cliente.
+              </p>
+               <Button onClick={() => setShowInfoModal(true)}>
+                <Tooltip content="Más información sobre flujos de IA">
+                  <img
+                    src={infVerd}
+                    alt="Información"
+                    className="h-6 w-6 mt-1"
+                  />
+                </Tooltip>
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="md:w-9/12">
@@ -26,7 +42,7 @@ export default function Campanas() {
             </h1>
             <p className="text-gray-500 dark:text-gray-200 line-clamp-5 sm:line-clamp-5 md:line-clamp-3">
               Gestiona solicitudes personalizadas de los asistentes. Cada
-              solicitud genera un ticket que es atendido por un asesor  humano,
+              solicitud genera un ticket que es atendido por un asesor humano,
               ideal para casos como cambios de boletos, actualizaciones de
               información o aclaraciones de pago.
             </p>
