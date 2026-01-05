@@ -10,7 +10,7 @@ class HttpService {
     // Crear instancia de Axios con configuración base
     this.api = axios.create({
       baseURL: EnvConfig.FULL_API_URL,
-      timeout: 30000, // 30 segundos
+      timeout: 60000, // 60 segundos
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",

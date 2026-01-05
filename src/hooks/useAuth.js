@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
       const userRole = localStorage.getItem("userRole");
       const userEmail = localStorage.getItem("userEmail");
       const userId = localStorage.getItem("userId"); // ✅ Recuperar ID del usuario
+      const lugarId = localStorage.getItem("lugarId"); // ✅ Recuperar lugar_id
 
       if (token) {
         // Construir objeto user desde localStorage
@@ -29,6 +30,11 @@ export const AuthProvider = ({ children }) => {
           rol: userRole,
           email: userEmail || "usuario@ejemplo.com",
         };
+        
+        // Agregar lugar_id si existe
+        if (lugarId) {
+          userData.lugar_id = lugarId;
+        }
 
         if (EnvConfig.DEBUG_MODE) {
           console.log("🔍 Loading user from localStorage:", userData);
@@ -86,6 +92,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("userRole", result.user.rol);
         localStorage.setItem("userEmail", result.user.email);
         localStorage.setItem("userId", result.user.id); // ✅ Guardar ID del usuario
+        
+        // Guardar lugar_id si el usuario tiene rol "lugar"
+        if (result.user.lugar_id) {
+          localStorage.setItem("lugarId", result.user.lugar_id);
+        }
 
         // Verificar si debe cambiar contraseña
         const debeCambiarPassword = result.data.debe_cambiar_password || false;
@@ -157,6 +168,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem("userRole");
       localStorage.removeItem("userEmail");
       localStorage.removeItem("userId"); // ✅ Limpiar ID del usuario
+      localStorage.removeItem("lugarId"); // ✅ Limpiar lugar_id
       setUser(null);
       setIsAuthenticated(false);
       navigate("/login");
@@ -295,6 +307,11 @@ export const AuthProvider = ({ children }) => {
               "✅ Flag debe_cambiar_password actualizado:",
               updatedUserData.debe_cambiar_password
             );
+          }
+          
+          // Guardar lugar_id si existe en los datos actualizados
+          if (updatedUserData.lugar_id) {
+            localStorage.setItem("lugarId", updatedUserData.lugar_id);
           }
 
           // Establecer al usuario como autenticado con los datos del servidor

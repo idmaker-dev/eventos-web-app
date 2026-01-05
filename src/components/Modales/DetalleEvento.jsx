@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
-import { 
-  CircleX, 
-  Calendar, 
-  Users, 
+import {
+  CircleX,
+  Calendar,
+  Users,
   GraduationCap,
   DollarSign,
   TrendingUp,
@@ -12,14 +12,16 @@ import {
   Tag,
   Download,
   Copy,
-  CheckCircle2
+  CheckCircle2,
 } from "lucide-react";
 import clsx from "clsx";
 import EnvConfig from "../../utils/config";
+import reporteSeleccionService from "../../services/reporteSeleccionService";
 
 export default function DetalleEvento({ open, onClose, evento }) {
   const [urlCopiada, setUrlCopiada] = useState(false);
-  
+  const [descargando, setDescargando] = useState(false);
+
   if (!evento) return null;
 
   // El objeto evento puede venir con la estructura { evento: {...}, ...otrosProps }
@@ -27,34 +29,34 @@ export default function DetalleEvento({ open, onClose, evento }) {
   const eventoData = evento.evento || evento;
 
   // Debug: Ver qué datos estamos recibiendo
-  console.log('🔍 DetalleEvento - evento completo:', evento);
-  console.log('🔍 DetalleEvento - eventoData:', eventoData);
+  console.log("🔍 DetalleEvento - evento completo:", evento);
+  console.log("🔍 DetalleEvento - eventoData:", eventoData);
 
   // Validar que eventoData tenga las propiedades mínimas necesarias
   if (!eventoData || !eventoData.nombre_evento) {
-    console.warn('DetalleEvento: datos de evento incompletos', evento);
+    console.warn("DetalleEvento: datos de evento incompletos", evento);
     return null;
   }
 
   const formatDate = (iso) => {
-    if (!iso) return '-';
+    if (!iso) return "-";
     try {
       const d = new Date(iso);
-      return d.toLocaleDateString('es-MX', { 
-        weekday: 'long',
-        day: '2-digit', 
-        month: 'long', 
-        year: 'numeric' 
+      return d.toLocaleDateString("es-MX", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
       });
-    } catch { 
-      return iso; 
+    } catch {
+      return iso;
     }
   };
 
   const formatTime = (time) => {
-    if (!time) return '-';
+    if (!time) return "-";
     try {
-      const [hours, minutes] = time.split(':');
+      const [hours, minutes] = time.split(":");
       return `${hours}:${minutes}`;
     } catch {
       return time;
@@ -62,46 +64,617 @@ export default function DetalleEvento({ open, onClose, evento }) {
   };
 
   const formatCurrency = (amount) => {
-    if (!amount && amount !== 0) return '$0.00';
-    if (typeof amount === 'number') {
-      return '$' + amount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (!amount && amount !== 0) return "$0.00";
+    if (typeof amount === "number") {
+      return (
+        "$" +
+        amount.toLocaleString("es-MX", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      );
     }
     // Si viene como string, retornar tal cual (ya viene formateado)
-    if (typeof amount === 'string') {
-      return amount.includes('$') ? amount : '$' + amount;
+    if (typeof amount === "string") {
+      return amount.includes("$") ? amount : "$" + amount;
     }
-    return '$0.00';
+    return "$0.00";
   };
 
   const formatPaymentDates = (fechas) => {
-    if (!fechas || fechas.length === 0) return 'No definidas';
-    return fechas.map(f => {
-      try {
-        const d = new Date(f);
-        return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-      } catch {
-        return f;
-      }
-    }).join(', ');
+    if (!fechas || fechas.length === 0) return "No definidas";
+    return fechas
+      .map((f) => {
+        try {
+          const d = new Date(f);
+          return d.toLocaleDateString("es-MX", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          });
+        } catch {
+          return f;
+        }
+      })
+      .join(", ");
   };
 
-  const handleDescargarDistribucion = () => {
+  const handleDescargarDistribucion = async () => {
+    if (!eventoData?.id) {
+      alert("No se puede descargar: ID de evento no disponible");
+      return;
+    }
+
+    setDescargando(true);
+
     try {
-      console.log('📥 Descargando distribución de mesas...');
+      console.log(
+        "📥 Descargando reporte de selecciones para evento:",
+        eventoData.id
+      );
+
+      // Obtener datos del reporte desde el API
+      const reporte = await reporteSeleccionService.obtenerReporteSelecciones(
+        eventoData.id
+      );
+
+      if (!reporte) {
+        throw new Error("No se recibieron datos del reporte");
+      }
+
+      console.log("📊 Datos del reporte:", reporte);
+
+      // Importar ExcelJS de forma dinámica
+      const ExcelJS = (await import("exceljs")).default;
+
+      // Crear el workbook
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = "Sistema de Eventos";
+      workbook.created = new Date();
+
+      // =====================================================
+      // HOJA PRINCIPAL: Listado de Mesas para Graduaciones
+      // =====================================================
+
+      const worksheet = workbook.addWorksheet("Distribución Mesas", {
+        pageSetup: { paperSize: 9, orientation: "landscape" },
+      });
+
+      let currentRow = 1;
+
+      // Título principal (fila 1)
+      worksheet.mergeCells("A1:G1");
+      const tituloCell = worksheet.getCell("A1");
+      tituloCell.value = "Listado de Mesas para Graduaciones";
+      tituloCell.font = {
+        name: "Calibri",
+        size: 16,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
+      tituloCell.alignment = { horizontal: "center", vertical: "middle" };
+      tituloCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF1F4E78" },
+      };
+      currentRow = 2;
+
+      // Línea vacía
+      currentRow++;
+
+      // Información del evento (filas 3-7)
+      const infoEvento = [
+        ["Promotor", reporte.evento?.coordinador || ""],
+        ["Nombre de la Graduación", reporte.evento?.nombre_evento || ""],
+        ["Sala o Salón", reporte.evento?.salon || ""],
+        ["Fecha de realización", reporte.evento?.fecha_evento || ""],
+        ["Coordinador del promotor", reporte.evento?.coordinador || ""],
+      ];
+
+      infoEvento.forEach(([label, valor]) => {
+        const labelCell = worksheet.getCell(`A${currentRow}`);
+        const valorCell = worksheet.getCell(`B${currentRow}`);
+
+        labelCell.value = label;
+        valorCell.value = valor;
+
+        // Estilo para label
+        labelCell.font = {
+          name: "Calibri",
+          size: 11,
+          bold: true,
+          color: { argb: "FFFFFFFF" },
+        };
+        labelCell.alignment = { vertical: "middle" };
+        labelCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFF4B084" },
+        };
+        labelCell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+
+        // Estilo para valor
+        valorCell.font = { name: "Calibri", size: 11 };
+        valorCell.alignment = { vertical: "middle" };
+        valorCell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFFFF2CC" },
+        };
+        valorCell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+
+        currentRow++;
+      });
+
+      // Línea vacía
+      currentRow++;
+
+      // Restricción de mesas (fila 9)
+      const restriccionCell = worksheet.getCell(`A${currentRow}`);
+      restriccionCell.value = "Solo se permiten mesas de 7 pax a 12 pax";
+      restriccionCell.font = { name: "Calibri", size: 11, bold: true };
+      restriccionCell.alignment = { vertical: "middle" };
+      currentRow++;
+
+      // Línea vacía
+      currentRow++;
+
+      // Tabla de mesas por capacidad (filas 11-17)
+      const mesasPorCapacidad = [
+        ["Mesas de 7 pax", 7, 0, 0],
+        ["Mesas de 8 pax", 8, 0, 0],
+        ["Mesas de 9 pax", 9, 0, 0],
+        ["Mesas de 10 pax", 10, 0, 0],
+        ["Mesas de 11 pax", 11, 0, 0],
+        ["Mesas de 12 pax", 12, 0, 0],
+      ];
+
+      mesasPorCapacidad.forEach(([descripcion, capacidad, col3, col4]) => {
+        const row = worksheet.getRow(currentRow);
+        row.getCell(1).value = descripcion;
+        row.getCell(2).value = capacidad;
+        row.getCell(3).value = col3;
+        row.getCell(4).value = col4;
+
+        // Estilo para tabla de capacidad
+        [1, 2, 3, 4].forEach((colNum) => {
+          const cell = row.getCell(colNum);
+          if (colNum === 1) {
+            cell.font = { name: "Calibri", size: 11, bold: true };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFBDD7EE" },
+            };
+          } else {
+            cell.font = { name: "Calibri", size: 11 };
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFDDEBF7" },
+            };
+          }
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+        });
+
+        currentRow++;
+      });
+
+      // Total de pax (fila 17)
+      const totalPaxRow = worksheet.getRow(currentRow);
+      totalPaxRow.getCell(1).value = "Total de pax";
       
-      // Crear un enlace temporal para descargar el archivo desde public
-      const link = document.createElement('a');
-      link.href = `${process.env.PUBLIC_URL}/formato_distribucion_mesas.xlsx`;
-      link.download = `Distribucion_Mesas_${evento?.nombre_evento || 'Evento'}.xlsx`;
-      link.setAttribute('target', '_blank');
-      document.body.appendChild(link);
+      // Merge de celdas B, C y D para el valor
+      worksheet.mergeCells(`B${currentRow}:D${currentRow}`);
+      totalPaxRow.getCell(2).value = 0;
+
+      // Estilo para la celda A (label)
+      const totalPaxLabelCell = totalPaxRow.getCell(1);
+      totalPaxLabelCell.font = {
+        name: "Calibri",
+        size: 11,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
+      totalPaxLabelCell.alignment = {
+        horizontal: "left",
+        vertical: "middle",
+      };
+      totalPaxLabelCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF44546A" },
+      };
+      totalPaxLabelCell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+      
+      // Estilo para las celdas B-D (valor merged)
+      const totalPaxValueCell = totalPaxRow.getCell(2);
+      totalPaxValueCell.font = {
+        name: "Calibri",
+        size: 11,
+        bold: true,
+        color: { argb: "FFFFFFFF" },
+      };
+      totalPaxValueCell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+      };
+      totalPaxValueCell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF44546A" },
+      };
+      totalPaxValueCell.border = {
+        top: { style: "thin" },
+          left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+      currentRow++;
+
+      // Línea vacía
+      currentRow++;
+
+      // Fila de totales (fila 19)
+      const totalesRow = worksheet.getRow(currentRow);
+      totalesRow.getCell(1).value = "Totales";
+      totalesRow.getCell(2).value = reporte.resumen?.total_selecciones || 0;
+      totalesRow.getCell(3).value =
+        reporte.resumen?.total_asientos_ocupados || 0;
+
+      // Agregar conteos de cada tipo de menú
+      let colIndex = 4;
+      if (reporte.tipos_menu && reporte.tipos_menu.length > 0) {
+        reporte.tipos_menu.forEach((tm) => {
+          totalesRow.getCell(colIndex).value = tm.cantidad_seleccionada || 0;
+          colIndex++;
+        });
+      }
+
+      // Estilo para fila de totales (sin incluir Observaciones)
+      const totalCols = 3 + (reporte.tipos_menu?.length || 0);
+      for (let i = 1; i <= totalCols; i++) {
+        const cell = totalesRow.getCell(i);
+        cell.font = {
+          name: "Calibri",
+          size: 11,
+          bold: true,
+          color: { argb: "FFFFFFFF" },
+        };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF70AD47" },
+        };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+      }
+      currentRow++;
+
+      // Encabezados de tabla principal (fila 20)
+      const headerRow = worksheet.getRow(currentRow);
+      const headers = ["No. de Mesa", "No. De pax por mesa"];
+
+      // Agregar columnas de tipos de menú
+      if (reporte.tipos_menu && reporte.tipos_menu.length > 0) {
+        reporte.tipos_menu.forEach((tm) => {
+          headers.push(`Menú ${tm.nombre}`);
+        });
+      } else {
+        headers.push(
+          "Menú Normal",
+          "Menú Infantil",
+          "Menú Especial",
+          "Menú Celiaco",
+          "Menú Kosher"
+        );
+      }
+      headers.push("Observaciones");
+
+      headers.forEach((header, index) => {
+        const cell = headerRow.getCell(index + 1);
+        cell.value = header;
+        cell.font = {
+          name: "Calibri",
+          size: 11,
+          bold: true,
+          color: { argb: "FFFFFFFF" },
+        };
+        cell.alignment = {
+          horizontal: "center",
+          vertical: "middle",
+          wrapText: true,
+        };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF4472C4" },
+        };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+      });
+      currentRow++;
+
+      // Datos de mesas (desde fila 21)
+      const dataStartRow = currentRow;
+      
+      // Obtener el total de mesas del reporte
+      const totalMesas = reporte.ocupacion?.total_mesas || 10;
+      
+      // Agrupar datos por mesa si existen selecciones
+      const mesasMap = new Map();
+      if (reporte.datos && reporte.datos.length > 0) {
+        reporte.datos.forEach((fila) => {
+          const mesaNum = fila.mesa_numero;
+          if (!mesasMap.has(mesaNum)) {
+            mesasMap.set(mesaNum, {
+              mesa_numero: mesaNum,
+              pax: 0,
+              menus: {},
+              observaciones: [],
+            });
+          }
+
+          const mesa = mesasMap.get(mesaNum);
+          mesa.pax++;
+
+          // Contar menús por tipo
+          const tipoMenu = fila.tipo_menu;
+          mesa.menus[tipoMenu] = (mesa.menus[tipoMenu] || 0) + 1;
+
+          // Agregar observaciones
+          if (fila.notas) mesa.observaciones.push(fila.notas);
+          if (fila.restricciones) mesa.observaciones.push(fila.restricciones);
+        });
+      }
+
+      // Generar todas las filas de mesas (del 1 al total_mesas)
+      for (let mesaNum = 1; mesaNum <= totalMesas; mesaNum++) {
+        const row = worksheet.getRow(currentRow);
+        const isAlternate = (mesaNum - 1) % 2 === 1;
+
+        // Obtener datos de la mesa si existe en el mapa, sino usar valores vacíos
+        const mesaData = mesasMap.get(mesaNum) || {
+          mesa_numero: mesaNum,
+          pax: "",
+          menus: {},
+          observaciones: [],
+        };
+
+        // Valores de la fila
+        row.getCell(1).value = mesaNum;
+        row.getCell(2).value = mesaData.pax;
+
+        // Conteo de menús
+        let menuCol = 3;
+        if (reporte.tipos_menu && reporte.tipos_menu.length > 0) {
+          reporte.tipos_menu.forEach((tm) => {
+            row.getCell(menuCol).value = mesaData.menus[tm.id] || "";
+            menuCol++;
+          });
+        }
+
+        // Observaciones
+        row.getCell(headers.length).value = mesaData.observaciones.join("; ");
+
+        // Aplicar estilos con efecto zebra
+        for (let i = 1; i <= headers.length; i++) {
+          const cell = row.getCell(i);
+          cell.font = { name: "Calibri", size: 11 };
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+          if (isAlternate) {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFE7E6E6" },
+            };
+          }
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+        }
+
+        currentRow++;
+      }
+
+      // Configurar anchos de columna
+      worksheet.getColumn(1).width = 15; // No. de Mesa
+      worksheet.getColumn(2).width = 18; // No. de pax
+
+      // Anchos para menús
+      for (let i = 3; i < headers.length; i++) {
+        worksheet.getColumn(i).width = 15;
+      }
+      worksheet.getColumn(headers.length).width = 40; // Observaciones
+
+      // Configurar altura de fila del título
+      worksheet.getRow(1).height = 25;
+
+      // =====================================================
+      // HOJA 2: Detalle Completo
+      // =====================================================
+      if (reporte.datos && reporte.datos.length > 0) {
+        const wsDetalle = workbook.addWorksheet("Detalle Completo", {
+          pageSetup: { paperSize: 9, orientation: "landscape" },
+        });
+
+        // Título
+        wsDetalle.mergeCells("A1:J1");
+        const detalleTitulo = wsDetalle.getCell("A1");
+        detalleTitulo.value = "DETALLE COMPLETO DE SELECCIONES";
+        detalleTitulo.font = {
+          name: "Calibri",
+          size: 16,
+          bold: true,
+          color: { argb: "FFFFFFFF" },
+        };
+        detalleTitulo.alignment = { horizontal: "center", vertical: "middle" };
+        detalleTitulo.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF1F4E78" },
+        };
+        wsDetalle.getRow(1).height = 25;
+
+        // Línea vacía
+        let detalleRow = 3;
+
+        // Encabezados
+        const detalleHeaders = [
+          "No. Invitado",
+          "Nombre Invitado",
+          "No. Mesa",
+          "Tipo Mesa",
+          "No. Asiento",
+          "Nombre Comensal",
+          "Tipo Menú",
+          "Restricciones",
+          "Notas",
+          "Fecha Selección",
+        ];
+
+        const headerRowDetalle = wsDetalle.getRow(detalleRow);
+        detalleHeaders.forEach((header, index) => {
+          const cell = headerRowDetalle.getCell(index + 1);
+          cell.value = header;
+          cell.font = {
+            name: "Calibri",
+            size: 11,
+            bold: true,
+            color: { argb: "FFFFFFFF" },
+          };
+          cell.alignment = {
+            horizontal: "center",
+            vertical: "middle",
+            wrapText: true,
+          };
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF4472C4" },
+          };
+          cell.border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
+        });
+        detalleRow++;
+
+        // Datos del detalle
+        reporte.datos.forEach((fila, index) => {
+          const row = wsDetalle.getRow(detalleRow);
+          const isAlternate = index % 2 === 1;
+
+          row.getCell(1).value = fila.numero_invitado;
+          row.getCell(2).value = fila.nombre_invitado;
+          row.getCell(3).value = fila.mesa_numero;
+          row.getCell(4).value = fila.mesa_tipo;
+          row.getCell(5).value = fila.asiento_numero;
+          row.getCell(6).value = fila.nombre_comensal;
+          row.getCell(7).value = fila.tipo_menu;
+          row.getCell(8).value = fila.restricciones;
+          row.getCell(9).value = fila.notas;
+          row.getCell(10).value = fila.fecha_seleccion;
+
+          // Aplicar estilos
+          for (let i = 1; i <= 10; i++) {
+            const cell = row.getCell(i);
+            cell.font = { name: "Calibri", size: 10 };
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+            if (isAlternate) {
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFE7E6E6" },
+              };
+            }
+            cell.border = {
+              top: { style: "thin" },
+              left: { style: "thin" },
+              bottom: { style: "thin" },
+              right: { style: "thin" },
+            };
+          }
+
+          detalleRow++;
+        });
+
+        // Configurar anchos de columna
+        wsDetalle.getColumn(1).width = 12; // No. Invitado
+        wsDetalle.getColumn(2).width = 30; // Nombre Invitado
+        wsDetalle.getColumn(3).width = 10; // No. Mesa
+        wsDetalle.getColumn(4).width = 15; // Tipo Mesa
+        wsDetalle.getColumn(5).width = 12; // No. Asiento
+        wsDetalle.getColumn(6).width = 30; // Nombre Comensal
+        wsDetalle.getColumn(7).width = 15; // Tipo Menú
+        wsDetalle.getColumn(8).width = 25; // Restricciones
+        wsDetalle.getColumn(9).width = 25; // Notas
+        wsDetalle.getColumn(10).width = 18; // Fecha Selección
+      }
+
+      // Generar archivo
+      const nombreArchivo = `Distribucion_Mesas_${
+        reporte.evento?.nombre_evento?.replace(/\s+/g, "_") || "Evento"
+      }.xlsx`;
+
+      // Descargar archivo
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = nombreArchivo;
       link.click();
-      document.body.removeChild(link);
-      
-      console.log('✅ Distribución descargada exitosamente');
+      window.URL.revokeObjectURL(url);
+
+      console.log("✅ Reporte descargado exitosamente con colores");
     } catch (error) {
-      console.error('❌ Error al descargar distribución:', error);
-      alert('Error al descargar el archivo. Por favor intenta de nuevo.');
+      console.error("Error al descargar reporte:", error);
+      alert(
+        `Error al generar el reporte: ${
+          error.message || "Por favor intenta nuevamente"
+        }`
+      );
+    } finally {
+      setDescargando(false);
     }
   };
 
@@ -109,21 +682,21 @@ export default function DetalleEvento({ open, onClose, evento }) {
     try {
       // Construir la URL usando la configuración base
       const url = `${EnvConfig.BASE_URL}/lector-qr/${eventoData.id}`;
-      
+
       // Copiar al portapapeles
       await navigator.clipboard.writeText(url);
-      
+
       // Mostrar feedback visual
       setUrlCopiada(true);
-      console.log('✅ URL copiada al portapapeles:', url);
-      
+      console.log("✅ URL copiada al portapapeles:", url);
+
       // Resetear el estado después de 2 segundos
       setTimeout(() => {
         setUrlCopiada(false);
       }, 2000);
     } catch (error) {
-      console.error('❌ Error al copiar URL:', error);
-      alert('No se pudo copiar la URL. Por favor, inténtalo de nuevo.');
+      console.error("❌ Error al copiar URL:", error);
+      alert("No se pudo copiar la URL. Por favor, inténtalo de nuevo.");
     }
   };
 
@@ -135,8 +708,11 @@ export default function DetalleEvento({ open, onClose, evento }) {
       onClose={onClose}
     >
       {/* Overlay con blur */}
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
-      
+      <div
+        className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+        aria-hidden="true"
+      />
+
       {/* Container del modal */}
       <div className="fixed inset-0 z-50 overflow-y-auto">
         <div className="flex min-h-full items-center justify-center p-4">
@@ -152,9 +728,11 @@ export default function DetalleEvento({ open, onClose, evento }) {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <DialogTitle className="text-2xl font-bold text-white">
-                    {eventoData.nombre_evento || 'Sin nombre'}
+                    {eventoData.nombre_evento || "Sin nombre"}
                   </DialogTitle>
-                  <p className="text-sm text-white/80 mt-1">{eventoData.instituto || 'Sin institución'}</p>
+                  <p className="text-sm text-white/80 mt-1">
+                    {eventoData.instituto || "Sin institución"}
+                  </p>
                 </div>
                 <button
                   className="text-white/80 hover:text-white transition-colors"
@@ -167,17 +745,19 @@ export default function DetalleEvento({ open, onClose, evento }) {
             </div>
 
             {/* Content - Scrollable */}
-            <div className={clsx(
-              "flex-1 overflow-y-auto p-6 space-y-6",
-              // Estilos personalizados de scrollbar
-              "scrollbar-thin scrollbar-thumb-[#246370] scrollbar-track-gray-100",
-              "dark:scrollbar-thumb-[#2a9d8f] dark:scrollbar-track-gray-800",
-              "[&::-webkit-scrollbar]:w-2",
-              "[&::-webkit-scrollbar-track]:bg-gray-100 dark:[&::-webkit-scrollbar-track]:bg-gray-800",
-              "[&::-webkit-scrollbar-thumb]:bg-[#246370] dark:[&::-webkit-scrollbar-thumb]:bg-[#2a9d8f]",
-              "[&::-webkit-scrollbar-thumb]:rounded-full",
-              "[&::-webkit-scrollbar-thumb]:hover:bg-[#1d4f5a] dark:[&::-webkit-scrollbar-thumb]:hover:bg-[#238276]"
-            )}>
+            <div
+              className={clsx(
+                "flex-1 overflow-y-auto p-6 space-y-6",
+                // Estilos personalizados de scrollbar
+                "scrollbar-thin scrollbar-thumb-[#246370] scrollbar-track-gray-100",
+                "dark:scrollbar-thumb-[#2a9d8f] dark:scrollbar-track-gray-800",
+                "[&::-webkit-scrollbar]:w-2",
+                "[&::-webkit-scrollbar-track]:bg-gray-100 dark:[&::-webkit-scrollbar-track]:bg-gray-800",
+                "[&::-webkit-scrollbar-thumb]:bg-[#246370] dark:[&::-webkit-scrollbar-thumb]:bg-[#2a9d8f]",
+                "[&::-webkit-scrollbar-thumb]:rounded-full",
+                "[&::-webkit-scrollbar-thumb]:hover:bg-[#1d4f5a] dark:[&::-webkit-scrollbar-thumb]:hover:bg-[#238276]"
+              )}
+            >
               {/* Información General */}
               <section>
                 <h3 className="text-lg font-semibold text-[#246370] dark:text-[#2a9d8f] mb-4 flex items-center gap-2">
@@ -185,35 +765,38 @@ export default function DetalleEvento({ open, onClose, evento }) {
                   Información General
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InfoCard 
+                  <InfoCard
                     icon={<Calendar className="w-5 h-5" />}
                     label="Fecha del evento"
                     value={formatDate(eventoData.fecha_evento)}
                   />
-                  <InfoCard 
+                  <InfoCard
                     icon={<Clock className="w-5 h-5" />}
                     label="Hora"
                     value={formatTime(eventoData.hora_evento)}
                   />
-                  <InfoCard 
+                  <InfoCard
                     icon={<Tag className="w-5 h-5" />}
                     label="Tipo de evento"
-                    value={eventoData.tipo || 'No especificado'}
+                    value={eventoData.tipo || "No especificado"}
                   />
-                  <InfoCard 
+                  <InfoCard
                     icon={<GraduationCap className="w-5 h-5" />}
                     label="Licenciatura"
-                    value={eventoData.licenciatura || 'No especificado'}
+                    value={eventoData.licenciatura || "No especificado"}
                   />
-                  <InfoCard 
+                  <InfoCard
                     icon={<User className="w-5 h-5" />}
                     label="Coordinador"
-                    value={eventoData.coordinador_evento || 'No especificado'}
+                    value={eventoData.coordinador_evento || "No especificado"}
                   />
-                  <InfoCard 
+                  <InfoCard
                     icon={<Users className="w-5 h-5" />}
                     label="Capacidad máxima"
-                    value={eventoData.asistentes_maximos?.toLocaleString() || 'No especificado'}
+                    value={
+                      eventoData.asistentes_maximos?.toLocaleString() ||
+                      "No especificado"
+                    }
                   />
                 </div>
               </section>
@@ -227,7 +810,9 @@ export default function DetalleEvento({ open, onClose, evento }) {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <StatCard
                     label="Alumnos"
-                    value={evento.asistentesAlumnos || evento.asistentes_alumnos || 0}
+                    value={
+                      evento.asistentesAlumnos || evento.asistentes_alumnos || 0
+                    }
                     color="blue"
                   />
                   {/* <StatCard
@@ -253,7 +838,9 @@ export default function DetalleEvento({ open, onClose, evento }) {
                   {/* Costo por boleto */}
                   <div className="bg-gray-50 dark:bg-[#23272e] rounded-lg p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Costo por boleto</span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                        Costo por boleto
+                      </span>
                       <span className="text-xl font-bold text-[#246370] dark:text-[#2a9d8f]">
                         {formatCurrency(eventoData.costo)}
                       </span>
@@ -311,12 +898,12 @@ export default function DetalleEvento({ open, onClose, evento }) {
                   Progreso de Pago
                 </h3>
                 <div className="space-y-3">
-                  <ProgressBar 
+                  <ProgressBar
                     label="Boletos pagados"
                     percentage={evento.porcentajePagados}
                     color="green"
                   />
-                  <ProgressBar 
+                  <ProgressBar
                     label="Abono realizado"
                     percentage={evento.porcentajeAbonado}
                     color="blue"
@@ -332,13 +919,29 @@ export default function DetalleEvento({ open, onClose, evento }) {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handleDescargarDistribucion}
-                    className="px-4 py-2 bg-[#246370] hover:bg-[#1d4f5a] dark:bg-[#2a9d8f] dark:hover:bg-[#238276] text-white rounded-lg font-semibold transition-colors shadow-md flex items-center gap-2"
-                    title="Descargar distribución de mesas"
+                    disabled={descargando}
+                    className={clsx(
+                      "px-4 py-2 rounded-lg font-semibold transition-colors shadow-md flex items-center gap-2",
+                      descargando
+                        ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed"
+                        : "bg-[#246370] hover:bg-[#1d4f5a] dark:bg-[#2a9d8f] dark:hover:bg-[#238276]",
+                      "text-white"
+                    )}
+                    title={
+                      descargando
+                        ? "Generando reporte..."
+                        : "Descargar distribución de mesas"
+                    }
                   >
-                    <Download size={18} />
-                    <span className="hidden sm:inline">Distribución</span>
+                    <Download
+                      size={18}
+                      className={descargando ? "animate-pulse" : ""}
+                    />
+                    <span className="hidden sm:inline">
+                      {descargando ? "Descargando..." : "Distribución"}
+                    </span>
                   </button>
-                  
+
                   <button
                     onClick={handleCopiarURLLectorQR}
                     className={clsx(
@@ -348,7 +951,9 @@ export default function DetalleEvento({ open, onClose, evento }) {
                         : "bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600",
                       "text-white"
                     )}
-                    title={urlCopiada ? "URL copiada" : "Copiar URL del Lector QR"}
+                    title={
+                      urlCopiada ? "URL copiada" : "Copiar URL del Lector QR"
+                    }
                   >
                     {urlCopiada ? (
                       <>
@@ -385,9 +990,7 @@ function InfoCard({ icon, label, value }) {
   return (
     <div className="bg-gray-50 dark:bg-[#23272e] rounded-lg p-4 border border-gray-200 dark:border-gray-700">
       <div className="flex items-start gap-3">
-        <div className="text-[#246370] dark:text-[#2a9d8f] mt-1">
-          {icon}
-        </div>
+        <div className="text-[#246370] dark:text-[#2a9d8f] mt-1">{icon}</div>
         <div className="flex-1">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
             {label}
@@ -403,14 +1006,17 @@ function InfoCard({ icon, label, value }) {
 
 function StatCard({ label, value, color }) {
   const colorClasses = {
-    blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-    purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-    teal: 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800',
+    blue: "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    purple:
+      "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+    teal: "bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800",
   };
 
   return (
     <div className={`rounded-lg p-4 border ${colorClasses[color]}`}>
-      <p className="text-xs font-medium opacity-80 uppercase tracking-wide mb-2">{label}</p>
+      <p className="text-xs font-medium opacity-80 uppercase tracking-wide mb-2">
+        {label}
+      </p>
       <p className="text-2xl font-bold">{value}</p>
     </div>
   );
@@ -418,35 +1024,49 @@ function StatCard({ label, value, color }) {
 
 function FinancialCard({ label, quantity, amount, percentage, color }) {
   const colorClasses = {
-    gray: 'border-gray-300 dark:border-gray-600',
-    green: 'border-green-300 dark:border-green-600',
-    blue: 'border-blue-300 dark:border-blue-600',
-    amber: 'border-amber-300 dark:border-amber-600',
+    gray: "border-gray-300 dark:border-gray-600",
+    green: "border-green-300 dark:border-green-600",
+    blue: "border-blue-300 dark:border-blue-600",
+    amber: "border-amber-300 dark:border-amber-600",
   };
 
   const badgeColors = {
-    green: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+    green: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+    blue: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
   };
 
   const formatAmount = (amt) => {
-    if (!amt && amt !== 0) return '$0.00';
-    if (typeof amt === 'number') {
-      return '$' + amt.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (!amt && amt !== 0) return "$0.00";
+    if (typeof amt === "number") {
+      return (
+        "$" +
+        amt.toLocaleString("es-MX", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      );
     }
     // Si viene como string, retornar tal cual
-    if (typeof amt === 'string') {
-      return amt.includes('$') ? amt : '$' + amt;
+    if (typeof amt === "string") {
+      return amt.includes("$") ? amt : "$" + amt;
     }
-    return '$0.00';
+    return "$0.00";
   };
 
   return (
-    <div className={`bg-white dark:bg-[#1e1e1e] rounded-lg p-4 border-2 ${colorClasses[color]}`}>
+    <div
+      className={`bg-white dark:bg-[#1e1e1e] rounded-lg p-4 border-2 ${colorClasses[color]}`}
+    >
       <div className="flex items-start justify-between mb-2">
-        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{label}</p>
+        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+          {label}
+        </p>
         {percentage !== undefined && (
-          <span className={`px-2 py-1 rounded-full text-xs font-bold ${badgeColors[color] || 'bg-gray-100 text-gray-700'}`}>
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-bold ${
+              badgeColors[color] || "bg-gray-100 text-gray-700"
+            }`}
+          >
             {percentage}%
           </span>
         )}
@@ -456,12 +1076,17 @@ function FinancialCard({ label, quantity, amount, percentage, color }) {
           {quantity} boletos
         </p>
       )}
-      <p className={`text-xl font-bold ${
-        color === 'green' ? 'text-green-600 dark:text-green-400' :
-        color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-        color === 'amber' ? 'text-amber-600 dark:text-amber-400' :
-        'text-gray-700 dark:text-gray-200'
-      }`}>
+      <p
+        className={`text-xl font-bold ${
+          color === "green"
+            ? "text-green-600 dark:text-green-400"
+            : color === "blue"
+            ? "text-blue-600 dark:text-blue-400"
+            : color === "amber"
+            ? "text-amber-600 dark:text-amber-400"
+            : "text-gray-700 dark:text-gray-200"
+        }`}
+      >
         {formatAmount(amount)}
       </p>
     </div>
@@ -470,20 +1095,25 @@ function FinancialCard({ label, quantity, amount, percentage, color }) {
 
 function ProgressBar({ label, percentage, color }) {
   const colorClasses = {
-    green: 'bg-green-500',
-    blue: 'bg-blue-500',
+    green: "bg-green-500",
+    blue: "bg-blue-500",
   };
 
-  const numPercentage = typeof percentage === 'string' ? parseFloat(percentage) : percentage;
+  const numPercentage =
+    typeof percentage === "string" ? parseFloat(percentage) : percentage;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</span>
-        <span className="text-sm font-bold text-gray-800 dark:text-gray-100">{percentage}%</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
+        </span>
+        <span className="text-sm font-bold text-gray-800 dark:text-gray-100">
+          {percentage}%
+        </span>
       </div>
       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
-        <div 
+        <div
           className={`h-full ${colorClasses[color]} transition-all duration-500 rounded-full`}
           style={{ width: `${Math.min(numPercentage, 100)}%` }}
         />

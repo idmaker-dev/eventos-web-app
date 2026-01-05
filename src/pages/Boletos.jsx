@@ -1,17 +1,26 @@
-import React from 'react'
-import CompBoletos from '../components/Boletos/Boleto.jsx';
+import React from "react";
+import Boleto from "../components/Boletos/Boleto";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Boletos() {
+  const { user } = useAuth();
+
   return (
-    <div className="p-3 md:p-6 bg-white dark:bg-fodoBlack rounded-3xl shadow-md min-h-full">
-        <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Módulo de Boletos</h1>
-        <p className="text-gray-500 dark:text-gray-200">
-           Carga el diseño de tu boleto y personalízalo fácilmente. <br />
-Añade el código QR, ajusta los datos necesarios y descarga los boletos listos para enviar a tus asistentes.
-        </p>
-        <div className='mt-3'>
-            <CompBoletos></CompBoletos>
+    <div className="w-full min-h-screen bg-fondoVs">
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-casal mb-2">
+            Configuración de Boletos
+          </h1>
+          <p className="text-gray-600">
+            {user?.role === "admin" 
+              ? "Sube el diseño de invitación y configura la posición del código QR"
+              : "Genera tu boleto con código QR personalizado"}
+          </p>
         </div>
+        
+        <Boleto />
+      </div>
     </div>
-  )
+  );
 }

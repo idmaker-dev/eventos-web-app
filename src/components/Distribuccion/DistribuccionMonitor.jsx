@@ -19,6 +19,7 @@ import { useSignalRMonitor } from "../../hooks/useSignalRMonitor";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 import { useDisponibilidadMesas } from "../../hooks/useDisponibilidadMesas";
 import eventService from "../../services/eventService";
+import turnosService from "../../services/turnosService";
 
 export default function DistribuccionMonitor({
   allElements,
@@ -346,6 +347,7 @@ export default function DistribuccionMonitor({
     nombre,
     restricciones: res,
     otra: otraText,
+    tipoMenu
   }) => {
     if (!pendingAsignacion) return;
     const { invitado, numeroMesa } = pendingAsignacion;
@@ -364,6 +366,7 @@ export default function DistribuccionMonitor({
 
     const cantidad = invitado.cantidad;
 
+    // Actualizar estado local (el guardado en backend se hace con el botón "Guardar asignaciones")
     setAllElements((prev) =>
       prev.map((el) =>
         el.numero === numeroMesa &&
@@ -382,6 +385,7 @@ export default function DistribuccionMonitor({
                   cantidad,
                   restricciones: res,
                   otra: otraText,
+                  tipoMenu: tipoMenu || "normal",
                   necesidadEspecial: invitado.necesidadEspecial || false,
                 },
               ],
@@ -395,7 +399,7 @@ export default function DistribuccionMonitor({
     );
 
     mostrarNotificacion(
-      `✅ ${nombre || invitado.nombre} asignado a Mesa ${numeroMesa}`,
+      `✅ ${nombre || invitado.nombre} asignado a Mesa ${numeroMesa}\n\n⚠️ Recuerda hacer clic en "Guardar asignaciones" para guardar los cambios`,
       "success"
     );
 
@@ -403,23 +407,133 @@ export default function DistribuccionMonitor({
     setPendingAsignacion(null);
     setPendingNombre("");
   };
-  // Guardar asignaciones
-  const guardarAsignaciones = () => {
+  // Guardar asignaciones en el backend
+  const guardarAsignaciones = async () => {
+    if (!eventoActual?.id) {
+      mostrarNotificacion("No hay evento seleccionado", "error");
+      return;
+    }
+
     setGuardando(true);
 
-    const asignaciones = {
-      elementos: [...allElements],
-      invitadosSinAsignar: [...invitadosSinAsignar],
-      fecha: new Date().toISOString(),
-      salon: salon?.nombre || "Monitor",
-    };
+    try {
+      // Recopilar todas las asignaciones por invitado
+      const asignacionesPorInvitado = new Map();
 
-    localStorage.setItem("asignacionesMonitor", JSON.stringify(asignaciones));
+      allElements.forEach((elemento) => {
+        if (
+          (elemento.type === "mesa" || elemento.type === "mesaRectangular") &&
+          elemento.assignedGuests &&
+          elemento.assignedGuests.length > 0
+        ) {
+          elemento.assignedGuests.forEach((guest) => {
+            if (!asignacionesPorInvitado.has(guest.id)) {
+              asignacionesPorInvitado.set(guest.id, {
+                invitadoId: guest.id,
+                nombreInvitado: guest.nombre,
+                mesas: [],
+              });
+            }
 
-    setTimeout(() => {
+            const invitadoData = asignacionesPorInvitado.get(guest.id);
+            
+            // Preparar array de personas para este invitado
+            const personasArray = Array.from({ length: guest.cantidad }, (_, index) => ({
+              nombre: index === 0 ? guest.nombre : `${guest.nombre} - Acompañante ${index + 1}`,
+              tipoMenu: guest.tipoMenu || "normal",
+              restricciones: guest.restricciones || {},
+              otraRestriccion: guest.otra || ""
+            }));
+
+            invitadoData.mesas.push({
+              mesa_id: elemento.id || `mesa-${elemento.numero}`,
+              numero_mesa: elemento.numero,
+              cantidad_personas: guest.cantidad,
+              tipo_mesa: elemento.type || "mesa",
+              personas: personasArray
+            });
+          });
+        }
+      });
+
+      if (asignacionesPorInvitado.size === 0) {
+        mostrarNotificacion("No hay asignaciones para guardar", "warning");
+        setGuardando(false);
+        return;
+      }
+
+      console.log(`💾 Guardando ${asignacionesPorInvitado.size} asignaciones en el backend...`);
+
+      // Guardar cada asignación
+      let exitosas = 0;
+      let fallidas = 0;
+
+      for (const [invitadoId, asignacion] of asignacionesPorInvitado) {
+        try {
+          const datosSeleccion = {
+            mesas_seleccionadas: asignacion.mesas,
+            personas: asignacion.mesas[0]?.personas || []
+          };
+
+          const resultado = await turnosService.guardarSeleccionAdmin(
+            eventoActual.id,
+            invitadoId,
+            datosSeleccion
+          );
+
+          if (resultado.success) {
+            exitosas++;
+            console.log(`✅ Asignación guardada para ${asignacion.nombreInvitado}`);
+          } else {
+            fallidas++;
+            console.error(`❌ Error al guardar asignación para ${asignacion.nombreInvitado}:`, resultado.error);
+          }
+        } catch (error) {
+          fallidas++;
+          console.error(`❌ Error al guardar asignación para ${asignacion.nombreInvitado}:`, error);
+        }
+      }
+
+      // Guardar también en localStorage (para compatibilidad con sistema legacy)
+      const asignacionesMonitor = {
+        elementos: [...allElements],
+        invitadosSinAsignar: [...invitadosSinAsignar],
+        fecha: new Date().toISOString(),
+        salon: salon?.nombre || "Monitor",
+      };
+      localStorage.setItem("asignacionesMonitor", JSON.stringify(asignacionesMonitor));
+
+      // Refrescar disponibilidad desde el backend
+      if (cargarDisponibilidad) {
+        await cargarDisponibilidad();
+      }
+
       setGuardando(false);
-      mostrarNotificacion("¡Asignaciones guardadas exitosamente!", "success");
-    }, 1000);
+
+      if (fallidas === 0) {
+        mostrarNotificacion(
+          `✅ ¡Todas las asignaciones guardadas exitosamente!\n\nTotal: ${exitosas} invitados`,
+          "success"
+        );
+      } else if (exitosas > 0) {
+        mostrarNotificacion(
+          `⚠️ Asignaciones guardadas parcialmente\n\nExitosas: ${exitosas}\nFallidas: ${fallidas}`,
+          "warning"
+        );
+      } else {
+        mostrarNotificacion(
+          `❌ Error al guardar asignaciones\n\nNinguna asignación pudo ser guardada`,
+          "error"
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error general al guardar asignaciones:", error);
+      setGuardando(false);
+      mostrarNotificacion(
+        `❌ Error al guardar asignaciones: ${error.message}`,
+        "error"
+      );
+    }
   };
 
   // Abrir modal para bloquear/desbloquear mesa
