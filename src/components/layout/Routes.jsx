@@ -28,7 +28,6 @@ import AsignacionUser from "../../pages/AsignacionUser"
 import ConfiguracionLayout from "../../pages/ConfiguracionLayout"
 import Clientes from "../../pages/Clientes"
 import Campanas from "../../pages/Campanas"
-import Boletos from "../../pages/Boletos"
 // import Comunicacion from "../../pages/Comunicacion"
 
 /* Componentes de protección de rutas */
