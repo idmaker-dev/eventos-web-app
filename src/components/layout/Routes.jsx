@@ -15,6 +15,7 @@ import PagoTarjeta from "../../pages/PagoTarjeta"
 import SignalRTest from "../../pages/SignalRTest"
 import HomeLugar from "../../pages/HomeLugar" // nueva vista para rol lugar
 import LectorQRPage from "../../pages/LectorQRPage" // vista para escaneo de QR
+import Boletos from "../../pages/Boletos"
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
