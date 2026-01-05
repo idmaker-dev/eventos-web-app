@@ -148,7 +148,7 @@ export default function Cuestionario() {
 
     setIsGenerandoCodigo(true);
     try {
-      const response = await whatsappService.generarCodigo(telefono);
+      const response = await whatsappService.generarCodigo(telefono.trim());
 
       if (response.status === "ok") {
         setCodigoGenerado(response.codigo);

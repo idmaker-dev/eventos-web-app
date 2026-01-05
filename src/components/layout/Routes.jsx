@@ -64,6 +64,7 @@ export default function AppRoutes() {
         <Route path="Finanzas" element={<Finanzas />} />
         <Route path="Invitados" element={<Invitados />} />
         <Route path="Distribucion" element={<Distribucion />} />
+        <Route path="Boletos" element={<Boletos />} />
       </Route>
 
       {/* Nueva ruta para usuarios rol 'lugar' */}

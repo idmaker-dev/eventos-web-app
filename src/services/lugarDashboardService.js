@@ -268,10 +268,12 @@ const lugarDashboardService = {
    * @param {object} opts { forceMock?: boolean }
    */
   async getResumen(lugarId, opts = {}) {
-    const id = lugarId || "a77c16bc-2719-4d82-aa9c-10f46ce5e543"; // fallback temporal
+    if (!lugarId) {
+      throw new Error("lugarId es requerido");
+    }
     if (opts.forceMock) return fetchMock();
     try {
-      return await fetchReal(id);
+      return await fetchReal(lugarId);
     } catch (e) {
       if (process.env.NODE_ENV !== "production") {
         console.warn(

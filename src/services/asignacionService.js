@@ -646,6 +646,67 @@ class AsignacionService {
       faltante: tieneCapacidad ? 0 : cantidadNueva - espaciosDisponibles,
     };
   }
+
+  /**
+   * Guardar selección de mesas y menús (sistema de turnos)
+   * Endpoint: POST /api/eventos/{eventoId}/seleccion-mesas/guardar
+   * @param {string} eventoId - ID del evento
+   * @param {string} invitadoId - ID del invitado que hace la selección
+   * @param {Object} seleccionData - Datos de la selección
+   * @param {Array} seleccionData.mesas_seleccionadas - Array de mesas con asientos
+   * @param {Array} seleccionData.personas - Array de personas con datos de menú y restricciones
+   * @returns {Promise<Object>} Resultado de la operación
+   */
+  async guardarSeleccionMesas(eventoId, invitadoId, seleccionData) {
+    try {
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("🔄 Guardando selección de mesas:", { 
+          eventoId, 
+          invitadoId, 
+          seleccionData 
+        });
+      }
+
+      if (!eventoId) {
+        throw new Error("eventoId es requerido");
+      }
+
+      if (!invitadoId) {
+        throw new Error("invitadoId es requerido");
+      }
+
+      if (!seleccionData.mesas_seleccionadas || seleccionData.mesas_seleccionadas.length === 0) {
+        throw new Error("Debe seleccionar al menos una mesa");
+      }
+
+      // El endpoint espera el query param "invitadoId" cuando no está autenticado
+      const response = await httpService.post(
+        `${this.baseUrl}/${eventoId}/seleccion-mesas/guardar?invitadoId=${invitadoId}`,
+        seleccionData
+      );
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("✅ Selección guardada exitosamente:", response);
+      }
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || "Selección guardada exitosamente",
+      };
+    } catch (error) {
+      if (EnvConfig.DEBUG_MODE) {
+        console.error("❌ Error al guardar selección:", error);
+      }
+
+      return {
+        success: false,
+        error:
+          error.userMessage || error.message || "Error al guardar la selección",
+        details: error,
+      };
+    }
+  }
 }
 
 // Crear instancia singleton

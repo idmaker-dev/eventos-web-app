@@ -23,6 +23,9 @@ export default function MasterPage({ children }) {
           <NavLink to="/Distribucion" className={({ isActive }) => "nav-item mesas" + (isActive ? " active" : "")
             } > Distribución de mesas </NavLink>
           
+          <NavLink to="/Boletos" className={({ isActive }) => "nav-item boletos" + (isActive ? " active" : "")
+            } > Boletos QR </NavLink>
+          
           <NavLink to="/Minutas" className={({ isActive }) => "nav-item minutas" + (isActive ? " active" : "")
             } > Minutas y Cambios </NavLink>
         </nav>
