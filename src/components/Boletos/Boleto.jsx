@@ -27,7 +27,6 @@ export default function Boleto() {
 
   const [imagen, setImagen] = useState(null);
   const [archivoImagen, setArchivoImagen] = useState(null);
-  const [mostrarAdvertencia, setMostrarAdvertencia] = useState(false);
   const inputRef = useRef();
   const [seleccionQR, setSeleccionQR] = useState(false);
   const [qrConfig, setQrConfig] = useState({
@@ -42,7 +41,7 @@ export default function Boleto() {
   const imgRef = useRef();
   const imgFinalRef = useRef();
   const [editando, setEditando] = useState(false);
-  
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
 
   // Cargar configuración existente al montar
   useEffect(() => {
@@ -52,28 +51,35 @@ export default function Boleto() {
   }, [eventoActual, cargarConfiguracion]);
 
   // Si ya existe configuración, cargar la imagen
-  useEffect(() => {
-    if (configuracion?.imagen_url) {
-      setImagen(configuracion.imagen_url);
+useEffect(() => {
+  if (configuracion?.imagen_url) {
+    setImagen(configuracion.imagen_url);
+
+    if (configuracion.qr_config) {
+      // Ya hay QR configurado, ve a la vista final
+      console.log("Configuración QR encontrada:", configuracion.qr_config);
+      setQrConfigPercent(configuracion.qr_config);
       setFinalizado(true);
-      // Resetear estados de flujo para ir directo a vista final
-      setMostrarAdvertencia(false);
       setSeleccionQR(false);
-      // Convertir configuración de porcentajes a píxeles para vista previa
-      if (configuracion.qr_config) {
-        setQrConfigPercent(configuracion.qr_config);
-      }
-    } else {
-      setImagen(null);
-      setArchivoImagen(null);
-      setFinalizado(false);
-      setQrConfigPercent(null);
-      setSeleccionQR(false);
-      setMostrarAdvertencia(false);
       setEditando(false);
-      setQrConfig({ pos: { x: 100, y: 100 }, size: 120 });
+    } else {
+      console.log("No hay configuración QR");
+      // Solo hay imagen, ve a selección QR
+      setFinalizado(false);
+      setSeleccionQR(true);
+      setEditando(false);
     }
-  }, [configuracion]);
+  } else {
+    // No hay configuración, limpia todo
+    setImagen(null);
+    setArchivoImagen(null);
+    setFinalizado(false);
+    setQrConfigPercent(null);
+    setSeleccionQR(false);
+    setEditando(false);
+    setQrConfig({ pos: { x: 100, y: 100 }, size: 120 });
+  }
+}, [configuracion]);
 
   const containerStyle = {
     width: "auto",
@@ -109,22 +115,27 @@ export default function Boleto() {
   };
 
   // const handleSiguiente = () => {
-  //   setMostrarAdvertencia(true);
   //   setSeleccionQR(true);
-  const handleSiguiente = async () => {
-    if (!archivoImagen || !eventoActual?.id) {
-      return;
-    }
-
-    const resultado = await subirDiseno(archivoImagen, eventoActual.id);
-    if (resultado.success) {
-      setMostrarAdvertencia(true);
-    }
-  };
+const handleSiguiente = async () => {
+  if (!archivoImagen || !eventoActual?.id) return;
+  setSubiendoImagen(true);
+  const resultado = await subirDiseno(archivoImagen, eventoActual.id);
+  if (resultado.success) {
+    setSeleccionQR(true);
+    setShowAlertaQR(true);
+  }
+  setSubiendoImagen(false);
+};
 
   const handleGuardarAjustes = async () => {
     const img = imgRef.current;
-    if (!img || !eventoActual?.id) return;
+    // if (!img || !eventoActual?.id) return;
+    if (!img || !eventoActual?.id || !configuracion?.imagen_url) {
+      alert(
+        "Primero debes subir el diseño de invitación antes de guardar la configuración del QR."
+      );
+      return;
+    }
 
     const renderRect = img.getBoundingClientRect();
     const xPercent = qrConfig.pos.x / renderRect.width;
@@ -139,63 +150,65 @@ export default function Boleto() {
       height: heightPercent,
     };
 
-    const resultado = await guardarConfiguracionQR(qrConfigData, eventoActual.id);
+    const resultado = await guardarConfiguracionQR(
+      qrConfigData,
+      eventoActual.id
+    );
     if (resultado.success) {
       setQrConfigPercent(qrConfigData);
       setFinalizado(true);
     }
   };
 
+  const handleDescargar = async () => {
+    // Carga la imagen original
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.src = imagen;
 
-const handleDescargar = async () => {
-  // Carga la imagen original
-  const img = new window.Image();
-  img.crossOrigin = "anonymous";
-  img.src = imagen;
+    img.onload = async () => {
+      // Crea un canvas con el tamaño original de la imagen
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
 
-  img.onload = async () => {
-    // Crea un canvas con el tamaño original de la imagen
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext("2d");
+      // Dibuja la imagen original
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    // Dibuja la imagen original
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      // Calcula la posición y tamaño del QR en la imagen original
+      const x = qrConfigPercent.x * canvas.width;
+      const y = qrConfigPercent.y * canvas.height;
+      const size = qrConfigPercent.width * canvas.width;
 
-    // Calcula la posición y tamaño del QR en la imagen original
-    const x = qrConfigPercent.x * canvas.width;
-    const y = qrConfigPercent.y * canvas.height;
-    const size = qrConfigPercent.width * canvas.width;
+      // Genera el QR como imagen base64
+      const qrValue = "https://tuboleto.com/qr";
+      const qrDataUrl = await QRCode.toDataURL(qrValue, {
+        width: size,
+        margin: 0,
+        color: {
+          dark: "#0a9d8c",
+          light: "#0000", // transparente
+        },
+      });
 
-    // Genera el QR como imagen base64
-    const qrValue = "https://tuboleto.com/qr";
-    const qrDataUrl = await QRCode.toDataURL(qrValue, {
-      width: size,
-      margin: 0,
-      color: {
-        dark: "#0a9d8c",
-        light: "#0000" // transparente
-      }
-    });
+      // Crea una imagen para el QR y dibújala en el canvas
+      const qrImg = new window.Image();
+      qrImg.src = qrDataUrl;
+      qrImg.onload = () => {
+        ctx.drawImage(qrImg, x, y, size, size);
 
-    // Crea una imagen para el QR y dibújala en el canvas
-    const qrImg = new window.Image();
-    qrImg.src = qrDataUrl;
-    qrImg.onload = () => {
-      ctx.drawImage(qrImg, x, y, size, size);
-
-      // Descarga la imagen final
-      const link = document.createElement("a");
-      link.download = "boleto-qr.png";
-      link.href = canvas.toDataURL();
-      link.click();
+        // Descarga la imagen final
+        const link = document.createElement("a");
+        link.download = "boleto-qr.png";
+        link.href = canvas.toDataURL();
+        link.click();
+      };
     };
-  };
-  if (!eventoActual?.id) return;
+    if (!eventoActual?.id) return;
 
-  await descargarBoletosMasivo(eventoActual.id);
-};
+    await descargarBoletosMasivo(eventoActual.id);
+  };
 
   const handleEditar = () => {
     setEditando(true);
@@ -259,8 +272,13 @@ const handleDescargar = async () => {
               {error}
             </div>
           )}
-          <div className="bg-white rounded-3xl shadow-2xl p-8 relative" style={{ minWidth: 400 }}>
-            <div className="text-2xl font-bold text-casal text-center mb-4">BOLETO DE GRADUACIÓN</div>
+          <div
+            className="bg-white rounded-3xl shadow-2xl p-8 relative"
+            style={{ minWidth: 400 }}
+          >
+            <div className="text-2xl font-bold text-casal text-center mb-4">
+              BOLETO DE GRADUACIÓN
+            </div>
             <div ref={qrContainerRef} style={containerStyle}>
               <img
                 ref={imgFinalRef}
@@ -268,28 +286,31 @@ const handleDescargar = async () => {
                 alt="Previsualización"
                 style={imgStyle}
               />
-              <FinalQROverlay imgRef={imgFinalRef} qrConfigPercent={qrConfigPercent} />
+              <FinalQROverlay
+                imgRef={imgFinalRef}
+                qrConfigPercent={qrConfigPercent}
+              />
             </div>
           </div>
           {/* Botones de acción */}
           <div className="flex flex-col gap-4 items-center justify-center">
-            <button 
+            <button
               className="bg-casal text-white px-8 py-3 rounded-full text-lg font-semibold shadow hover:bg-casal/90 transition flex items-center gap-2 w-full justify-center"
               disabled={loading}
             >
               <img src={Compartir} className="w-5 h-5" alt="" srcSet="" />
               Compartir
             </button>
-            <button 
-              onClick={handleEditar} 
+            <button
+              onClick={handleEditar}
               className="bg-Acapulco text-white px-8 py-3 rounded-full text-lg font-semibold shadow hover:bg-Acapulco/90 transition flex items-center gap-2 w-full justify-center disabled:opacity-50"
               disabled={loading}
             >
               <img src={Editar} className="w-5 h-5" alt="" srcSet="" />
               Editar
             </button>
-            <button 
-              onClick={handleDescargar} 
+            <button
+              onClick={handleDescargar}
               className="bg-Acapulco text-white px-8 py-3 rounded-full text-lg font-semibold shadow hover:bg-Acapulco/90 transition flex items-center gap-2 w-full justify-center disabled:opacity-50"
               disabled={loading}
             >
@@ -326,10 +347,7 @@ const handleDescargar = async () => {
               <img src={imagen} alt="Previsualización" style={imgStyle} />
             </div>
             <button
-               onClick={() => {
-            setSeleccionQR(true);
-            setShowAlertaQR(true);
-          }}
+              onClick={handleSiguiente}
               disabled={loading}
               className="bg-casal text-white px-8 py-3 rounded-full text-lg font-semibold shadow hover:bg-casal/90 transition mt-6 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
@@ -451,7 +469,6 @@ const handleDescargar = async () => {
                   setArchivoImagen(null);
                   setEditando(false);
                 }
-                setMostrarAdvertencia(false);
                 setQrConfig({ pos: { x: 100, y: 100 }, size: 120 });
               }}
               disabled={loading}
@@ -465,57 +482,55 @@ const handleDescargar = async () => {
     );
   }
 
-if (finalizado && qrConfigPercent) {
-  return (
-    <div className="min-h-min flex flex-col items-center justify-center bg-fondoVs dark:bg-[#1a1a1a] rounded-xl p-2 sm:p-4">
-      <div className="w-full max-w-5xl flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
-        <div
-          className="bg-white dark:bg-black rounded-3xl shadow-2xl p-2 sm:p-4 md:p-8 relative w-full max-w-xs sm:max-w-md md:min-w-[400px]"
-        >
-          <div className="text-lg sm:text-2xl font-bold text-casal text-center mb-2 sm:mb-4">
-            BOLETO DE GRADUACIÓN
+  if (finalizado && qrConfigPercent) {
+    return (
+      <div className="min-h-min flex flex-col items-center justify-center bg-fondoVs dark:bg-[#1a1a1a] rounded-xl p-2 sm:p-4">
+        <div className="w-full max-w-5xl flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
+          <div className="bg-white dark:bg-black rounded-3xl shadow-2xl p-2 sm:p-4 md:p-8 relative w-full max-w-xs sm:max-w-md md:min-w-[400px]">
+            <div className="text-lg sm:text-2xl font-bold text-casal text-center mb-2 sm:mb-4">
+              BOLETO DE GRADUACIÓN
+            </div>
+            <div ref={qrContainerRef} style={containerStyle}>
+              <img
+                ref={imgFinalRef}
+                src={imagen}
+                alt="Previsualización"
+                style={imgStyle}
+              />
+              <FinalQROverlay
+                imgRef={imgFinalRef}
+                qrConfigPercent={qrConfigPercent}
+              />
+            </div>
           </div>
-          <div ref={qrContainerRef} style={containerStyle}>
-            <img
-              ref={imgFinalRef}
-              src={imagen}
-              alt="Previsualización"
-              style={imgStyle}
-            />
-            <FinalQROverlay
-              imgRef={imgFinalRef}
-              qrConfigPercent={qrConfigPercent}
-            />
+          {/* Botones de acción */}
+          <div className="flex flex-col gap-2 sm:gap-4 items-center justify-center w-full max-w-xs">
+            <button className="bg-casal text-white px-4 py-3 rounded-full text-base sm:text-lg font-semibold shadow hover:bg-casal/90 transition flex items-center gap-2 w-full justify-center">
+              <img src={Compartir} className="w-5 h-5" alt="" />
+              Compartir
+            </button>
+            <button
+              onClick={handleEditar}
+              className="bg-Acapulco text-white px-4 py-3 rounded-full text-base sm:text-lg font-semibold shadow hover:bg-Acapulco/90 transition flex items-center gap-2 w-full justify-center"
+            >
+              <img src={Editar} className="w-5 h-5" alt="" />
+              Editar
+            </button>
+            <button
+              onClick={handleDescargar}
+              className="bg-Acapulco text-white px-4 py-3 rounded-full text-base sm:text-lg font-semibold shadow hover:bg-Acapulco/90 transition flex items-center gap-2 w-full justify-center"
+            >
+              <img src={Descargar} className="w-5 h-5" alt="" />
+              Guardar
+            </button>
+            <button className="bg-casal text-white px-4 py-3 rounded-full text-base sm:text-lg font-semibold shadow hover:bg-casal/90 transition flex items-center gap-2 w-full justify-center">
+              Descargar todos los boletos
+            </button>
           </div>
-        </div>
-        {/* Botones de acción */}
-        <div className="flex flex-col gap-2 sm:gap-4 items-center justify-center w-full max-w-xs">
-          <button className="bg-casal text-white px-4 py-3 rounded-full text-base sm:text-lg font-semibold shadow hover:bg-casal/90 transition flex items-center gap-2 w-full justify-center">
-            <img src={Compartir} className="w-5 h-5" alt="" />
-            Compartir
-          </button>
-          <button
-            onClick={handleEditar}
-            className="bg-Acapulco text-white px-4 py-3 rounded-full text-base sm:text-lg font-semibold shadow hover:bg-Acapulco/90 transition flex items-center gap-2 w-full justify-center"
-          >
-            <img src={Editar} className="w-5 h-5" alt="" />
-            Editar
-          </button>
-          <button
-            onClick={handleDescargar}
-            className="bg-Acapulco text-white px-4 py-3 rounded-full text-base sm:text-lg font-semibold shadow hover:bg-Acapulco/90 transition flex items-center gap-2 w-full justify-center"
-          >
-            <img src={Descargar} className="w-5 h-5" alt="" />
-            Guardar
-          </button>
-          <button className="bg-casal text-white px-4 py-3 rounded-full text-base sm:text-lg font-semibold shadow hover:bg-casal/90 transition flex items-center gap-2 w-full justify-center">
-            Descargar todos los boletos
-          </button>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   // fallback
   return null;
