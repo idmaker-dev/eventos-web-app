@@ -2,7 +2,15 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Bell, ChevronDown, CalendarPlus2, LogOut, Menu, FileText, Link } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  CalendarPlus2,
+  LogOut,
+  Menu,
+  FileText,
+  Link,
+} from "lucide-react";
 import Eventos from "../Modales/Eventos";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 import temaClaro from "../../assets/recursos/temaClaro.svg";
@@ -26,6 +34,9 @@ export default function AdminPage() {
   const { logout } = useAuth();
   const [showCuestionario, setShowCuestionario] = useState(false);
   const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+  const desktopSelectorRef = useRef(null);
+  const mobileSelectorRef = useRef(null);
 
   // const { eventoActual } = useSelectedEvent();
   const { showSuccess, showError } = useNotifications();
@@ -43,30 +54,69 @@ export default function AdminPage() {
       });
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        configMenuRef.current &&
-        !configMenuRef.current.contains(event.target)
-      ) {
-        setConfigMenuOpen(false);
-      }
-      if (
-        mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(event.target)
-      ) {
-        setMobileMenuOpen(false);
-      }
-    };
+  // useEffect(() => {
+  //   const handleClickOutside = (event) => {
+  //     if (
+  //       configMenuRef.current &&
+  //       !configMenuRef.current.contains(event.target)
+  //     ) {
+  //       setConfigMenuOpen(false);
+  //     }
+  //     if (
+  //       mobileMenuRef.current &&
+  //       !mobileMenuRef.current.contains(event.target)
+  //     ) {
+  //       setMobileMenuOpen(false);
+  //     }
+  //   };
 
-    if (configMenuOpen || mobileMenuOpen) {
+  //   if (configMenuOpen || mobileMenuOpen) {
+  //     document.addEventListener("mousedown", handleClickOutside);
+  //   }
+
+  //   return () => {
+  //     document.removeEventListener("mousedown", handleClickOutside);
+  //   };
+  // }, [configMenuOpen, mobileMenuOpen]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      const desktopMenu = desktopSelectorRef.current;
+      const mobileMenu = mobileSelectorRef.current;
+      if (
+        isOpen &&
+        desktopMenu &&
+        !desktopMenu.contains(event.target) &&
+        mobileMenu &&
+        !mobileMenu.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+      // Si solo uno está abierto, verifica ese
+      if (
+        isOpen &&
+        desktopMenu &&
+        !desktopMenu.contains(event.target) &&
+        !mobileMenu
+      ) {
+        setIsOpen(false);
+      }
+      if (
+        isOpen &&
+        mobileMenu &&
+        !mobileMenu.contains(event.target) &&
+        !desktopMenu
+      ) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [configMenuOpen, mobileMenuOpen]);
+  }, [isOpen]);
 
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
@@ -81,7 +131,6 @@ export default function AdminPage() {
     localStorage.setItem("darkMode", darkMode);
   }, [darkMode]);
 
-  const [isOpen, setIsOpen] = useState(false);
   const { eventos, selectEvent, eventoActual } = useSelectedEvent();
   const [selectedOption, setSelectedOption] = useState("Selecciona un evento");
 
@@ -190,7 +239,7 @@ export default function AdminPage() {
 
             {/* Menú desplegable central - Solo desktop */}
             <div className="flex-1 md:flex justify-center items-center hidden relative gap-3">
-              <div className="relative">
+              <div className="relative" ref={desktopSelectorRef}>
                 <button
                   onClick={() => setIsOpen(!isOpen)}
                   className="md:w-80 lg:w-96 bg-white dark:bg-[#1a1a1a] hover:bg-gray-50  dark:hover:bg-gray-800 transition-all duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#216b6b] focus:ring-offset-2 shadow-md border border-gray-200 dark:border-gray-600"
@@ -309,7 +358,7 @@ export default function AdminPage() {
           </div>
 
           {/* Menú desplegable móvil */}
-          <div className="md:hidden mt-4 relative">
+          <div className="md:hidden mt-4 relative" ref={mobileSelectorRef}>
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="w-full bg-white dark:bg-[#1a1a1a] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#216b6b] focus:ring-offset-2 shadow-md border border-gray-200 dark:border-gray-600"
@@ -361,31 +410,30 @@ export default function AdminPage() {
               />
             )}
           </div>
-        
-            <div className="md:hidden mt-4 flex justify-center gap-4">
-               <button
-                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
-                onClick={() => setShowCuestionario(true)}
-              >
-                <FileText size={18} />
-              </button>
-              <button
-                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
-                onClick={handleCopyLink}
-              >
-                <Link size={18} />
-              </button>
-            </div>
+
+          <div className="md:hidden mt-4 flex justify-center gap-4">
+            <button
+              className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+              onClick={() => setShowCuestionario(true)}
+            >
+              <FileText size={18} />
+            </button>
+            <button
+              className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+              onClick={handleCopyLink}
+            >
+              <Link size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="p-3 lg:p-6 min-h-[calc(100vh-80px)]">
-           {showCuestionario ? (
+          {showCuestionario ? (
             <CrearCuestionarioPages
               onClose={() => setShowCuestionario(false)}
             />
           ) : (
-            
-          <Outlet context={{ selectedEvent: selectedOption }} />
+            <Outlet context={{ selectedEvent: selectedOption }} />
           )}
         </div>
       </main>

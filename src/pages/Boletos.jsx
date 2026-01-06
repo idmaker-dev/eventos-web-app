@@ -6,8 +6,8 @@ export default function Boletos() {
   const { user } = useAuth();
 
   return (
-    <div className="w-full min-h-screen bg-fondoVs">
-      <div className="container mx-auto px-4 py-8">
+    <div className="w-full min-h-screen bg-white dark:bg-[#121212] rounded-2xl py-6">
+      <div className="w-full max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-casal mb-2">
             Configuración de Boletos
