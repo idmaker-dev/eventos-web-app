@@ -41,6 +41,7 @@ export default function Boleto() {
   // refs para obtener tamaño real de la imagen
   const imgRef = useRef();
   const imgFinalRef = useRef();
+  const [editando, setEditando] = useState(false);
   
 
   // Cargar configuración existente al montar
@@ -62,6 +63,15 @@ export default function Boleto() {
       if (configuracion.qr_config) {
         setQrConfigPercent(configuracion.qr_config);
       }
+    } else {
+      setImagen(null);
+      setArchivoImagen(null);
+      setFinalizado(false);
+      setQrConfigPercent(null);
+      setSeleccionQR(false);
+      setMostrarAdvertencia(false);
+      setEditando(false);
+      setQrConfig({ pos: { x: 100, y: 100 }, size: 120 });
     }
   }, [configuracion]);
 
@@ -188,9 +198,10 @@ const handleDescargar = async () => {
 };
 
   const handleEditar = () => {
+    setEditando(true);
     setFinalizado(false);
-    // setSeleccionQR(true);
-    setShowAlertaQR(true);
+    setSeleccionQR(true);
+    //setShowAlertaQR(true);
   };
 
   // Vista 1: Subir imagen
@@ -299,10 +310,6 @@ const handleDescargar = async () => {
       </div>
     );
   }
-
- 
-
-
 
   // Vista 2: Previsualización y botón Siguiente
   if (imagen && !seleccionQR && !finalizado) {
@@ -432,7 +439,18 @@ const handleDescargar = async () => {
             </button>
             <button
               onClick={() => {
-                setSeleccionQR(false);
+                if (editando) {
+                  // Si está editando, regresa al paso 5
+                  setSeleccionQR(false);
+                  setFinalizado(true);
+                  setEditando(false);
+                } else {
+                  // Si no, regresa al paso 1 (subir imagen)
+                  setSeleccionQR(false);
+                  setImagen(null);
+                  setArchivoImagen(null);
+                  setEditando(false);
+                }
                 setMostrarAdvertencia(false);
                 setQrConfig({ pos: { x: 100, y: 100 }, size: 120 });
               }}
