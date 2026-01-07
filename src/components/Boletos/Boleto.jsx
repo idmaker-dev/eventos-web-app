@@ -52,7 +52,9 @@ export default function Boleto() {
   // Si ya existe configuración, cargar la imagen
   useEffect(() => {
     if (configuracion?.imagen_url) {
-      setImagen(configuracion.imagen_url);
+      // Agregar timestamp para evitar caché del navegador
+      const imagenConTimestamp = `${configuracion.imagen_url}?t=${Date.now()}`;
+      setImagen(imagenConTimestamp);
       setFinalizado(true);
       // Resetear estados de flujo para ir directo a vista final
       setMostrarAdvertencia(false);
