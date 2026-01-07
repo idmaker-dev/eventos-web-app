@@ -1,17 +1,28 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Outlet } from "react-router-dom";
-import { Bell, ChevronDown, CalendarPlus2, LogOut, Menu } from "lucide-react";
+import { Outlet, useLocation } from "react-router-dom";
+import {
+  Bell,
+  ChevronDown,
+  CalendarPlus2,
+  LogOut,
+  Menu,
+  FileText,
+  Link,
+} from "lucide-react";
 import Eventos from "../Modales/Eventos";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 import temaClaro from "../../assets/recursos/temaClaro.svg";
 import temaOscuro from "../../assets/recursos/temaOscuro.svg";
 import InlineSpinner from "../ui/InlineSpinner";
 import { useAuth } from "../../hooks/useAuth";
+import CrearCuestionarioPages from "../Comunicacion/CrearCuestionarioPages";
 
 import DesktopSidebar from "./Menu/DesktopSidebar";
 import MobileSidebar from "./Menu/MobilSidebar";
+
+import { useNotifications } from "../../contexts/NotificationContext";
 
 export default function AdminPage() {
   const [darkMode, setDarkMode] = useState(false);
@@ -21,31 +32,91 @@ export default function AdminPage() {
   const configMenuRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const { logout } = useAuth();
+  const [showCuestionario, setShowCuestionario] = useState(false);
+  const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
+  const desktopSelectorRef = useRef(null);
+  const mobileSelectorRef = useRef(null);
+
+  // const { eventoActual } = useSelectedEvent();
+  const { showSuccess, showError } = useNotifications();
+
+  const handleCopyLink = () => {
+    const eventId = eventoActual?.id || "mg07vfc5ma7io4axa";
+    const link = `${window.location.origin}/cuestionario/${eventId}`;
+    navigator.clipboard
+      .writeText(link)
+      .then(() => {
+        showSuccess("Enlace copiado");
+      })
+      .catch(() => {
+        showError("Error al copiar el enlace");
+      });
+  };
+
+  // useEffect(() => {
+  //   const handleClickOutside = (event) => {
+  //     if (
+  //       configMenuRef.current &&
+  //       !configMenuRef.current.contains(event.target)
+  //     ) {
+  //       setConfigMenuOpen(false);
+  //     }
+  //     if (
+  //       mobileMenuRef.current &&
+  //       !mobileMenuRef.current.contains(event.target)
+  //     ) {
+  //       setMobileMenuOpen(false);
+  //     }
+  //   };
+
+  //   if (configMenuOpen || mobileMenuOpen) {
+  //     document.addEventListener("mousedown", handleClickOutside);
+  //   }
+
+  //   return () => {
+  //     document.removeEventListener("mousedown", handleClickOutside);
+  //   };
+  // }, [configMenuOpen, mobileMenuOpen]);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    function handleClickOutside(event) {
+      const desktopMenu = desktopSelectorRef.current;
+      const mobileMenu = mobileSelectorRef.current;
       if (
-        configMenuRef.current &&
-        !configMenuRef.current.contains(event.target)
+        isOpen &&
+        desktopMenu &&
+        !desktopMenu.contains(event.target) &&
+        mobileMenu &&
+        !mobileMenu.contains(event.target)
       ) {
-        setConfigMenuOpen(false);
+        setIsOpen(false);
+      }
+      // Si solo uno está abierto, verifica ese
+      if (
+        isOpen &&
+        desktopMenu &&
+        !desktopMenu.contains(event.target) &&
+        !mobileMenu
+      ) {
+        setIsOpen(false);
       }
       if (
-        mobileMenuRef.current &&
-        !mobileMenuRef.current.contains(event.target)
+        isOpen &&
+        mobileMenu &&
+        !mobileMenu.contains(event.target) &&
+        !desktopMenu
       ) {
-        setMobileMenuOpen(false);
+        setIsOpen(false);
       }
-    };
-
-    if (configMenuOpen || mobileMenuOpen) {
+    }
+    if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [configMenuOpen, mobileMenuOpen]);
+  }, [isOpen]);
 
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
@@ -60,7 +131,6 @@ export default function AdminPage() {
     localStorage.setItem("darkMode", darkMode);
   }, [darkMode]);
 
-  const [isOpen, setIsOpen] = useState(false);
   const { eventos, selectEvent, eventoActual } = useSelectedEvent();
   const [selectedOption, setSelectedOption] = useState("Selecciona un evento");
 
@@ -118,6 +188,10 @@ export default function AdminPage() {
     }
   };
 
+  useEffect(() => {
+    setShowCuestionario(false);
+  }, [location.pathname]);
+
   return (
     <div className="min-h-screen bg-fondoVs dark:bg-[#1a1a1a]">
       {/* SIDEBAR DESKTOP */}
@@ -165,7 +239,7 @@ export default function AdminPage() {
 
             {/* Menú desplegable central - Solo desktop */}
             <div className="flex-1 md:flex justify-center items-center hidden relative gap-3">
-              <div className="relative">
+              <div className="relative" ref={desktopSelectorRef}>
                 <button
                   onClick={() => setIsOpen(!isOpen)}
                   className="md:w-80 lg:w-96 bg-white dark:bg-[#1a1a1a] hover:bg-gray-50  dark:hover:bg-gray-800 transition-all duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#216b6b] focus:ring-offset-2 shadow-md border border-gray-200 dark:border-gray-600"
@@ -223,6 +297,18 @@ export default function AdminPage() {
               >
                 <CalendarPlus2 size={18} />
               </button>
+              <button
+                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                onClick={() => setShowCuestionario(true)}
+              >
+                <FileText size={18} />
+              </button>
+              <button
+                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+                onClick={handleCopyLink}
+              >
+                <Link size={18} />
+              </button>
             </div>
 
             {/* Botones de acción */}
@@ -272,7 +358,7 @@ export default function AdminPage() {
           </div>
 
           {/* Menú desplegable móvil */}
-          <div className="md:hidden mt-4 relative">
+          <div className="md:hidden mt-4 relative" ref={mobileSelectorRef}>
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="w-full bg-white dark:bg-[#1a1a1a] hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 rounded-full text-left text-gray-700 dark:text-gray-100 font-medium flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#216b6b] focus:ring-offset-2 shadow-md border border-gray-200 dark:border-gray-600"
@@ -324,10 +410,31 @@ export default function AdminPage() {
               />
             )}
           </div>
+
+          <div className="md:hidden mt-4 flex justify-center gap-4">
+            <button
+              className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+              onClick={() => setShowCuestionario(true)}
+            >
+              <FileText size={18} />
+            </button>
+            <button
+              className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+              onClick={handleCopyLink}
+            >
+              <Link size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="p-3 lg:p-6 min-h-[calc(100vh-80px)]">
-          <Outlet context={{ selectedEvent: selectedOption }} />
+          {showCuestionario ? (
+            <CrearCuestionarioPages
+              onClose={() => setShowCuestionario(false)}
+            />
+          ) : (
+            <Outlet context={{ selectedEvent: selectedOption }} />
+          )}
         </div>
       </main>
 

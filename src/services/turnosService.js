@@ -227,6 +227,30 @@ class TurnosService {
   }
 
   /**
+   * Guardar selección de mesas por un administrador (sin validar turnos)
+   * @param {string} eventoId - ID del evento
+   * @param {string} invitadoId - ID del invitado al que se asigna
+   * @param {Object} seleccion - Datos de la selección
+   */
+  async guardarSeleccionAdmin(eventoId, invitadoId, seleccion) {
+    try {
+      const response = await httpService.post(
+        `/eventos/${eventoId}/seleccion-mesas/guardar-admin?invitadoId=${invitadoId}`,
+        seleccion
+      );
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al guardar selección",
+      };
+    }
+  }
+
+  /**
    * Obtener selección del invitado
    * @param {string} eventoId - ID del evento
    * @param {string} invitadoId - ID del invitado

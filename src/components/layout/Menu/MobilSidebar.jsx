@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Settings, Bell, Pin, User, X, Users, Megaphone } from "lucide-react";
+import { Settings, Bell, Pin, User, X, Users, Megaphone, Ticket, Tickets } from "lucide-react";
 import ResumenProgreso from "../../../assets/recursos/resumen_progreso.svg";
 import ModuloPagos from "../../../assets/recursos/moduloDePagos.svg";
 import ModuloAsignacion from "../../../assets/recursos/moduloDeAsignacion.svg";
@@ -116,7 +116,7 @@ export default function MobileSidebar({
                   <span className="font-medium">Módulo de asignación</span>
                 </NavLink>
               </li>
-              <li>
+              {/* <li>
                 <NavLink
                   to="/admin/clientes"
                   onClick={() => setMobileMenuOpen(false)}
@@ -128,11 +128,10 @@ export default function MobileSidebar({
                     }`
                   }
                 >
-                  {/* <img src={ModuloInvitados} alt="Módulo de invitados" className="w-5 h-5" /> */}
                   <Users size={20} />
                   <span className="font-medium">Módulo de clientes</span>
                 </NavLink>
-              </li>
+              </li> */}
               <li>
                 <NavLink
                   to="/admin/campanas"
@@ -145,13 +144,29 @@ export default function MobileSidebar({
                     }`
                   }
                 >
-                  {/* <img src={ModuloInvitados} alt="Módulo de invitados" className="w-5 h-5" /> */}
                   <Megaphone size={20} />
                   <span className="font-medium">Módulo de campañas</span>
                 </NavLink>
-              </li>
-
+              </li> 
               <li>
+                <NavLink
+                  to="/admin/boletos"
+                  onClick={() => setMobileMenuOpen(false)}    
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                      isActive
+
+                        ? "bg-[#216b6b] text-white shadow-lg"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-700/60 hover:shadow-md"
+                    }`  
+                  }
+                >
+                  {/* <img src={ModuloInvitados} alt="Módulo de invitados" className="w-5 h-5" /> */}
+                  <Ticket className="rotate-90" size={20} />
+                  <span className="font-medium">Módulo de boletos</span>
+                </NavLink>
+              </li>
+              {/* <li>
                 <NavLink
                   to="/admin/chat"
                   onClick={() => setMobileMenuOpen(false)}
@@ -166,7 +181,7 @@ export default function MobileSidebar({
                   <img src={ModuloAsignacion} alt="Módulo de comunicación" className="w-5 h-5" />
                   <span className="font-medium">Módulo de comunicación</span>
                 </NavLink>
-              </li>
+              </li> */}
 
               {/* Separador */}
               <li className="border-t border-gray-300/50 dark:border-gray-600/50 pt-4 mt-6">

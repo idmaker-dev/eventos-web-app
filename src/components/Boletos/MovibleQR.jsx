@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from "react";
-import { QrCode } from "lucide-react";
+import { Minus, Plus, QrCode } from "lucide-react";
 
 function MovibleQR({ onChange, initialPos = { x: 100, y: 100 }, initialSize = 120 }) {
   const boxRef = useRef();
@@ -101,7 +101,7 @@ function MovibleQR({ onChange, initialPos = { x: 100, y: 100 }, initialSize = 12
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      <QrCode className="w-12 h-12 text-casal" />
+      <QrCode className="w-12 h-12 text-casal " />
       {/* Controles de tamaño */}
       <div style={{
         position: "absolute",
@@ -113,14 +113,18 @@ function MovibleQR({ onChange, initialPos = { x: 100, y: 100 }, initialSize = 12
       }}>
         <button
           onClick={() => handleSizeChange(-20)}
-          className="bg-casal text-white rounded-full px-2 py-1 text-xs shadow"
+          className="bg-casal text-white rounded-full px-1 py-1 text-xs shadow"
           type="button"
-        >-</button>
+        >
+          <Minus className="w-3 h-3" />
+        </button>
         <button
           onClick={() => handleSizeChange(20)}
-          className="bg-casal text-white rounded-full px-2 py-1 text-xs shadow"
+          className="bg-casal text-white rounded-full px-1 py-1 text-xs shadow"
           type="button"
-        >+</button>
+        >
+          <Plus className="w-3 h-3"/>
+        </button>
       </div>
     </div>
   );

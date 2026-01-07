@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Settings, Bell, Pin, User, Users, Megaphone } from "lucide-react";
+import { Settings, Bell, Pin, User, Users, Megaphone, Ticket, Tickets } from "lucide-react";
 import ResumenProgreso from "../../../assets/recursos/resumen_progreso.svg";
 import ModuloPagos from "../../../assets/recursos/moduloDePagos.svg";
 import ModuloAsignacion from "../../../assets/recursos/moduloDeAsignacion.svg";
@@ -108,7 +108,7 @@ export default function DesktopSidebar({
             </Tooltip>
           </li>
 
-          <li className="group">
+          {/*<li className="group">
             <Tooltip content="Módulo de comunicación" position="right">
               <NavLink
                 to="/admin/chat"
@@ -128,7 +128,7 @@ export default function DesktopSidebar({
               </NavLink>
             </Tooltip>
           </li>
-          <li className="group">
+           <li className="group">
             <Tooltip content="Módulo de clientes" position="right">
               <NavLink
                 to="/admin/clientes"
@@ -140,15 +140,10 @@ export default function DesktopSidebar({
                   }`
                 }
               >
-                {/* <img
-                  src={ModuloInvitados}
-                  alt="Módulo de invitados"
-                  className="w-6 h-6"
-                /> */}
                 <Users size={24} />
               </NavLink>
             </Tooltip>
-          </li>
+          </li>*/}
           <li className="group">
             <Tooltip content="Módulo de campañas" position="right">
               <NavLink
@@ -162,6 +157,22 @@ export default function DesktopSidebar({
                 }
               >
                 <Megaphone size={24} />
+              </NavLink>
+            </Tooltip>
+          </li> 
+          <li className="group">
+            <Tooltip content="Módulo de boletos" position="right">
+              <NavLink
+                to="/admin/boletos"
+                className={({ isActive }) =>
+                  `w-[42px] h-[42px] rounded-full flex items-center justify-center transition-all duration-300 ${
+                    isActive
+                      ? "bg-[#216b6b] text-white shadow-lg scale-110"
+                      : "bg-[#f1f4f8] dark:bg-[#3a3a3a] text-[#b0b0b0] dark:text-[#ccc] hover:bg-[#d9e6ed] hover:text-[#206a73] dark:hover:bg-[#007bff] dark:hover:text-white hover:scale-105"
+                  }`
+                }
+              >
+                <Ticket className="rotate-90" size={24} />
               </NavLink>
             </Tooltip>
           </li>

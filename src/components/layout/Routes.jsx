@@ -15,7 +15,7 @@ import PagoTarjeta from "../../pages/PagoTarjeta"
 import SignalRTest from "../../pages/SignalRTest"
 import HomeLugar from "../../pages/HomeLugar" // nueva vista para rol lugar
 import LectorQRPage from "../../pages/LectorQRPage" // vista para escaneo de QR
-import Boletos from "../../pages/Boletos" // vista para configuración de boletos
+import Boletos from "../../pages/Boletos"
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
@@ -90,6 +90,7 @@ export default function AppRoutes() {
         <Route path="asignacion" element={<Asignacion />} />
         <Route path="clientes" element={<Clientes />} />
         <Route path="campanas" element={<Campanas />} />
+        <Route path="boletos" element={<Boletos />} />
       </Route>
       {/* Ruta pública - Accesible sin autenticación */}
       <Route path="/Cuestionario/:eventId" element={<Cuestionario />} />
