@@ -57,17 +57,15 @@ export default function Boleto() {
       const imagenConTimestamp = `${configuracion.imagen_url}?t=${Date.now()}`;
       setImagen(imagenConTimestamp);
       setFinalizado(true);
+      // Resetear estados de flujo para ir directo a vista final
+      setMostrarAdvertencia(false);
       setSeleccionQR(false);
-      setEditando(false);
-    } else {
-      console.log("No hay configuración QR");
-      // Solo hay imagen, ve a selección QR
-      setFinalizado(false);
-      setSeleccionQR(true);
-      setEditando(false);
+      // Convertir configuración de porcentajes a píxeles para vista previa
+      if (configuracion.qr_config) {
+        setQrConfigPercent(configuracion.qr_config);
+      }
     }
-  } 
-, [configuracion]);
+  }, [configuracion]);
 
   const containerStyle = {
     width: "auto",
