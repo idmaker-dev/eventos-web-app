@@ -45,6 +45,8 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
   const [tabActivo, setTabActivo] = useState("cliente");
   const isMobile = useIsMobile();
 
+  console.log(ticket?.pago, "@@@@");
+
   // Estados para modificación de boletos
   const [modificandoBoletos, setModificandoBoletos] = useState(false);
   const [nuevaCantidad, setNuevaCantidad] = useState(0);

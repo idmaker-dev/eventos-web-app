@@ -146,7 +146,7 @@ export default function CompClientes() {
         );
 
         const historialData = Array.isArray(data) ? data : data.data || [];
-        console.log("✅ Historial específico cargado:", historialData);
+        // console.log("✅ Historial específico cargado:", historialData);
         const historialUI = transformarHistorialParaUI(historialData);
         setHistorialAcciones(historialUI);
       } catch (err) {
@@ -333,7 +333,7 @@ export default function CompClientes() {
                   onBack={handleVolverALista}
                   isMobileView={true}
                   onRefresh={() => {
-                    console.log("🔄 Ejecutando silent refresh (móvil)...");
+                    // console.log("🔄 Ejecutando silent refresh (móvil)...");
                     cargarTickets({ silent: true });
                     cargarTicket({ silent: true });
                     cargarClientInfo({ silent: true });
@@ -462,7 +462,7 @@ export default function CompClientes() {
                 <Destalles
                   ticket={ticketSeleccionado}
                   onRefresh={() => {
-                    console.log("🔄 Ejecutando silent refresh...");
+                    // console.log("🔄 Ejecutando silent refresh...");
                     cargarTickets({ silent: true });
                     cargarTicket({ silent: true });
                     cargarClientInfo({ silent: true });
