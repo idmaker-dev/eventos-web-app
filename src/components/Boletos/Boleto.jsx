@@ -51,14 +51,11 @@ export default function Boleto() {
   }, [eventoActual, cargarConfiguracion]);
 
   // Si ya existe configuración, cargar la imagen
-useEffect(() => {
-  if (configuracion?.imagen_url) {
-    setImagen(configuracion.imagen_url);
-
-    if (configuracion.qr_config) {
-      // Ya hay QR configurado, ve a la vista final
-      console.log("Configuración QR encontrada:", configuracion.qr_config);
-      setQrConfigPercent(configuracion.qr_config);
+  useEffect(() => {
+    if (configuracion?.imagen_url) {
+      // Agregar timestamp para evitar caché del navegador
+      const imagenConTimestamp = `${configuracion.imagen_url}?t=${Date.now()}`;
+      setImagen(imagenConTimestamp);
       setFinalizado(true);
       setSeleccionQR(false);
       setEditando(false);
@@ -69,17 +66,8 @@ useEffect(() => {
       setSeleccionQR(true);
       setEditando(false);
     }
-  } else {
-    // No hay configuración, limpia todo
-    setImagen(null);
-    setArchivoImagen(null);
-    setFinalizado(false);
-    setQrConfigPercent(null);
-    setSeleccionQR(false);
-    setEditando(false);
-    setQrConfig({ pos: { x: 100, y: 100 }, size: 120 });
-  }
-}, [configuracion]);
+  } 
+, [configuracion]);
 
   const containerStyle = {
     width: "auto",
