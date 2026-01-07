@@ -965,13 +965,20 @@ export default function Destalles({ ticket, onBack, isMobileView }) {
                       Información adicional
                     </h4>
                     <div className="mb-2 text-sm">
-                      <span className="font-semibold text-casal">
-                        Devoluciones:
-                      </span>{" "}
-                      <br />
-                      <span className="text-gray-600 dark:text-gray-200">
-                        {ticket.pago.adicional.devoluciones}
-                      </span>
+                      <div>
+                        <span className="font-semibold text-casal">
+                         Devoluciones:
+                        </span>{" "}
+                        <br />
+                        <span className="text-gray-600 dark:text-gray-200">
+                          {ticket.pago.adicional.devoluciones}
+                        </span>
+                      </div>
+                      <div className="flex justify-end mt-2">
+                        <button className="border bg-green-100 hover:bg-casal hover:text-white text-green-700 px-4 py-1 rounded-xl text-xs">
+                          Aplicar devolución
+                        </button>
+                      </div>
                     </div>
                     <div className="mb-2 flex gap-2 flex-wrap">
                       {ticket.pago.adicional.opcionesDevolucion.map(
