@@ -58,12 +58,20 @@ export default function Boleto() {
       setImagen(imagenConTimestamp);
       setFinalizado(true);
       // Resetear estados de flujo para ir directo a vista final
-      setMostrarAdvertencia(false);
+      // setMostrarAdvertencia(false);
       setSeleccionQR(false);
       // Convertir configuración de porcentajes a píxeles para vista previa
       if (configuracion.qr_config) {
         setQrConfigPercent(configuracion.qr_config);
       }
+    } else {
+      // setImagen(null);
+      // setArchivoImagen(null);
+      // setFinalizado(false);
+      // setQrConfigPercent(null);
+      // setSeleccionQR(false);
+      // setEditando(false);
+      // setQrConfig({ pos: { x: 100, y: 100 }, size: 120 });
     }
   }, [configuracion]);
 
@@ -102,21 +110,21 @@ export default function Boleto() {
 
   // const handleSiguiente = () => {
   //   setSeleccionQR(true);
-const handleSiguiente = async () => {
-  if (!archivoImagen || !eventoActual?.id) return;
-  setSubiendoImagen(true);
-  const resultado = await subirDiseno(archivoImagen, eventoActual.id);
-  if (resultado.success) {
-    setSeleccionQR(true);
-    setShowAlertaQR(true);
-  }
-  setSubiendoImagen(false);
-};
+  const handleSiguiente = async () => {
+    if (!archivoImagen || !eventoActual?.id) return;
+    setSubiendoImagen(true);
+    const resultado = await subirDiseno(archivoImagen, eventoActual.id);
+    if (resultado.success) {
+      setSeleccionQR(true);
+      setShowAlertaQR(true);
+    }
+    setSubiendoImagen(false);
+  };
 
   const handleGuardarAjustes = async () => {
     const img = imgRef.current;
-    // if (!img || !eventoActual?.id) return;
-    if (!img || !eventoActual?.id || !configuracion?.imagen_url) {
+    if (!img || !eventoActual?.id) {
+      // if (!img || !eventoActual?.id || !configuracion?.imagen_url) {
       alert(
         "Primero debes subir el diseño de invitación antes de guardar la configuración del QR."
       );

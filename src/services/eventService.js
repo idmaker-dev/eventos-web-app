@@ -350,6 +350,39 @@ class EventService {
       };
     }
   }
+
+  /**
+   * Aplicar devolución a un invitado
+   * @param {string} invitadoId - ID del invitado
+   * @param {number} monto - Monto de la devolución
+   * @param {string} ticket_id - ID del ticket asociado
+   * @param {string} accion - Acción de la devolución
+   * @param {string} nombreSolicitante - Nombre de la persona que solicita la devolución
+   */
+  async devolucion(invitadoId, monto, ticket_id, accion, nombreSolicitante) {
+    try {
+      const response = await httpService.post(`/proceso-devolucion`, {
+        monto: monto,
+        id_invitado: invitadoId,
+        ticket_id: ticket_id,
+        accion: accion,
+        nombre_solicitante: nombreSolicitante,
+      });
+      return response?.data || response;
+      // return {
+      //   success: true,
+      //   data: response?.data || response,
+      //   message: "Se ha iniciado el proceso de devolución correctamente",
+      // };
+    } catch (error) {
+      console.error("Error al aplicar devolución:", error);
+      throw error;
+      // return {
+      //   success: false,
+      //   error: error?.data?.error || "Error al aplicar devolución",
+      // };
+    }
+  }
 }
 
 // Crear instancia singleton

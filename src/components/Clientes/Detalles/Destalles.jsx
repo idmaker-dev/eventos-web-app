@@ -23,7 +23,10 @@ import {
   MenuButton,
   MenuItems,
   MenuItem,
+  Dialog,
+  Transition,
 } from "@headlessui/react";
+import { Fragment } from "react";
 import clsx from "clsx";
 import { Tooltip } from "../../ui/Tooltip";
 import eventService from "../../../services/eventService";
@@ -45,13 +48,13 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
   const [tabActivo, setTabActivo] = useState("cliente");
   const isMobile = useIsMobile();
 
-  console.log(ticket?.pago, "@@@@");
-
   // Estados para modificación de boletos
   const [modificandoBoletos, setModificandoBoletos] = useState(false);
   const [nuevaCantidad, setNuevaCantidad] = useState(0);
   const [opcionProrrateo, setOpcionProrrateo] = useState("crear_nuevas");
   const [cargando, setCargando] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [montoDevolucion, setMontoDevolucion] = useState("");
 
   const { eventoActual } = useSelectedEvent();
   const { showError, showSuccess } = useNotifications();
@@ -124,7 +127,6 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
         showError("No hay evento seleccionado");
         return;
       }
-      console.log(ticket);
 
       const response = await eventService.updateInvitadoBoletos(
         invitadoId,
@@ -153,6 +155,47 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
     } catch (error) {
       console.error("Error al actualizar boletos:", error);
       showError(error.response?.data?.message || "Error al actualizar boletos");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // ! Manejo de devoluciones
+  const handleAplicarDevolucion = async () => {
+    try {
+      if (
+        !montoDevolucion ||
+        isNaN(montoDevolucion) ||
+        Number(montoDevolucion) <= 0
+      ) {
+        showError("Por favor ingresa un monto válido");
+        return;
+      }
+
+      setCargando(true);
+      const invitadoId = ticket?.cliente?.invitado_id || ticket?.invitado_id;
+
+      if (!invitadoId) {
+        showError("No se encontró el ID del invitado");
+        return;
+      }
+
+      const res = await eventService.devolucion(
+        invitadoId,
+        Number(montoDevolucion),
+        ticket?.id,
+        "DEVOLUCIÓN DE PAGO",
+        ticket?.cliente?.nombre
+      );
+      showSuccess(
+        res?.message || "Se ha iniciado el proceso de devolución correctamente"
+      );
+      setShowRefundModal(false);
+      setMontoDevolucion("");
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      console.error("Error al aplicar devolución:", error);
+      showError(error?.data?.error || "Error al procesar la devolución");
     } finally {
       setCargando(false);
     }
@@ -1037,7 +1080,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                     <div className="mb-2 text-sm">
                       <div>
                         <span className="font-semibold text-casal">
-                         Devoluciones:
+                          Devoluciones:
                         </span>{" "}
                         <br />
                         <span className="text-gray-600 dark:text-gray-200">
@@ -1045,7 +1088,10 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                         </span>
                       </div>
                       <div className="flex justify-end mt-2">
-                        <button className="border bg-green-100 hover:bg-casal hover:text-white text-green-700 px-4 py-1 rounded-xl text-xs">
+                        <button
+                          onClick={() => setShowRefundModal(true)}
+                          className="border bg-green-100 hover:bg-casal hover:text-white text-green-700 px-4 py-1 rounded-xl text-xs"
+                        >
                           Aplicar devolución
                         </button>
                       </div>
@@ -1142,6 +1188,100 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
           )}
         </div>
       </div>
+      {/* Modal de Devolución */}
+      <Transition appear show={showRefundModal} as={Fragment}>
+        <Dialog
+          as="div"
+          className="relative z-50"
+          onClose={() => {}} // No cerrar al hacer clic afuera
+        >
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-[#1a1a1a] p-6 text-left align-middle shadow-xl transition-all border border-gray-200 dark:border-gray-700">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-bold leading-6 text-casal dark:text-white flex items-center gap-2"
+                  >
+                    <AlertCircle className="w-5 h-5 text-casal" />
+                    Aplicar Devolución
+                  </Dialog.Title>
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Por favor, ingresa el monto de la devolución para el
+                      invitado{" "}
+                      <span className="font-semibold text-casal">
+                        {ticket.cliente.nombre}
+                      </span>
+                      .
+                    </p>
+                    <div className="mt-4">
+                      <label
+                        htmlFor="monto"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
+                        Monto de devolución
+                      </label>
+                      <Input
+                        type="number"
+                        id="monto"
+                        name="monto"
+                        autoFocus
+                        value={montoDevolucion}
+                        onChange={(e) => setMontoDevolucion(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full px-4 py-2 bg-gray-50 dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-casal/50 focus:border-casal outline-none transition-all dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex justify-end gap-3">
+                    <Button
+                      type="button"
+                      disabled={cargando}
+                      className="inline-flex justify-center rounded-lg border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none transition-colors disabled:opacity-50"
+                      onClick={() => {
+                        setShowRefundModal(false);
+                        setMontoDevolucion("");
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      disabled={cargando}
+                      className="inline-flex justify-center rounded-lg border border-transparent bg-casal px-4 py-2 text-sm font-medium text-white hover:bg-casal/90 focus:outline-none transition-colors disabled:opacity-50"
+                      onClick={handleAplicarDevolucion}
+                    >
+                      {cargando ? "Procesando..." : "Aplicar"}
+                    </Button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }

@@ -135,7 +135,11 @@ export default function CompClientes() {
           return;
         }
 
-        const acciones = ["AGREGAR BOLETO", "ELIMINAR BOLETO"];
+        const acciones = [
+          "AGREGAR BOLETO",
+          "ELIMINAR BOLETO",
+          "DEVOLUCIÓN DE PAGO",
+        ];
         const modulos = ["CLIENTES"];
 
         const data = await historialAccionesService.getHistorialPorParametros(
