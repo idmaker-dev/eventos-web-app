@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import InlineSpinner from "../ui/InlineSpinner";
 import { useParams } from "react-router-dom";
-import logo from "../../assets/recursos/logoTentativo2.svg";
+import logo from "../../assets/LOGOPLANORIA1.png";
 import IconCuestionario from "../../assets/recursos/IconoCuestionario.svg";
 import confirmacionWhatsapp from "../../assets/recursos/ConfirmacionWhastapp.svg";
 import SolicitudCodigo from "../../assets/recursos/solicitudCodigo.svg";
