@@ -11,7 +11,12 @@ import { useSignalRTickets } from "../../hooks/useSignalRTickets";
 import { useSignalRConnection } from "../../hooks/useSignalR";
 import { useTicketDetail } from "../../hooks/useTicketDetail";
 import { useClientInfo } from "../../hooks/useClientInfo";
-import { transformarTicketCompletoParaUI, formatearFechaHora } from "../../utils/ticketsHelpers";
+import {
+  transformarTicketCompletoParaUI,
+  formatearFechaHora,
+  transformarHistorialParaUI,
+} from "../../utils/ticketsHelpers";
+import historialAccionesService from "../../services/historialAccionesService";
 
 // Hook para detectar móvil
 function useIsMobile() {
@@ -26,24 +31,21 @@ function useIsMobile() {
 }
 
 export default function CompClientes() {
-  const [ticketSeleccionadoSimple, setTicketSeleccionadoSimple] = useState(null);
+  const [ticketSeleccionadoSimple, setTicketSeleccionadoSimple] =
+    useState(null);
   const [ticketSeleccionado, setTicketSeleccionado] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [historialAcciones, setHistorialAcciones] = useState([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
   const isMobile = useIsMobile();
 
   // Hook para conectar a SignalR automáticamente
   const { conectado: signalRConectado } = useSignalRConnection();
 
   // Hook para cargar tickets desde el API
-  const {
-    tickets,
-    loading,
-    error,
-    cargarTickets,
-    estadisticas,
-  } = useTickets();
+  const { tickets, loading, error, cargarTickets, estadisticas } = useTickets();
 
   // Log para verificar conexión de SignalR
   useEffect(() => {
@@ -51,14 +53,16 @@ export default function CompClientes() {
   }, [signalRConectado]);
 
   // Hooks para cargar detalle del ticket y datos del cliente
-  const { 
-    ticketDetail, 
-    loading: loadingDetail
+  const {
+    ticketDetail,
+    loading: loadingDetail,
+    cargarTicket,
   } = useTicketDetail(ticketSeleccionadoSimple?.ticket);
 
-  const { 
-    clientInfo, 
-    loading: loadingClient 
+  const {
+    clientInfo,
+    loading: loadingClient,
+    cargarClientInfo,
   } = useClientInfo(ticketSeleccionadoSimple?.telefono);
 
   // Hook para SignalR (actualizaciones en tiempo real)
@@ -77,38 +81,87 @@ export default function CompClientes() {
     },
     onNuevoMensaje: (data) => {
       console.log("💬 Nuevo mensaje recibido via SignalR:", data);
-      
+
       // Si el mensaje es del ticket seleccionado, agregarlo al chat
       if (ticketSeleccionadoSimple?.ticket === data?.ticketId) {
-        console.log("✅ El mensaje pertenece al ticket seleccionado, agregando al chat...");
-        
+        console.log(
+          "✅ El mensaje pertenece al ticket seleccionado, agregando al chat..."
+        );
+
         // Crear el objeto de mensaje en el formato esperado por ChatModal
         const nuevoMensaje = {
           id: data.mensajeId,
-          remitente: data.from === 'usuario' ? 'Cliente' : 'Soporte',
-          nombre: data.from === 'usuario' ? 'Cliente' : 'Soporte',
+          remitente: data.from === "usuario" ? "Cliente" : "Soporte",
+          nombre: data.from === "usuario" ? "Cliente" : "Soporte",
           texto: data.texto,
           hora: formatearFechaHora(data.timestamp),
           leido: false,
           from: data.from, // Mantener para compatibilidad con ChatModal
         };
-        
+
         // Agregar el mensaje al ticket seleccionado
-        setTicketSeleccionado(prevTicket => {
+        setTicketSeleccionado((prevTicket) => {
           if (!prevTicket) return prevTicket;
-          
+
           return {
             ...prevTicket,
             chat: [...(prevTicket.chat || []), nuevoMensaje],
           };
         });
-        
+
         console.log("✅ Mensaje agregado al chat:", nuevoMensaje);
       } else {
         console.log("ℹ️ El mensaje no pertenece al ticket actual");
       }
     },
   });
+
+  // Efecto para buscar historial específico cuando cambia el ticket
+  useEffect(() => {
+    const fetchHistorialEspecifico = async () => {
+      if (!ticketDetail?.ticket?.id) return;
+
+      try {
+        setLoadingHistorial(true);
+        const registro_id = ticketDetail.ticket.id;
+        // Intentar obtener el user_id de varias fuentes posibles
+        const user_id =
+          ticketDetail.invitado?.id ||
+          ticketDetail.ticket.invitado_id ||
+          clientInfo?.invitado_id;
+
+        if (!user_id) {
+          console.log("⚠️ No se encontró user_id para buscar historial");
+          return;
+        }
+
+        const acciones = [
+          "AGREGAR BOLETO",
+          "ELIMINAR BOLETO",
+          "DEVOLUCIÓN DE PAGO",
+        ];
+        const modulos = ["CLIENTES"];
+
+        const data = await historialAccionesService.getHistorialPorParametros(
+          registro_id,
+          user_id,
+          acciones,
+          modulos
+        );
+
+        const historialData = Array.isArray(data) ? data : data.data || [];
+        // console.log("✅ Historial específico cargado:", historialData);
+        const historialUI = transformarHistorialParaUI(historialData);
+        setHistorialAcciones(historialUI);
+      } catch (err) {
+        console.error("❌ Error al cargar historial específico:", err);
+      } finally {
+        setLoadingHistorial(false);
+      }
+    };
+
+    fetchHistorialEspecifico();
+  }, [ticketDetail, clientInfo]);
 
   // Efecto para transformar datos cuando se cargan el detalle y el cliente
   useEffect(() => {
@@ -120,16 +173,34 @@ export default function CompClientes() {
         tieneDatosPersonales: !!clientInfo.datos_personales,
         tieneTickets: !!clientInfo.tickets,
       });
-      const ticketCompleto = transformarTicketCompletoParaUI(ticketDetail, clientInfo);
+      const ticketCompleto = transformarTicketCompletoParaUI(
+        ticketDetail,
+        clientInfo
+      );
+
+      // Sobrescribir historialSecuencial con el específico si existe
+      if (historialAcciones.length > 0) {
+        ticketCompleto.historialSecuencial = historialAcciones;
+      }
+
       setTicketSeleccionado(ticketCompleto);
     } else if (ticketDetail && !loadingClient) {
       // Si solo tenemos el detalle del ticket, usar eso
       console.log("⚠️ [CompClientes] Solo con ticketDetail (sin clientInfo)");
-      const ticketCompleto = transformarTicketCompletoParaUI(ticketDetail, null);
+      const ticketCompleto = transformarTicketCompletoParaUI(
+        ticketDetail,
+        null
+      );
+
+      // Sobrescribir historialSecuencial con el específico si existe
+      if (historialAcciones.length > 0) {
+        ticketCompleto.historialSecuencial = historialAcciones;
+      }
+
       setTicketSeleccionado(ticketCompleto);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketDetail, clientInfo, loadingClient]);
+  }, [ticketDetail, clientInfo, loadingClient, historialAcciones]);
 
   // Memoizar datos del chat para evitar re-renders innecesarios
   const chatData = useMemo(() => {
@@ -265,6 +336,12 @@ export default function CompClientes() {
                   ticket={ticketSeleccionado}
                   onBack={handleVolverALista}
                   isMobileView={true}
+                  onRefresh={() => {
+                    // console.log("🔄 Ejecutando silent refresh (móvil)...");
+                    cargarTickets({ silent: true });
+                    cargarTicket({ silent: true });
+                    cargarClientInfo({ silent: true });
+                  }}
                 />
                 <ChatModal
                   open={chatOpen}
@@ -290,7 +367,8 @@ export default function CompClientes() {
             <div className="p-4 bg-fondoVs dark:bg-[#1a1a1a] rounded-tl-3xl">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Total: {estadisticas.total} | Activos: {estadisticas.activos || 0}
+                  Total: {estadisticas.total} | Activos:{" "}
+                  {estadisticas.activos || 0}
                 </div>
                 <Tooltip content="Recargar tickets">
                   <Button
@@ -385,7 +463,15 @@ export default function CompClientes() {
               </div>
             ) : ticketSeleccionado ? (
               <div>
-                <Destalles ticket={ticketSeleccionado} />
+                <Destalles
+                  ticket={ticketSeleccionado}
+                  onRefresh={() => {
+                    // console.log("🔄 Ejecutando silent refresh...");
+                    cargarTickets({ silent: true });
+                    cargarTicket({ silent: true });
+                    cargarClientInfo({ silent: true });
+                  }}
+                />
                 <ChatModal
                   open={chatOpen}
                   onClose={() => setChatOpen(false)}
