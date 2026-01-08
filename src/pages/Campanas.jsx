@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import CampanasInx from "../components/Campana/CampanasInx.jsx";
 import CompClientes from "../components/Clientes/CompClientes.jsx";
+import HistorialEjecuciones from "../components/Campana/HistorialEjecuciones.jsx";
 import clsx from "clsx";
 import { Button } from "@headlessui/react";
 
@@ -9,7 +10,7 @@ import { Tooltip } from "../components/ui/Tooltip.jsx";
 import ModalInfoCampanas from "../components/Modales/infoCam.jsx";
 
 export default function Campanas() {
-  const [modulo, setModulo] = useState("campana"); // "campana" o "tickets"
+  const [modulo, setModulo] = useState("campana"); // "campana", "tickets", o "historial"
   const [showInfoModal, setShowInfoModal] = useState(false);
   return (
     <div className="p-3 md:p-6 bg-white dark:bg-fodoBlack rounded-3xl shadow-md h-full">
@@ -18,14 +19,14 @@ export default function Campanas() {
         {modulo === "campana" ? (
           <div>
             <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
-              Módulo de Campaña
+              Módulo de Automatizaciones
             </h1>
             <div className="flex gap-2">
               <p className="text-gray-500 dark:text-gray-200">
-                Automatiza y personaliza las respuestas de atención al cliente.
+                Crea flujos automáticos basados en eventos de estudiantes y pagos.
               </p>
                <Button onClick={() => setShowInfoModal(true)}>
-                <Tooltip content="Más información sobre flujos de IA">
+                <Tooltip content="Más información sobre automatizaciones">
                   <img
                     src={infVerd}
                     alt="Información"
@@ -35,7 +36,7 @@ export default function Campanas() {
               </Button>
             </div>
           </div>
-        ) : (
+        ) : modulo === "tickets" ? (
           <div className="md:w-9/12">
             <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
               Módulo de Clientes
@@ -47,9 +48,18 @@ export default function Campanas() {
               información o aclaraciones de pago.
             </p>
           </div>
+        ) : (
+          <div>
+            <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
+              Historial de Ejecuciones
+            </h1>
+            <p className="text-gray-500 dark:text-gray-200">
+              Revisa el historial completo de ejecuciones, estadísticas y métricas de tus automatizaciones.
+            </p>
+          </div>
         )}
 
-        <div className=" sm:max-w-72 flex justify-center md:justify-end mt-4 md:mt-0 gap-2">
+        <div className="sm:max-w-md flex justify-center md:justify-end mt-4 md:mt-0 gap-2 flex-wrap">
           <Button
             onClick={() => setModulo("campana")}
             className={clsx(
@@ -59,7 +69,7 @@ export default function Campanas() {
                 : "hover:bg-white/15 text-grey dark:text-gray-600 bg-porcelain"
             )}
           >
-            Flujo de campaña
+            Automatizaciones
           </Button>
           <Button
             onClick={() => setModulo("tickets")}
@@ -72,11 +82,23 @@ export default function Campanas() {
           >
             Monitor de ticket
           </Button>
+          <Button
+            onClick={() => setModulo("historial")}
+            className={clsx(
+              "rounded-full px-3 py-1 text-sm/6 font-semibold focus:outline-none transition",
+              modulo === "historial"
+                ? "bg-casal text-white shadow dark:bg-casal"
+                : "hover:bg-white/15 text-grey dark:text-gray-600 bg-porcelain"
+            )}
+          >
+            Historial
+          </Button>
         </div>
       </div>
       <div className="mt-3">
         {modulo === "campana" && <CampanasInx />}
         {modulo === "tickets" && <CompClientes />}
+        {modulo === "historial" && <HistorialEjecuciones />}
       </div>
     </div>
   );
