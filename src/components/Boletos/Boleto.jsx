@@ -48,7 +48,15 @@ export default function Boleto() {
     if (eventoActual?.id) {
       cargarConfiguracion(eventoActual.id);
     }
-  }, [eventoActual, cargarConfiguracion]);
+    // Limpiar estados locales al cambiar de evento
+    setImagen(null);
+    setArchivoImagen(null);
+    setFinalizado(false);
+    setQrConfigPercent(null);
+    setSeleccionQR(false);
+    setEditando(false);
+    setQrConfig({ pos: { x: 100, y: 100 }, size: 120 });
+  }, [eventoActual?.id, cargarConfiguracion]);
 
   // Si ya existe configuración, cargar la imagen
   useEffect(() => {
@@ -56,22 +64,20 @@ export default function Boleto() {
       // Agregar timestamp para evitar caché del navegador
       const imagenConTimestamp = `${configuracion.imagen_url}?t=${Date.now()}`;
       setImagen(imagenConTimestamp);
-      setFinalizado(true);
-      // Resetear estados de flujo para ir directo a vista final
-      // setMostrarAdvertencia(false);
-      setSeleccionQR(false);
-      // Convertir configuración de porcentajes a píxeles para vista previa
+      
+      // Si ya tiene QR configurado, ir a vista final
       if (configuracion.qr_config) {
         setQrConfigPercent(configuracion.qr_config);
+        setFinalizado(true);
+        setSeleccionQR(false);
+      } else {
+        // Si no tiene QR, pero ya tiene imagen, mostrar selección de QR
+        // Solo si no estamos en medio de una carga manual (archivoImagen es null)
+        if (!archivoImagen) {
+          setSeleccionQR(true);
+          setFinalizado(false);
+        }
       }
-    } else {
-      // setImagen(null);
-      // setArchivoImagen(null);
-      // setFinalizado(false);
-      // setQrConfigPercent(null);
-      // setSeleccionQR(false);
-      // setEditando(false);
-      // setQrConfig({ pos: { x: 100, y: 100 }, size: 120 });
     }
   }, [configuracion]);
 
