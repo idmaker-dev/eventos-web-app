@@ -170,7 +170,6 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
     }
   };
 
-
   if (!ticket) {
     return (
       <div className="flex items-center justify-center h-full bg-fondoVs rounded-r-3xl">
@@ -1167,9 +1166,9 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                       >
                         Generar recibo PDF
                       </Button>
-                      <Button className="mt-4 w-full px-4 py-2 bg-gray-100 text-casal hover:bg-gray-200 dark:bg-casal dark:text-white rounded-lg dark:hover:bg-casal/80 transition-colors">
+                      {/* <Button className="mt-4 w-full px-4 py-2 bg-gray-100 text-casal hover:bg-gray-200 dark:bg-casal dark:text-white rounded-lg dark:hover:bg-casal/80 transition-colors">
                         Reportar incidencia
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 </div>
