@@ -48,6 +48,8 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
   const [tabActivo, setTabActivo] = useState("cliente");
   const isMobile = useIsMobile();
 
+  console.log(ticket, "*******************************************");
+
   // Estados para modificación de boletos
   const [modificandoBoletos, setModificandoBoletos] = useState(false);
   const [nuevaCantidad, setNuevaCantidad] = useState(0);
@@ -1084,7 +1086,21 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                         </span>{" "}
                         <br />
                         <span className="text-gray-600 dark:text-gray-200">
-                          {ticket.pago.adicional.devoluciones}
+                          {ticket.pago.adicional.devoluciones.length > 0 ? (
+                            <ul className="list-disc pl-5">
+                              {ticket.pago.adicional.devoluciones.map(
+                                (devolucion, idx) => (
+                                  <li key={idx} className="text-sm">
+                                    {devolucion.amount} {devolucion.currency} -{" "}
+                                    {devolucion.reason + " "}{" "}
+                                    {"  - " + devolucion.fecha}
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          ) : (
+                            "No hay devoluciones"
+                          )}
                         </span>
                       </div>
                       <div className="flex justify-end mt-2">

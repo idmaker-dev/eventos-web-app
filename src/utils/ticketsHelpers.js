@@ -211,7 +211,12 @@ export function transformarPagoParaUI(informacionPago) {
         estado: t.estado,
       })) || [],
     adicional: {
-      devoluciones: informacionPago.devoluciones || "No registradas",
+      devoluciones: Array.isArray(informacionPago.devoluciones)
+        ? informacionPago.devoluciones.map((d) => ({
+          ...d,
+          fecha: formatearFecha(d.date),
+        }))
+        : informacionPago.devoluciones || "No registradas",
       opcionesDevolucion: [], // Depende de la lógica de negocio
       progresoPago: calcularProgresoPago(
         informacionPago.monto_pagado,
@@ -522,14 +527,14 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
       boletosTotales: informacionBoletos.cantidad_solicitada || 0,
       precioBoleto: informacionPago.progreso?.monto_total
         ? `$${Math.floor(
-            informacionPago.progreso.monto_total /
-              (informacionBoletos.cantidad_solicitada || 1)
-          )} MXN`
+          informacionPago.progreso.monto_total /
+          (informacionBoletos.cantidad_solicitada || 1)
+        )} MXN`
         : "$0 MXN",
       fechaDePagos: informacionPago.cuotas?.lista_cuotas?.[0]?.fecha_vencimiento
         ? formatearFecha(
-            informacionPago.cuotas.lista_cuotas[0].fecha_vencimiento
-          )
+          informacionPago.cuotas.lista_cuotas[0].fecha_vencimiento
+        )
         : "N/A",
       coordinadorEvento: lugar.numero_contacto || "N/A",
     },
@@ -557,30 +562,35 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
         informacionPago.cuotas?.vencidas > 0
           ? "Con cuotas vencidas"
           : informacionPago.cuotas?.pendientes > 0
-          ? "Pago pendiente"
-          : "Al corriente",
+            ? "Pago pendiente"
+            : "Al corriente",
       totalBoletos: informacionBoletos.cantidad_asignada || 0,
       totalPagado: formatearMonto(informacionPago.progreso?.monto_pagado || 0),
-      formaPago: "Tarjeta vinculada - Toku",
+      formaPago: informacionPago.detalle_transacciones.at(-1)?.tipo || "Tarjeta vinculada - Toku",
       fechaDePago: informacionPago.ultima_actualizacion
         ? formatearFecha(informacionPago.ultima_actualizacion)
         : "N/A",
       fechaVencimiento: informacionPago.cuotas?.lista_cuotas?.[0]
         ?.fecha_vencimiento
         ? formatearFecha(
-            informacionPago.cuotas.lista_cuotas[0].fecha_vencimiento
-          )
+          informacionPago.cuotas.lista_cuotas[0].fecha_vencimiento
+        )
         : "N/A",
       transacciones: (informacionPago.detalle_transacciones || []).map(
         (tx) => ({
           fecha: formatearFecha(tx.fecha),
           monto: formatearMonto(tx.monto),
-          método: tx.metodo || "Tarjeta",
+          método: tx.tipo || "Tarjeta",
           estado: tx.estado || "Pendiente",
         })
       ),
       adicional: {
-        devoluciones: informacionPago.devoluciones || "No registradas",
+        devoluciones: Array.isArray(informacionPago.devoluciones)
+          ? informacionPago.devoluciones.map((d) => ({
+            ...d,
+            fecha: formatearFecha(d.date),
+          }))
+          : informacionPago.devoluciones || "No registradas",
         opcionesDevolucion: [],
         progresoPago: `${informacionPago.progreso?.porcentaje || 0}%`,
         últimaActualización: informacionPago.ultima_actualizacion
