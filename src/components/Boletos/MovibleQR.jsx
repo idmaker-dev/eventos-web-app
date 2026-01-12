@@ -10,9 +10,12 @@ function MovibleQR({ onChange, initialPos = { x: 100, y: 100 }, initialSize = 12
   const [offset, setOffset] = useState({ x: 0, y: 0 });
 
   // Notifica cambios al padre
+  // React.useEffect(() => {
+  //   if (onChange) onChange({ pos, size });
+  // }, [pos, size, onChange]);
   React.useEffect(() => {
     if (onChange) onChange({ pos, size });
-  }, [pos, size, onChange]);
+  }, [pos.x, pos.y, size]);
 
   const handleMouseDown = (e) => {
     setDragging(true);
