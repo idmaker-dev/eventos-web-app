@@ -7,6 +7,7 @@ class EnvConfig {
     return (
       process.env.REACT_APP_API_URL ||
       "https://eventosapi-v2.azurewebsites.net/api"
+      // "http://localhost:7071/api"
     );
   }
 
