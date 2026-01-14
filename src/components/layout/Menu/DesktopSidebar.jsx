@@ -48,7 +48,7 @@ export default function DesktopSidebar({
           <li className="group">
             <Tooltip content="Resumen y progreso" position="right">
               <NavLink
-                to="/admin/modulos"
+                to="/admin/resumen"
                 className={({ isActive }) =>
                   `w-[42px] h-[42px] rounded-full flex items-center justify-center transition-all duration-300 ${
                     isActive
