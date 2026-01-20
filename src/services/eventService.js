@@ -383,6 +383,60 @@ class EventService {
       // };
     }
   }
+
+  /**
+   * Exportar pagos de un evento por rango de fechas en formato CSV
+   * @param {string} eventoId - ID del evento
+   * @param {string} fechaInicio - Fecha de inicio en formato YYYY-MM-DD
+   * @param {string} fechaFin - Fecha de fin en formato YYYY-MM-DD
+   * @returns {Promise<Blob>} - Archivo CSV como Blob
+   */
+  async exportPaymentsByDateRange(eventoId, fechaInicio, fechaFin) {
+    try {
+      // Usar la instancia de axios directamente para manejar el blob
+      const token = localStorage.getItem("userToken");
+      
+      const response = await httpService.api.get(
+        `/eventos/${eventoId}/pagos/exportar?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`,
+        {
+          responseType: "blob",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data, // El blob está en response.data
+        message: "Pagos exportados exitosamente",
+      };
+    } catch (error) {
+      console.error("Error al exportar pagos:", error);
+      
+      // Si el error es un blob (respuesta de error del servidor en blob), convertirlo a texto
+      if (error.response?.data instanceof Blob) {
+        const errorText = await error.response.data.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          return {
+            success: false,
+            error: errorJson.message || "Error al exportar pagos",
+          };
+        } catch {
+          return {
+            success: false,
+            error: errorText || "Error al exportar pagos",
+          };
+        }
+      }
+      
+      return {
+        success: false,
+        error: error.userMessage || error.message || "Error al exportar pagos",
+      };
+    }
+  }
 }
 
 // Crear instancia singleton
