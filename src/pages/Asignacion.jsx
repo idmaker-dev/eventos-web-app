@@ -181,9 +181,12 @@ export default function Asignacion() {
 
       if (config.modo === "monitor") {
         // Modo monitor: solo visualización
-        console.log("📺 Modo monitor");
+        console.log("📺 Modo monitorr");
         const result = await cargarLayout();
+        console.log("Resultado: ", result);
+        
         if (result && result.success) {
+          console.log("📋 Layout cargado para monitor:", result.data?.layout);
           elementosCargados = result.data?.layout?.elementos || [];
           console.log("📋 Elementos cargados para monitor:", elementosCargados.length);
           setAllElements(elementosCargados);
@@ -316,7 +319,7 @@ export default function Asignacion() {
         <DistribuccionMonitor
           allElements={allElements}
           setAllElements={setAllElements}
-          salon={layoutFinal}
+          salon={{ nombre: nombreSalon }}
           invitados={invitados}
           setInvitados={setInvitados}
         />

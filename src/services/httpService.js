@@ -142,7 +142,27 @@ class HttpService {
     localStorage.removeItem("userRole");
     localStorage.removeItem("userEmail");
 
-    // Redirigir al login si no estamos ya allí
+    // 🆕 NO redirigir si estamos en rutas públicas (sin autenticación)
+    const publicRoutes = [
+      '/asignacion-user/',
+      '/PortalPagos/',
+      '/Checkout/',
+      '/pago-tarjeta/',
+      '/Cuestionario/',
+      '/lector-qr/'
+    ];
+    
+    const currentPath = window.location.pathname;
+    const isPublicRoute = publicRoutes.some(route => currentPath.includes(route));
+    
+    if (isPublicRoute) {
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("⚠️ 401 en ruta pública, no redirigiendo al login");
+      }
+      return; // No redirigir
+    }
+
+    // Redirigir al login si no estamos ya allí y no es ruta pública
     if (window.location.pathname !== "/login") {
       window.location.href = "/login";
     }

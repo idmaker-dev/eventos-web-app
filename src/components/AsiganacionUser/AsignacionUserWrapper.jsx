@@ -32,6 +32,7 @@ export default function AsignacionUserWrapper({
     tiempoRestante,
     seleccion,
     estadoOcupacion,
+    configuracionTurnos, // ✅ Configuración de turnos (tipos_menu, restricciones, etc.)
     loading: loadingTurnos,
     error: errorTurnos,
     guardandoSeleccion,
@@ -50,6 +51,11 @@ export default function AsignacionUserWrapper({
    * Determinar si el evento usa sistema de turnos
    */
   const usaSistemaTurnos = estadoTurno !== 'sin_turno' || loadingTurnos;
+
+  // 🔍 Debug: Verificar que configuracionTurnos se extrae correctamente
+  useEffect(() => {
+    console.log('🔧 [AsignacionUserWrapper] configuracionTurnos desde hook:', configuracionTurnos);
+  }, [configuracionTurnos]);
 
   /**
    * Conectar/Desconectar SignalR cuando cambia el estado del turno
@@ -225,6 +231,7 @@ export default function AsignacionUserWrapper({
           eventoId={eventoId}
           invitadoId={invitadoId}
           configuracionPrevia={loadConfiguracionPrevia()}
+          configuracionTurnos={configuracionTurnos}
           onGuardarConfiguracion={handleGuardarConfiguracion}
         />
       </>
@@ -251,7 +258,7 @@ export default function AsignacionUserWrapper({
       tiempoRestante={tiempoRestante}
       seleccion={seleccion}
       estadoOcupacion={estadoOcupacion}
-      configuracionTurnos={turno?.configuracion}
+      configuracionTurnos={configuracionTurnos} // ✅ Configuración desde el hook
       
       // Funciones
       onGuardarSeleccion={handleGuardarSeleccionConTurnos}

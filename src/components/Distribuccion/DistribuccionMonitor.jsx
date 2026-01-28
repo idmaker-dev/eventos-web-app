@@ -312,35 +312,88 @@ export default function DistribuccionMonitor({
       Number(mesaSeleccionada.capacidad || 0) -
       Number(mesaSeleccionada.invitados || 0);
 
-    if (espacioDisponible <= 0) {
+    // ===== CASO 1: Espacio suficiente para TODOS =====
+    if (espacioDisponible >= cantidad) {
+      // Abrir modal de restricciones
+      setPendingAsignacion({ invitado: datosInvitado, numeroMesa, cantidadAsignar: cantidad });
+      setPendingNombre(datosInvitado?.nombre || "");
+      setRestricciones({
+        vegetariano: 0,
+        vegano: 0,
+        sinGluten: 0,
+        alergiaMarisco: 0,
+      });
+      setOtra("");
+      setShowRestrModal(true);
+      return;
+    }
+
+    // ===== CASO 2: Asignación PARCIAL =====
+    if (espacioDisponible > 0 && espacioDisponible < cantidad) {
+      const personasRestantes = cantidad - espacioDisponible;
+      
+      const confirmar = window.confirm(
+        `⚠️ ASIGNACIÓN PARCIAL\n\n` +
+        `Mesa ${numeroMesa} tiene ${espacioDisponible} espacios disponibles\n` +
+        `El invitado tiene ${cantidad} personas\n\n` +
+        `¿Deseas asignar ${espacioDisponible} personas a esta mesa?\n` +
+        `Quedarán ${personasRestantes} personas pendientes de asignar.`
+      );
+
+      if (!confirmar) {
+        return;
+      }
+
+      // Preguntar cuántas personas asignar (máximo = espacioDisponible)
+      let cantidadAsignar = espacioDisponible;
+      const inputCantidad = window.prompt(
+        `¿Cuántas personas deseas asignar a la Mesa ${numeroMesa}?\n\n` +
+        `Máximo disponible: ${espacioDisponible}\n` +
+        `Total del invitado: ${cantidad}`,
+        espacioDisponible.toString()
+      );
+
+      if (inputCantidad === null) {
+        return; // Usuario canceló
+      }
+
+      cantidadAsignar = parseInt(inputCantidad, 10);
+
+      if (isNaN(cantidadAsignar) || cantidadAsignar <= 0) {
+        mostrarNotificacion("❌ Cantidad inválida", "error");
+        return;
+      }
+
+      if (cantidadAsignar > espacioDisponible) {
+        mostrarNotificacion(
+          `❌ No puedes asignar ${cantidadAsignar} personas.\n\nMáximo disponible: ${espacioDisponible}`,
+          "error"
+        );
+        return;
+      }
+
+      // Abrir modal de restricciones con la cantidad parcial
+      setPendingAsignacion({ invitado: datosInvitado, numeroMesa, cantidadAsignar });
+      setPendingNombre(datosInvitado?.nombre || "");
+      setRestricciones({
+        vegetariano: 0,
+        vegano: 0,
+        sinGluten: 0,
+        alergiaMarisco: 0,
+      });
+      setOtra("");
+      setShowRestrModal(true);
+      return;
+    }
+
+    // ===== CASO 3: Mesa LLENA =====
+    if (espacioDisponible === 0) {
       mostrarNotificacion(
-        `❌ La Mesa ${numeroMesa} ya está llena (0 espacios disponibles).`,
+        `❌ La Mesa ${numeroMesa} está llena.\n\nNo hay espacios disponibles.`,
         "error"
       );
       return;
     }
-
-    if (cantidad > espacioDisponible) {
-      mostrarNotificacion(
-        `❌ No hay suficiente espacio en la Mesa ${numeroMesa}\n\n` +
-          `Espacio disponible: ${espacioDisponible} asientos\n` +
-          `Personas a asignar: ${cantidad}`,
-        "error"
-      );
-      return;
-    }
-
-    // Abrir modal de restricciones
-    setPendingAsignacion({ invitado: datosInvitado, numeroMesa });
-    setPendingNombre(datosInvitado?.nombre || "");
-    setRestricciones({
-      vegetariano: 0,
-      vegano: 0,
-      sinGluten: 0,
-      alergiaMarisco: 0,
-    });
-    setOtra("");
-    setShowRestrModal(true);
   };
   //Confirmación desde ModalRestricciones
   const handleConfirmRestricciones = ({
@@ -350,7 +403,7 @@ export default function DistribuccionMonitor({
     tipoMenu
   }) => {
     if (!pendingAsignacion) return;
-    const { invitado, numeroMesa } = pendingAsignacion;
+    const { invitado, numeroMesa, cantidadAsignar } = pendingAsignacion;
 
     const mesaSeleccionada = allElements.find(
       (el) =>
@@ -364,7 +417,9 @@ export default function DistribuccionMonitor({
       return;
     }
 
-    const cantidad = invitado.cantidad;
+    // Usar cantidadAsignar si existe (asignación parcial), sino usar cantidad total del invitado
+    const cantidad = cantidadAsignar || invitado.cantidad;
+    const esAsignacionParcial = cantidadAsignar && cantidadAsignar < invitado.cantidad;
 
     // Actualizar estado local (el guardado en backend se hace con el botón "Guardar asignaciones")
     setAllElements((prev) =>
@@ -394,14 +449,49 @@ export default function DistribuccionMonitor({
       )
     );
 
-    setInvitadosSinAsignar((prev) =>
-      prev.filter((inv) => inv.id !== invitado.id)
-    );
+    // Si es asignación parcial, actualizar la cantidad del invitado, sino eliminarlo de la lista
+    if (esAsignacionParcial) {
+      const cantidadRestante = invitado.cantidad - cantidad;
+      
+      // Actualizar invitadosSinAsignar
+      setInvitadosSinAsignar((prev) =>
+        prev.map((inv) =>
+          inv.id === invitado.id
+            ? { ...inv, cantidad: cantidadRestante }
+            : inv
+        )
+      );
 
-    mostrarNotificacion(
-      `✅ ${nombre || invitado.nombre} asignado a Mesa ${numeroMesa}\n\n⚠️ Recuerda hacer clic en "Guardar asignaciones" para guardar los cambios`,
-      "success"
-    );
+      // Actualizar invitadosPendientes también
+      setInvitadosPendientes((prev) =>
+        prev.map((turno) =>
+          turno.invitado_id === invitado.id
+            ? { ...turno, cantidad_boletos: cantidadRestante }
+            : turno
+        )
+      );
+
+      mostrarNotificacion(
+        `✅ ${cantidad} personas de ${nombre || invitado.nombre} asignadas a Mesa ${numeroMesa}\n\n` +
+        `⚠️ Quedan ${cantidadRestante} personas por asignar\n\n` +
+        `⚠️ Recuerda hacer clic en "Guardar asignaciones" para guardar los cambios`,
+        "success"
+      );
+    } else {
+      setInvitadosSinAsignar((prev) =>
+        prev.filter((inv) => inv.id !== invitado.id)
+      );
+
+      // También remover de invitadosPendientes
+      setInvitadosPendientes((prev) =>
+        prev.filter((turno) => turno.invitado_id !== invitado.id)
+      );
+
+      mostrarNotificacion(
+        `✅ ${nombre || invitado.nombre} asignado a Mesa ${numeroMesa}\n\n⚠️ Recuerda hacer clic en "Guardar asignaciones" para guardar los cambios`,
+        "success"
+      );
+    }
 
     setShowRestrModal(false);
     setPendingAsignacion(null);
@@ -1300,7 +1390,7 @@ export default function DistribuccionMonitor({
             <div className=" overflow-hiddenrounded-md">
               <div className="p-4 border-b rounded-t-lg border-gray-100 flex justify-between items-center bg-fondoVs dark:bg-[#1a1a1a]">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                  Plano del Salón - "Jardín Romántico"
+                  Plano del Salón{salon?.nombre ? ` - "${salon.nombre}"` : ''}
                 </h3>
                 <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-1">
                   <p className="text-blue-800 dark:text-blue-300 text-sm font-medium">
@@ -1484,6 +1574,7 @@ export default function DistribuccionMonitor({
           }}
           invitado={pendingAsignacion?.invitado}
           mesaNumero={pendingAsignacion?.numeroMesa}
+          cantidadPersonasEspecifica={pendingAsignacion?.cantidadAsignar}
           restricciones={restricciones}
           setRestricciones={setRestricciones}
           otra={otra}

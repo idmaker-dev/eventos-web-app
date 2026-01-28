@@ -25,20 +25,27 @@ export default function ModalEspera({
   eventoId,
   invitadoId,
   configuracionPrevia,
+  configuracionTurnos = null,
   onGuardarConfiguracion,
 }) {
   const [tiempoRestante, setTiempoRestante] = useState(0);
   const [horaActual, setHoraActual] = useState(new Date());
   const [mostrarAjustes, setMostrarAjustes] = useState(false);
+  const [personaActualVisible, setPersonaActualVisible] = useState(0); // Para navegación del carrusel
+  // ✅ Inicializar TODAS las personas desde el inicio
+  const cantidadTotal = usuario?.cantidad_personas || usuario?.cantidad || 1;
   const [configuracionAsientos, setConfiguracionAsientos] = useState({
-    boletosDisponibles: usuario?.cantidad_personas || usuario?.cantidad || 1,
-    personas: [
-      {
-        id: 1,
-        nombre: usuario?.nombre_completo || usuario?.nombre || "",
-        activa: true,
-      },
-    ],
+    boletosDisponibles: cantidadTotal,
+    personas: Array.from({ length: cantidadTotal }, (_, index) => ({
+      id: index + 1,
+      nombre: index === 0 ? (usuario?.nombre_completo || usuario?.nombre || "") : "",
+      activa: true,
+      // Datos individuales de restricciones
+      tipoMenu: "normal",
+      restricciones: {},
+      otraRestriccion: "",
+    })),
+    // Campos legacy (se mantienen por compatibilidad)
     restriccionesAlimentarias: {
       vegetariano: false,
       vegano: false,
@@ -58,6 +65,7 @@ export default function ModalEspera({
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
+  const carruselPersonasRef = useRef(null); // Ref para el carrusel de personas
 
   // Hook para obtener disponibilidad de mesas
   const {
@@ -273,6 +281,42 @@ export default function ModalEspera({
     }
   };
 
+  // Navegación del carrusel de personas
+  const irSiguientePersona = () => {
+    if (personaActualVisible < configuracionAsientos.boletosDisponibles - 1) {
+      const nuevaPersona = personaActualVisible + 1;
+      setPersonaActualVisible(nuevaPersona);
+      scrollToPersonaCarrusel(nuevaPersona);
+    }
+  };
+
+  const irPersonaAnterior = () => {
+    if (personaActualVisible > 0) {
+      const nuevaPersona = personaActualVisible - 1;
+      setPersonaActualVisible(nuevaPersona);
+      scrollToPersonaCarrusel(nuevaPersona);
+    }
+  };
+
+  const irAPersonaCarrusel = (index) => {
+    setPersonaActualVisible(index);
+    scrollToPersonaCarrusel(index);
+  };
+
+  // Scroll automático al botón de la persona seleccionada
+  const scrollToPersonaCarrusel = (index) => {
+    if (carruselPersonasRef.current) {
+      const buttons = carruselPersonasRef.current.children;
+      if (buttons[index]) {
+        buttons[index].scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center'
+        });
+      }
+    }
+  };
+
   const actualizarPersona = (id, campo, valor) => {
     setConfiguracionAsientos((prev) => ({
       ...prev,
@@ -291,6 +335,54 @@ export default function ModalEspera({
       },
     }));
   };
+
+  // ✅ Obtener tipos de menú desde configuración o usar defaults
+  const opcionesTipoMenu = React.useMemo(() => {
+    console.log('🍽️ [ModalEspera] Generando opcionesTipoMenu:', configuracionTurnos?.tipos_menu);
+    
+    if (configuracionTurnos?.tipos_menu && configuracionTurnos.tipos_menu.length > 0) {
+      return configuracionTurnos.tipos_menu.map(tipo => {
+        // Manejar si tipo es string o objeto
+        const tipoId = typeof tipo === 'string' ? tipo : tipo.id || tipo.value;
+        const tipoLabel = typeof tipo === 'string' 
+          ? `Menú ${tipo.charAt(0).toUpperCase() + tipo.slice(1)}` 
+          : tipo.label || tipo.nombre || `Menú ${tipoId}`;
+        const tipoSubtitle = typeof tipo === 'string'
+          ? `Opción de menú ${tipoId}`
+          : tipo.descripcion || tipo.subtitle || `Opción de menú ${tipoId}`;
+        
+        return {
+          id: tipoId,
+          label: tipoLabel,
+          subtitle: tipoSubtitle,
+        };
+      });
+    }
+    
+    // Fallback a opciones por defecto
+    return [
+      {
+        id: "normal",
+        label: "Menú normal",
+        subtitle: "Menú completo estándar",
+      },
+      {
+        id: "infantil",
+        label: "Menú Infantil",
+        subtitle: "Adaptado para niños",
+      },
+      {
+        id: "especial",
+        label: "Menú Especial",
+        subtitle: "Opciones gourmet",
+      },
+      {
+        id: "celiaco",
+        label: "Menú Celiaco",
+        subtitle: "Sin gluten certificado",
+      },
+    ];
+  }, [configuracionTurnos]);
 
   // Renderizar elemento del layout (mesas y decorativos)
   const renderElemento = (element) => {
@@ -637,34 +729,35 @@ export default function ModalEspera({
                             </div>
                             <div className="flex gap-2 items-center">
                               <Button
-                                onClick={agregarPersona}
-                                className="text-xs text-casal font-medium underline hover:text-casal/80 bg-gray-300 rounded"
+                                onClick={irPersonaAnterior}
+                                disabled={personaActualVisible === 0}
+                                className="p-2 rounded-lg bg-white border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                               >
-                                <ChevronRight className="w-4 h-4 inline-block rotate-180" />
+                                <ChevronLeft className="w-4 h-4" />
                               </Button>
                               <Button
-                                onClick={agregarPersona}
-                                className="text-xs text-casal font-medium underline hover:text-casal/80 bg-gray-300 rounded"
+                                onClick={irSiguientePersona}
+                                disabled={personaActualVisible === configuracionAsientos.boletosDisponibles - 1}
+                                className="p-2 rounded-lg bg-white border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                               >
-                                <ChevronLeft className="w-4 h-4 inline-block rotate-180" />
+                                <ChevronRight className="w-4 h-4" />
                               </Button>
                             </div>
                           </div>
-                          <div className="flex gap-1 w-full overflow-x-auto pb-2">
-                            {Array.from({ length: 12 }).map((_, i) => (
+                          {/* Carrusel de personas con scroll horizontal */}
+                          <div 
+                            ref={carruselPersonasRef}
+                            className="flex gap-1 w-full overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200"
+                          >
+                            {Array.from({ length: configuracionAsientos.boletosDisponibles }).map((_, i) => (
                               <Button
                                 key={i + 1}
-                                onClick={() => {
-                                  if (
-                                    i + 1 <=
-                                    configuracionAsientos.personas.length
-                                  )
-                                    return;
-                                  agregarPersona();
-                                }}
-                                className={`px-2 py-1 text-xs rounded ${
-                                  i + 1 <= configuracionAsientos.personas.length
-                                    ? "bg-casal text-white"
+                                onClick={() => irAPersonaCarrusel(i)}
+                                className={`px-2 py-1 text-xs rounded flex-shrink-0 ${
+                                  i === personaActualVisible
+                                    ? "bg-casal text-white ring-2 ring-casal ring-offset-2"
+                                    : i + 1 <= configuracionAsientos.personas.length
+                                    ? "bg-green-500 text-white"
                                     : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                                 }`}
                               >
@@ -702,28 +795,7 @@ export default function ModalEspera({
                         </p>
 
                         <div className="grid grid-cols-2 gap-2">
-                          {[
-                            {
-                              id: "normal",
-                              label: "Menú normal",
-                              subtitle: "Menú completo estándar",
-                            },
-                            {
-                              id: "infantil",
-                              label: "Menú Infantil",
-                              subtitle: "Adaptado para niños",
-                            },
-                            {
-                              id: "especial",
-                              label: "Menú Especial",
-                              subtitle: "Opciones gourmet",
-                            },
-                            {
-                              id: "celiaco",
-                              label: "Menú Celiaco",
-                              subtitle: "Sin gluten certificado",
-                            },
-                          ].map((menu) => (
+                          {opcionesTipoMenu.map((menu) => (
                             <Button
                               key={menu.id}
                               onClick={() =>

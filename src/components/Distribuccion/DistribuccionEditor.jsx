@@ -413,6 +413,7 @@ export default function DistribuccionEditor({
       mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
     const cantidadInvitados = datosInvitado.cantidad;
 
+    // ✅ CASO 1: Espacio suficiente para todos los boletos
     if (espacioDisponible >= cantidadInvitados) {
       setAllElements((prev) =>
         prev.map((element) =>
@@ -428,16 +429,90 @@ export default function DistribuccionEditor({
             : element
         )
       );
-      alert(
-        `✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}`
+      
+      // Actualizar invitado: reducir cantidad o eliminarlo si se asignaron todos
+      setInvitados((prev) =>
+        prev.map((inv) =>
+          inv.id === datosInvitado.id
+            ? { ...inv, cantidad: 0, asignado: true }
+            : inv
+        )
       );
-    } else {
+      
       alert(
-        `No hay suficiente espacio en la Mesa ${numeroMesa}\n\n` +
-          `Espacio disponible: ${espacioDisponible} asientos\n` +
-          `Personas a asignar: ${cantidadInvitados}`
+        `✅ ${datosInvitado.nombre} (${cantidadInvitados} personas) asignado a Mesa ${numeroMesa}`
       );
+      return;
     }
+
+    // 🆕 CASO 2: Espacio insuficiente - ASIGNACIÓN PARCIAL
+    if (espacioDisponible > 0 && espacioDisponible < cantidadInvitados) {
+      const maxAsignable = espacioDisponible;
+      
+      const respuesta = window.confirm(
+        `⚠️ Espacio insuficiente en Mesa ${numeroMesa}\n\n` +
+        `${datosInvitado.nombre} tiene ${cantidadInvitados} boletos\n` +
+        `La mesa tiene ${espacioDisponible} espacios disponibles\n\n` +
+        `¿Deseas asignar ${maxAsignable} personas a esta mesa?\n` +
+        `(Quedarán ${cantidadInvitados - maxAsignable} boletos pendientes)`
+      );
+
+      if (!respuesta) return;
+
+      // Preguntar cuántos desea asignar (máximo = espacioDisponible)
+      const cantidadInput = prompt(
+        `¿Cuántas personas de ${datosInvitado.nombre} deseas asignar a Mesa ${numeroMesa}?\n\n` +
+        `Máximo permitido: ${maxAsignable}`,
+        maxAsignable.toString()
+      );
+
+      if (cantidadInput === null) return; // Usuario canceló
+
+      const cantidadAsignar = parseInt(cantidadInput, 10);
+
+      if (isNaN(cantidadAsignar) || cantidadAsignar < 1 || cantidadAsignar > maxAsignable) {
+        alert(`Cantidad inválida. Debe ser entre 1 y ${maxAsignable}`);
+        return;
+      }
+
+      // Asignar la cantidad especificada a la mesa
+      setAllElements((prev) =>
+        prev.map((element) =>
+          element.numero === numeroMesa &&
+          (element.type === "mesa" || element.type === "mesaRectangular")
+            ? {
+                ...element,
+                invitados: element.invitados + cantidadAsignar,
+                invitadosEspeciales: datosInvitado.necesidadEspecial
+                  ? (element.invitadosEspeciales || 0) + cantidadAsignar
+                  : element.invitadosEspeciales || 0,
+              }
+            : element
+        )
+      );
+
+      // Actualizar invitado: reducir cantidad
+      const nuevaCantidad = cantidadInvitados - cantidadAsignar;
+      setInvitados((prev) =>
+        prev.map((inv) =>
+          inv.id === datosInvitado.id
+            ? { ...inv, cantidad: nuevaCantidad, asignado: nuevaCantidad === 0 }
+            : inv
+        )
+      );
+
+      alert(
+        `✅ ${cantidadAsignar} personas de ${datosInvitado.nombre} asignadas a Mesa ${numeroMesa}\n\n` +
+        `Boletos restantes: ${nuevaCantidad}`
+      );
+      return;
+    }
+
+    // ❌ CASO 3: Mesa llena
+    alert(
+      `❌ La Mesa ${numeroMesa} está llena\n\n` +
+      `No hay espacios disponibles`
+    );
   };
 
   // Selección múltiple
