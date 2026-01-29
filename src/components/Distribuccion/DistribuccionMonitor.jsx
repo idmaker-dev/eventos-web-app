@@ -15,6 +15,7 @@ import MesaRectangular from "./MesaRectangular.jsx";
 import StatsPanel from "./StatsPanel.jsx";
 import ModalMesaDetalles from "./ModalMesaDetalles.jsx";
 import ModalRestricciones from "./ModalRestricciones.jsx";
+import SelectorCapacidadMesa from "./SelectorCapacidadMesa.jsx";
 import { useSignalRMonitor } from "../../hooks/useSignalRMonitor";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 import { useDisponibilidadMesas } from "../../hooks/useDisponibilidadMesas";
@@ -53,6 +54,61 @@ export default function DistribuccionMonitor({
   const [invitadosCompletados, setInvitadosCompletados] = useState([]);
   const [estadisticas, setEstadisticas] = useState({});
   const [cargandoDatos, setCargandoDatos] = useState(false);
+  
+  // 🆕 Estado para cuotas de capacidades (distribucion_capacidades del evento)
+  const [cuotasCapacidades, setCuotasCapacidades] = useState([]);
+  
+  // 🆕 Callback cuando se cambia capacidad de una mesa
+  const handleCapacidadCambiada = useCallback((resultado) => {
+    console.log("📊 Capacidad cambiada:", resultado);
+    
+    // Actualizar cuotas en el estado
+    if (resultado.cuotas) {
+      setCuotasCapacidades(resultado.cuotas);
+    }
+    
+    // Actualizar la mesa en allElements
+    setAllElements(prev => 
+      prev.map(el => 
+        el.id === resultado.mesa.id 
+          ? { ...el, capacidad: resultado.mesa.capacidad }
+          : el
+      )
+    );
+    
+    // Recargar disponibilidad para actualizar estadísticas
+    cargarDisponibilidad();
+  }, [cargarDisponibilidad, setAllElements]);
+  
+  // 🆕 Función para calcular cuotas desde elementos existentes
+  const calcularCuotasDesdeElementos = useCallback((elementos) => {
+    const mesas = elementos.filter(el => 
+      el.type === "mesa" || el.type === "mesaRectangular"
+    );
+
+    if (mesas.length === 0) {
+      setCuotasCapacidades([]);
+      return;
+    }
+
+    // Agrupar por capacidad
+    const agrupadas = mesas.reduce((acc, mesa) => {
+      const cap = mesa.capacidad || 10;
+      if (!acc[cap]) {
+        acc[cap] = { capacidad: cap, cantidad: 0, asignadas: 0 };
+      }
+      acc[cap].cantidad++;
+      acc[cap].asignadas++;
+      return acc;
+    }, {});
+
+    // Convertir a array y ordenar por capacidad
+    const cuotasCalculadas = Object.values(agrupadas)
+      .sort((a, b) => a.capacidad - b.capacidad);
+
+    console.log('📊 [Monitor] Cuotas calculadas:', cuotasCalculadas);
+    setCuotasCapacidades(cuotasCalculadas);
+  }, []);
 
   const openDesignModal = () => setShowDesignModal(true);
   const closeDesignModal = () => setShowDesignModal(false);
@@ -135,6 +191,17 @@ export default function DistribuccionMonitor({
         const elementosActualizados = resultadoDisponibilidad.data?.layout?.elementos || [];
         console.log('✅ [Monitor] Layout actualizado:', elementosActualizados.length, 'elementos');
         console.log('✅ [Monitor] Elementos con disponibilidad:', elementosActualizados.filter(e => e.disponibilidad).length);
+        
+        // 🆕 Cargar cuotas de capacidades desde el layout
+        const distribucionCapacidades = resultadoDisponibilidad.data?.layout?.configuracion_layout?.distribucion_capacidades;
+        if (distribucionCapacidades && distribucionCapacidades.cuotas) {
+          console.log('📊 [Monitor] Cuotas de capacidades cargadas:', distribucionCapacidades.cuotas);
+          setCuotasCapacidades(distribucionCapacidades.cuotas);
+        } else {
+          console.log('ℹ️ [Monitor] No hay cuotas definidas, calculando desde mesas existentes...');
+          // Calcular cuotas desde las mesas actuales
+          calcularCuotasDesdeElementos(elementosActualizados);
+        }
         
         // Log de tipos de elementos para debugging
         const tiposElementos = elementosActualizados.reduce((acc, el) => {
@@ -923,6 +990,17 @@ export default function DistribuccionMonitor({
             onDoubleClick={() => openMesaModal(element.numero)}
             readOnly={false}
           />
+          
+          {/* 🆕 Selector de capacidad en la esquina superior derecha */}
+          <div className="absolute -top-2 -right-2 z-20">
+            <SelectorCapacidadMesa
+              mesa={element}
+              eventoId={eventoActual?.id}
+              onCapacidadCambiada={handleCapacidadCambiada}
+              cuotas={cuotasCapacidades}
+            />
+          </div>
+          
           {/* Overlay para mesas bloqueadas */}
           {estaBloqueada && (
             <div 

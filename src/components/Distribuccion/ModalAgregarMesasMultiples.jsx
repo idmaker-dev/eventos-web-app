@@ -7,7 +7,18 @@ export default function ModalAgregarMesasMultiples({ isOpen, onClose, onConfirm 
   const [tipoMesa, setTipoMesa] = useState("mesa"); // "mesa" (redonda) o "mesaRectangular"
   const [distribucion, setDistribucion] = useState("automatica"); // "automatica" o "manual"
   const [direccionNumeracion, setDireccionNumeracion] = useState("horizontal-derecha-abajo");
-  const [numeroVuelta, setNumeroVuelta] = useState(null); // Número de mesa donde se hace la vuelta 
+  const [numeroVuelta, setNumeroVuelta] = useState(null); // Número de mesa donde se hace la vuelta
+  
+  // 🆕 Estado para distribución de capacidades
+  const [usarDistribucionCapacidades, setUsarDistribucionCapacidades] = useState(false);
+  const [capacidadBase, setCapacidadBase] = useState(10);
+  const [cuotasCapacidades, setCuotasCapacidades] = useState([
+    { capacidad: 10, cantidad: 0 },
+  ]); 
+  
+  // 🔢 Cálculo del total asignado en cuotas
+  const totalAsignado = cuotasCapacidades.reduce((sum, cuota) => sum + parseInt(cuota.cantidad || 0), 0);
+  
   // Opciones de dirección:
   // horizontal-derecha-abajo: Izq→Der, luego siguiente fila (como leer)
   // horizontal-izquierda-abajo: Der→Izq, luego siguiente fila
@@ -23,15 +34,57 @@ export default function ModalAgregarMesasMultiples({ isOpen, onClose, onConfirm 
 
   if (!isOpen) return null;
 
+  // 🆕 Funciones para manejar cuotas de capacidades
+  const agregarCuota = () => {
+    setCuotasCapacidades([...cuotasCapacidades, { capacidad: 8, cantidad: 0 }]);
+  };
+
+  const eliminarCuota = (index) => {
+    if (cuotasCapacidades.length > 1) {
+      setCuotasCapacidades(cuotasCapacidades.filter((_, i) => i !== index));
+    }
+  };
+
+  const actualizarCuota = (index, campo, valor) => {
+    const nuevasCuotas = [...cuotasCapacidades];
+    nuevasCuotas[index][campo] = parseInt(valor) || 0;
+    setCuotasCapacidades(nuevasCuotas);
+  };
+
+  const validarCuotas = () => {
+    if (!usarDistribucionCapacidades) return true;
+    return totalAsignado === cantidadMesas;
+  };
+
   const handleConfirmar = () => {
-    onConfirm({
+    // Validar cuotas si están habilitadas
+    if (usarDistribucionCapacidades && !validarCuotas()) {
+      alert(`El total de cuotas (${totalAsignado}) debe ser igual al total de mesas (${cantidadMesas})`);
+      return;
+    }
+
+    const config = {
       cantidad: cantidadMesas,
       capacidad: capacidadPorMesa,
       tipo: tipoMesa,
       distribucion: distribucion,
       direccionNumeracion: direccionNumeracion,
       numeroVuelta: numeroVuelta,
-    });
+    };
+
+    // 🆕 Agregar distribución de capacidades si está habilitada
+    if (usarDistribucionCapacidades) {
+      config.distribucion_capacidades = {
+        capacidad_base: capacidadBase,
+        cuotas: cuotasCapacidades.map(c => ({
+          capacidad: c.capacidad,
+          cantidad: c.cantidad,
+          asignadas: c.cantidad // Inicialmente todas se asignan
+        }))
+      };
+    }
+
+    onConfirm(config);
     onClose();
   };
 
@@ -173,6 +226,133 @@ export default function ModalAgregarMesasMultiples({ isOpen, onClose, onConfirm 
             <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
               Rango: 6 a 12 asientos
             </p>
+          </div>
+
+          {/* 🆕 Distribución Avanzada de Capacidades */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="checkbox"
+                id="usarDistribucion"
+                checked={usarDistribucionCapacidades}
+                onChange={(e) => {
+                  setUsarDistribucionCapacidades(e.target.checked);
+                  if (e.target.checked && cuotasCapacidades.length === 1 && cuotasCapacidades[0].cantidad === 0) {
+                    // Inicializar con la cantidad total
+                    setCuotasCapacidades([{ capacidad: capacidadPorMesa, cantidad: cantidadMesas }]);
+                    setCapacidadBase(capacidadPorMesa);
+                  }
+                }}
+                className="w-4 h-4 text-casal border-gray-300 rounded focus:ring-casal"
+              />
+              <label
+                htmlFor="usarDistribucion"
+                className="text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer"
+              >
+                Usar Distribución Personalizada de Capacidades
+              </label>
+            </div>
+
+            {usarDistribucionCapacidades && (
+              <div className="space-y-3 mt-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">              <p className="text-xs text-gray-700 dark:text-gray-300">
+                ℹ️ <strong>Nota:</strong> Las cuotas definen <strong>límites de cuántas mesas</strong> de cada capacidad puedes tener. 
+                Todas las mesas se crearán con la <strong>capacidad base</strong>, y podrás cambiarlas manualmente después.
+              </p>
+                              {/* Capacidad Base */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Capacidad Base (Default)
+                  </label>
+                  <select
+                    value={capacidadBase}
+                    onChange={(e) => setCapacidadBase(parseInt(e.target.value))}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-casal dark:bg-gray-700 dark:text-white"
+                  >
+                    {[...Array(12)].map((_, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {i + 1} asientos
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    Capacidad que tendrán las mesas por defecto
+                  </p>
+                </div>
+
+                {/* Cuotas de Capacidades */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Cuotas por Capacidad
+                  </label>
+                  <div className="space-y-2">
+                    {cuotasCapacidades.map((cuota, index) => (
+                      <div
+                        key={index}
+                        className="flex gap-2 items-center bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700"
+                      >
+                        <select
+                          value={cuota.capacidad}
+                          onChange={(e) => actualizarCuota(index, 'capacidad', e.target.value)}
+                          className="w-28 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-casal dark:bg-gray-700 dark:text-white"
+                        >
+                          {[...Array(12)].map((_, i) => (
+                            <option key={i + 1} value={i + 1}>
+                              {i + 1} asientos
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          min="0"
+                          max={cantidadMesas}
+                          value={cuota.cantidad}
+                          onChange={(e) => actualizarCuota(index, 'cantidad', e.target.value)}
+                          placeholder="Cantidad"
+                          className="flex-1 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-casal dark:bg-gray-700 dark:text-white"
+                        />
+                        <button
+                          onClick={() => eliminarCuota(index)}
+                          disabled={cuotasCapacidades.length === 1}
+                          className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
+                          title="Eliminar cuota"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={agregarCuota}
+                    className="mt-2 text-xs text-casal hover:text-casal/80 font-semibold flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Agregar otra capacidad
+                  </button>
+
+                  {/* Resumen de Totales */}
+                  <div className="mt-3 p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Total asignado:
+                      </span>
+                      <span className={`font-bold ${
+                        totalAsignado === cantidadMesas 
+                          ? 'text-green-600 dark:text-green-400' 
+                          : 'text-red-600 dark:text-red-400'
+                      }`}>
+                        {totalAsignado} / {cantidadMesas}
+                      </span>
+                    </div>
+                    {totalAsignado !== cantidadMesas && (
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                        ⚠️ El total debe ser igual a {cantidadMesas} mesas
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tipo de Mesa */}

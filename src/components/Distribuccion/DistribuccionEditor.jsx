@@ -15,6 +15,7 @@ import MesaRectangular from "./MesaRectangular.jsx";
 import DraggableElement from "./DraggableElement.jsx";
 import DesignTools from "./DesignTools.jsx";
 import StatsPanel from "./StatsPanel.jsx";
+import PanelCuotasCapacidades from "./PanelCuotasCapacidades.jsx";
 import ModalSillasEspeciales from "./ModalSillasEspeciales.jsx";
 import ModalAgregarMesasMultiples from "./ModalAgregarMesasMultiples.jsx";
 import ModalRenumerarMesas from "./ModalRenumerarMesas.jsx";
@@ -54,6 +55,24 @@ export default function DistribuccionEditor({
   const [capacidadMesaModal, setCapacidadMesaModal] = useState(8);
   const [showModalMesasMultiples, setShowModalMesasMultiples] = useState(false);
   const [showModalRenumerar, setShowModalRenumerar] = useState(false);
+  const [cuotasCapacidades, setCuotasCapacidades] = useState([]);
+  
+  // Callback cuando se actualizan las cuotas desde el panel
+  const handleCuotasActualizadas = useCallback((nuevasCuotas) => {
+    console.log('📊 Cuotas actualizadas:', nuevasCuotas);
+    setCuotasCapacidades(nuevasCuotas);
+    
+    // Guardar en metadata del layout para persistir
+    if (onGuardarLayout && allElements.length > 0) {
+      const metadata = {
+        distribucion_capacidades: {
+          capacidad_base: nuevasCuotas[0]?.capacidad || 10,
+          cuotas: nuevasCuotas
+        }
+      };
+      onGuardarLayout(allElements, metadata);
+    }
+  }, [allElements, onGuardarLayout]);
   
   // Selección múltiple
   const [selectedElements, setSelectedElements] = useState([]);
@@ -969,11 +988,29 @@ export default function DistribuccionEditor({
 
   // Agregar mesas múltiples
   const agregarMesasMultiples = (config) => {
-    const { cantidad, capacidad, tipo, distribucion, direccionNumeracion = "horizontal-derecha-abajo", numeroVuelta = null } = config;
+    const { 
+      cantidad, 
+      capacidad, 
+      tipo, 
+      distribucion, 
+      direccionNumeracion = "horizontal-derecha-abajo", 
+      numeroVuelta = null,
+      distribucion_capacidades = null // 🆕 Nueva propiedad
+    } = config;
+    
     console.log('Cantidad: ' + cantidad);
+    console.log('Distribución Capacidades:', distribucion_capacidades);
     
     const nuevasMesas = [];
     let numeroInicial = obtenerSiguienteNumeroMesa();
+
+    // ℹ️ NOTA: NO distribuimos capacidades automáticamente
+    // Las cuotas solo sirven para validación/límites cuando el admin cambia capacidades manualmente
+    // TODAS las mesas se crean con la capacidad base especificada
+    if (distribucion_capacidades) {
+      console.log('ℹ️ Cuotas definidas (solo para validación):', distribucion_capacidades.cuotas);
+      console.log('ℹ️ Todas las mesas iniciarán con capacidad base:', capacidad);
+    }
 
     // Espaciado fijo entre mesas (píxeles)
     const ESPACIO_HORIZONTAL = 150; // Espacio fijo entre mesas horizontalmente
@@ -1124,7 +1161,7 @@ export default function DistribuccionEditor({
           type: tipo,
           numero: pos.numeroMesa,
           invitados: 0,
-          capacidad: capacidad,
+          capacidad: capacidad, // ✅ Siempre usar capacidad base
           sillasEspeciales: [],
           position: pos.position,
           rotation: 0,
@@ -1141,7 +1178,7 @@ export default function DistribuccionEditor({
           type: tipo,
           numero: numeroInicial + i,
           invitados: 0,
-          capacidad: capacidad,
+          capacidad: capacidad, // ✅ Siempre usar capacidad base
           sillasEspeciales: [],
           position: {
             x: Math.random() * 3000 + 200,
@@ -2026,7 +2063,14 @@ export default function DistribuccionEditor({
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
-            <StatsPanel stats={stats} />
+            <div className="space-y-4 max-h-[600px] overflow-y-auto">
+              <StatsPanel stats={stats} />
+              <PanelCuotasCapacidades 
+                elementos={allElements}
+                onCuotasActualizadas={handleCuotasActualizadas}
+                modoEdicion={true}
+              />
+            </div>
 
             {/* Área de Diseño */}
             <div className="flex-1 border border-gray-300 rounded-3xl overflow-hidden shadow-sm">

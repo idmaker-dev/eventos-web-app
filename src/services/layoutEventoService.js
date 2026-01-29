@@ -192,9 +192,24 @@ class LayoutEventoService {
         );
       }
 
+      // 🆕 Extraer distribucion_capacidades de los elementos si existe
+      let distribucion_capacidades = null;
+      if (elementos && elementos.length > 0) {
+        // Buscar si algún elemento tiene metadatos de distribución de capacidades
+        const metadataElement = elementos.find(el => el.distribucion_capacidades);
+        if (metadataElement) {
+          distribucion_capacidades = metadataElement.distribucion_capacidades;
+        }
+      }
+      
+      const payload = { elementos };
+      if (distribucion_capacidades) {
+        payload.distribucion_capacidades = distribucion_capacidades;
+      }
+      
       const response = await httpService.put(
         `${this.baseUrl}/${eventoId}/layout/personalizar`,
-        { elementos }
+        payload
       );
 
       if (EnvConfig.DEBUG_MODE) {
