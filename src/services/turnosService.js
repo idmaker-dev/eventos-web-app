@@ -81,7 +81,7 @@ class TurnosService {
   // ==================== TURNOS (ADMIN) ====================
 
   /**
-   * Generar o regenerar turnos del evento
+   * Generar o regenerar turnos del evento (automático por fecha de liquidación)
    * @param {string} eventoId - ID del evento
    */
   async generarTurnos(eventoId) {
@@ -97,6 +97,58 @@ class TurnosService {
       return {
         success: false,
         error: error.userMessage || "Error al generar turnos",
+      };
+    }
+  }
+
+  /**
+   * Generar turnos con orden manual de invitados
+   * @param {string} eventoId - ID del evento
+   * @param {Array<string>} invitadosOrdenados - Array de IDs de invitados en orden deseado
+   */
+  async generarTurnosManual(eventoId, invitadosOrdenados) {
+    try {
+      const response = await httpService.post(
+        `/eventos/${eventoId}/seleccion-mesas/generar-turnos`,
+        {
+          ordenManual: true,
+          invitadosOrdenados,
+        }
+      );
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al generar turnos con orden manual",
+      };
+    }
+  }
+
+  /**
+   * Generar turnos con orden manual
+   * @param {string} eventoId - ID del evento
+   * @param {Array<string>} invitadosOrdenados - IDs de invitados en el orden deseado
+   */
+  async generarTurnosManual(eventoId, invitadosOrdenados) {
+    try {
+      const response = await httpService.post(
+        `/eventos/${eventoId}/seleccion-mesas/generar-turnos`,
+        {
+          ordenManual: true,
+          invitadosOrdenados: invitadosOrdenados,
+        }
+      );
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al generar turnos con orden manual",
       };
     }
   }
@@ -339,6 +391,48 @@ class TurnosService {
         success: false,
         error: error.userMessage || "Error al obtener selecciones",
         selecciones: [],
+      };
+    }
+  }
+
+  /**
+   * Descargar Excel con relación de turnos
+   * @param {string} eventoId - ID del evento
+   */
+  async descargarExcelTurnos(eventoId) {
+    try {
+      const response = await httpService.get(
+        `/eventos/${eventoId}/seleccion-mesas/turnos/descargar-excel`,
+        { responseType: "blob" }
+      );
+
+      // Crear blob y descargar archivo
+      const blob = new Blob([response], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      // Crear nombre de archivo con fecha actual
+      const fecha = new Date().toISOString().split("T")[0];
+      const nombreArchivo = `Turnos_Evento_${eventoId}_${fecha}.xlsx`;
+
+      // Crear link temporal y descargar
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = nombreArchivo;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return {
+        success: true,
+        message: "Excel descargado exitosamente",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al descargar Excel de turnos",
       };
     }
   }

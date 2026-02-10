@@ -4,6 +4,7 @@ import EstadoPendiente from "../assets/recursos/EstadoPendiente.svg";
 import EstadoAprobado from "../assets/recursos/EstadoAprobado.svg";
 import EstadoParcial from "../assets/recursos/EstadoParcial.svg";
 import DetalleFacturas from "../components/Pagos/DetalleFacturas";
+import ModalExportarPagos from "../components/Pagos/ModalExportarPagos";
 import eventService from "../services/eventService";
 import { useSelectedEvent } from "../contexts/SelectedEventContext";
 import { useSignalRPagos } from "../hooks/useSignalRPagos";
@@ -11,12 +12,13 @@ import { useNotifications } from "../contexts/NotificationContext";
 
 export default function Pagos({ darkMode }) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalExportarOpen, setModalExportarOpen] = useState(false);
   const [selectedDeuda, setSelectedDeuda] = useState(null);
   const [deudas, setDeudas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const { eventoActual } = useSelectedEvent();
-  const { showSuccess } = useNotifications();
+  const { showSuccess, showError } = useNotifications();
 
   // Función para cargar deudas del evento
   const cargarDeudas = useCallback(async () => {
@@ -71,6 +73,58 @@ export default function Pagos({ darkMode }) {
   useEffect(() => {
     cargarDeudas();
   }, [cargarDeudas]);
+
+  // Función para manejar la exportación de pagos
+  const handleExportar = async (fechaInicio, fechaFin) => {
+    try {
+      if (!eventoActual?.id) {
+        showError("No hay evento seleccionado");
+        return;
+      }
+
+      console.log("📊 Exportando pagos:", {
+        evento: eventoActual.id,
+        fechaInicio,
+        fechaFin,
+      });
+
+      const resultado = await eventService.exportPaymentsByDateRange(
+        eventoActual.id,
+        fechaInicio,
+        fechaFin
+      );
+
+      if (resultado.success) {
+        // Crear un blob con los datos del CSV
+        const blob = resultado.data;
+        
+        // Crear un enlace temporal para descargar el archivo
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        
+        // Generar nombre del archivo (soportar nombre_evento y nombre)
+        const nombreEvento = (eventoActual.nombre_evento || eventoActual.nombre || eventoActual.id || 'evento')
+          .replace(/[^a-z0-9]/gi, "_");
+        link.download = `pagos_${nombreEvento}_${fechaInicio}_${fechaFin}.csv`;
+        
+        // Disparar la descarga
+        document.body.appendChild(link);
+        link.click();
+        
+        // Limpiar
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        showSuccess("Archivo CSV descargado exitosamente", { duration: 3000 });
+      } else {
+        showError(resultado.error || "Error al exportar pagos");
+      }
+    } catch (error) {
+      console.error("Error exportando pagos:", error);
+      showError("Error al exportar pagos");
+    }
+  };
 
   // Filtrar deudas por búsqueda
   const deudasFiltradas = deudas.filter((deuda) =>
@@ -145,7 +199,12 @@ export default function Pagos({ darkMode }) {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="btn-csv">Exportar en CSV</button>
+          <button 
+            className="btn-csv"
+            onClick={() => setModalExportarOpen(true)}
+          >
+            Exportar en CSV
+          </button>
         </div>
       </div>
 
@@ -242,6 +301,13 @@ export default function Pagos({ darkMode }) {
             }
           }
         }}
+      />
+
+      {/* Modal de Exportar Pagos */}
+      <ModalExportarPagos
+        isOpen={modalExportarOpen}
+        onClose={() => setModalExportarOpen(false)}
+        onExportar={handleExportar}
       />
     </div>
   );

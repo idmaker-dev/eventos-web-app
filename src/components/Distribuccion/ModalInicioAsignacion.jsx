@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, Monitor, Paintbrush, RotateCw, Loader2, Calendar, Users } from "lucide-react";
+import { X, Monitor, Paintbrush, RotateCw, Loader2, Calendar, Users, Download } from "lucide-react";
 import ModalConfiguracionTurnos from "../Turnos/ModalConfiguracionTurnos";
+import ModalOrdenManualTurnos from "../Turnos/ModalOrdenManualTurnos";
 import turnosService from "../../services/turnosService";
 import { useNotifications } from "../../contexts/NotificationContext";
 
@@ -21,6 +22,7 @@ export default function ModalInicioAsignacion({
   
   // Estado para turnos
   const [showConfiguracionTurnos, setShowConfiguracionTurnos] = useState(false);
+  const [showOrdenManualTurnos, setShowOrdenManualTurnos] = useState(false);
   const [configuracionTurnos, setConfiguracionTurnos] = useState(null);
   const [loadingTurnos, setLoadingTurnos] = useState(false);
 
@@ -69,6 +71,7 @@ export default function ModalInicioAsignacion({
 
   /**
    * Generar turnos manualmente (cuando ya existe configuración)
+   * Ahora abre el modal de orden manual
    */
   const handleGenerarTurnos = async () => {
     if (!eventoId) {
@@ -76,20 +79,29 @@ export default function ModalInicioAsignacion({
       return;
     }
 
+    // Abrir modal de orden manual en lugar de generar directamente
+    setShowOrdenManualTurnos(true);
+  };
+
+  /**
+   * Descargar Excel con relación de turnos
+   */
+  const handleDescargarExcel = async () => {
+    if (!eventoId) {
+      showError("Error: No se encontró el ID del evento");
+      return;
+    }
+
     setLoadingTurnos(true);
     try {
-      const response = await turnosService.generarTurnos(eventoId);
-      if (response.success) {
-        showSuccess(
-          `Turnos generados exitosamente: ${response.data?.turnos_generados || 0} turnos creados`
-        );
-        await cargarConfiguracionTurnos(); // Recargar configuración
+      const result = await turnosService.descargarExcelTurnos(eventoId);
+      if (result.success) {
+        showSuccess("Excel descargado exitosamente");
       } else {
-        showError(response.error || "Error al generar turnos");
+        showError(result.error || "Error al descargar Excel");
       }
     } catch (error) {
-      console.error("Error al generar turnos:", error);
-      showError("Error al generar turnos. Por favor, intente nuevamente.");
+      showError("Error inesperado al descargar Excel");
     } finally {
       setLoadingTurnos(false);
     }
@@ -137,6 +149,14 @@ export default function ModalInicioAsignacion({
       // Recargar configuración de turnos
       await cargarConfiguracionTurnos();
       showSuccess('Configuración de turnos actualizada');
+    }
+  };
+
+  const handleOrdenManualTurnosClose = async (turnosGenerados) => {
+    setShowOrdenManualTurnos(false);
+    if (turnosGenerados) {
+      // Recargar configuración de turnos
+      await cargarConfiguracionTurnos();
     }
   };
 
@@ -319,7 +339,7 @@ export default function ModalInicioAsignacion({
                           </div>
                         </button>
                         
-                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
                           <button
                             onClick={handleGenerarTurnos}
                             disabled={loadingTurnos}
@@ -328,7 +348,7 @@ export default function ModalInicioAsignacion({
                             {loadingTurnos ? (
                               <>
                                 <Loader2 className="w-4 h-4 animate-spin" />
-                                Generando turnos...
+                                Procesando...
                               </>
                             ) : (
                               <>
@@ -337,8 +357,27 @@ export default function ModalInicioAsignacion({
                               </>
                             )}
                           </button>
+                          
+                          <button
+                            onClick={handleDescargarExcel}
+                            disabled={loadingTurnos}
+                            className="w-full p-3 bg-[#246370] text-white dark:bg-[#2a9d8f] rounded-lg text-sm hover:bg-[#1e4d58] dark:hover:bg-[#238276] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold"
+                          >
+                            {loadingTurnos ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Descargando...
+                              </>
+                            ) : (
+                              <>
+                                <Download className="w-4 h-4" />
+                                Descargar Excel de Turnos
+                              </>
+                            )}
+                          </button>
+                          
                           <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                            Genera turnos sin abrir el modal de configuración
+                            Elige entre generación automática o manual
                           </p>
                         </div>
                       </>
@@ -478,6 +517,15 @@ export default function ModalInicioAsignacion({
           onClose={handleConfiguracionTurnosClose}
           eventoId={eventoId}
           configuracionExistente={configuracionTurnos}
+        />
+      )}
+
+      {/* Modal de Orden Manual de Turnos */}
+      {showOrdenManualTurnos && (
+        <ModalOrdenManualTurnos
+          isOpen={showOrdenManualTurnos}
+          onClose={handleOrdenManualTurnosClose}
+          eventoId={eventoId}
         />
       )}
     </div>

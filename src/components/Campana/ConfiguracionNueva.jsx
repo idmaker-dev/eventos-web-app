@@ -2,15 +2,111 @@ import React, { useState, useEffect } from "react";
 import { ChevronLeft, Check, AlertCircle, CircleCheckBig, MoreHorizontal } from "lucide-react";
 import { Button } from "@headlessui/react";
 import useAutomatizaciones from "../../hooks/useAutomatizaciones";
+import { useNotifications } from "../../contexts/NotificationContext";
 import clsx from "clsx";
 
 export default function ConfiguracionNueva({ campana, onVolver }) {
   const { actualizarAutomatizacion, loading } = useAutomatizaciones();
+  const { showSuccess, showError, showWarning } = useNotifications();
 
   // Estado para los 4 paneles de configuración
   const [panelActual, setPanelActual] = useState(1);
   const [errores, setErrores] = useState({});
   const [guardando, setGuardando] = useState(false);
+
+  // Panel 1: Disparador
+  const [disparador, setDisparador] = useState(() => {
+    if (campana?.disparador) {
+      return {
+        tipo: campana.disparador.tipo || "evento",
+        evento_tipo: campana.disparador.evento_tipo || campana.disparador.evento || "",
+        cron: campana.disparador.cron || "",
+        dias_antes_vencimiento: campana.disparador.dias_antes_vencimiento || 3,
+      };
+    }
+    return {
+      tipo: "evento",
+      evento_tipo: "",
+      cron: "",
+      dias_antes_vencimiento: 3,
+    };
+  });
+
+  // Panel 2: Filtros de destinatarios
+  const [filtros, setFiltros] = useState(() => {
+    if (campana?.filtros_destinatarios) {
+      return {
+        tiene_telefono: campana.filtros_destinatarios.tiene_telefono !== undefined 
+          ? campana.filtros_destinatarios.tiene_telefono 
+          : true,
+        estado_deuda: Array.isArray(campana.filtros_destinatarios.estado_deuda) 
+          ? campana.filtros_destinatarios.estado_deuda 
+          : [],
+        turno_confirmado: campana.filtros_destinatarios.turno_confirmado !== undefined
+          ? campana.filtros_destinatarios.turno_confirmado
+          : null,
+        mesa_seleccionada: campana.filtros_destinatarios.mesa_seleccionada !== undefined
+          ? campana.filtros_destinatarios.mesa_seleccionada
+          : null,
+        id_evento: campana.filtros_destinatarios.id_evento || campana.id_evento || "",
+      };
+    }
+    return {
+      tiene_telefono: true,
+      estado_deuda: [],
+      turno_confirmado: null,
+      mesa_seleccionada: null,
+      id_evento: "",
+    };
+  });
+
+  // Panel 3: Acciones
+  const [acciones, setAcciones] = useState(() => {
+    if (campana?.acciones && campana.acciones.length > 0) {
+      return campana.acciones.map(accion => ({
+        tipo: accion.tipo || "whatsapp",
+        plantilla: accion.plantilla || "",
+        mensaje: accion.mensaje || "",
+        asunto: accion.asunto || "",
+        activa: accion.activa !== undefined ? accion.activa : true,
+      }));
+    }
+    return [
+      {
+        tipo: "whatsapp",
+        plantilla: "",
+        mensaje: "",
+        activa: true,
+      },
+    ];
+  });
+
+  // Panel 4: Frecuencia
+  const [frecuencia, setFrecuencia] = useState(() => {
+    if (campana?.frecuencia) {
+      return {
+        tipo: campana.frecuencia.tipo || "unica",
+        intervalo_horas: campana.frecuencia.intervalo_horas || 24,
+        max_envios: campana.frecuencia.max_envios || 3,
+      };
+    }
+    return {
+      tipo: "unica",
+      intervalo_horas: 24,
+      max_envios: 3,
+    };
+  });
+
+  // Log para debug - ver qué datos tiene campana
+  useEffect(() => {
+    if (campana) {
+      console.log("📋 Campaña cargada:", campana.nombre);
+      console.log("🎯 Disparador:", disparador);
+      console.log("📊 Filtros:", filtros);
+      console.log("⚡ Acciones:", acciones);
+      console.log("⏰ Frecuencia:", frecuencia);
+    }
+  }, [campana, disparador, filtros, acciones, frecuencia]);
 
   // Función para verificar si cada paso está completado
   const verificarPasoCompletado = (pasoId) => {
@@ -28,8 +124,9 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
         return false;
 
       case 2: // Filtros
-        // Los filtros siempre tienen valores por defecto, consideramos completado si tiene id_evento
-        return !!filtros.id_evento;
+        // Los filtros son opcionales, siempre se considera completado
+        // (tiene_telefono viene por defecto en true)
+        return true;
 
       case 3: // Acciones
         const accionesActivas = acciones.filter(a => a.activa);
@@ -66,58 +163,6 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
     { id: 3, titulo: "Acciones", descripcion: "Qué se ejecutará", completado: verificarPasoCompletado(3) },
     { id: 4, titulo: "Frecuencia", descripcion: "Con qué frecuencia", completado: verificarPasoCompletado(4) },
   ];
-
-  // Panel 1: Disparador
-  const [disparador, setDisparador] = useState({
-    tipo: "evento", // evento | programado | fecha_relativa
-    evento_tipo: "",
-    cron: "",
-    dias_antes_vencimiento: 3,
-  });
-
-  // Panel 2: Filtros de destinatarios
-  const [filtros, setFiltros] = useState({
-    tiene_telefono: true,
-    estado_deuda: [],
-    turno_confirmado: null,
-    mesa_seleccionada: null,
-    id_evento: "",
-  });
-
-  // Panel 3: Acciones
-  const [acciones, setAcciones] = useState([
-    {
-      tipo: "whatsapp",
-      plantilla: "",
-      mensaje: "",
-      activa: true,
-    },
-  ]);
-
-  // Panel 4: Frecuencia
-  const [frecuencia, setFrecuencia] = useState({
-    tipo: "unica", // unica | recurrente | continua
-    intervalo_horas: 24,
-    max_envios: 3,
-  });
-
-  // Cargar datos existentes de la automatización
-  useEffect(() => {
-    if (campana) {
-      if (campana.disparador) {
-        setDisparador(campana.disparador);
-      }
-      if (campana.filtros_destinatarios) {
-        setFiltros(campana.filtros_destinatarios);
-      }
-      if (campana.acciones) {
-        setAcciones(campana.acciones);
-      }
-      if (campana.frecuencia) {
-        setFrecuencia(campana.frecuencia);
-      }
-    }
-  }, [campana]);
 
   // Validar configuración antes de guardar
   const validarConfiguracion = () => {
@@ -166,7 +211,7 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
   // Guardar configuración
   const handleGuardar = async () => {
     if (!validarConfiguracion()) {
-      alert("Por favor corrige los errores antes de guardar");
+      showWarning("Por favor corrige los errores antes de guardar");
       return;
     }
 
@@ -179,11 +224,11 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
         frecuencia,
       });
       
-      alert("Configuración guardada exitosamente");
+      showSuccess("Configuración guardada exitosamente");
       onVolver();
     } catch (error) {
       console.error("Error al guardar:", error);
-      alert("Error al guardar la configuración");
+      showError("Error al guardar la configuración");
     } finally {
       setGuardando(false);
     }
@@ -195,7 +240,7 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
     const todosCompletados = pasos.every(p => p.completado);
     
     if (!campana.activa && !todosCompletados) {
-      alert("Debes completar todos los pasos antes de activar la automatización");
+      showWarning("Debes completar todos los pasos antes de activar la automatización");
       return;
     }
 
@@ -209,11 +254,11 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
         frecuencia,
       });
       
-      alert(`Automatización ${!campana.activa ? "activada" : "desactivada"} exitosamente`);
+      showSuccess(`Automatización ${!campana.activa ? "activada" : "desactivada"} exitosamente`);
       onVolver();
     } catch (error) {
       console.error("Error al cambiar estado:", error);
-      alert(error.message || "Error al cambiar el estado de la automatización");
+      showError(error.message || "Error al cambiar el estado de la automatización");
     } finally {
       setGuardando(false);
     }

@@ -167,12 +167,13 @@ class LayoutEventoService {
    * @param {Array} elementos - Array de elementos personalizados
    * @returns {Promise<Object>} Layout personalizado actualizado
    */
-  async personalizarLayout(eventoId, elementos) {
+  async personalizarLayout(eventoId, elementos, metadata = null) {
     try {
       if (EnvConfig.DEBUG_MODE) {
         console.log("🔄 Personalizando layout del evento:", {
           eventoId,
           totalElementos: elementos.length,
+          metadata: metadata
         });
       }
 
@@ -192,9 +193,20 @@ class LayoutEventoService {
         );
       }
 
+      // 🆕 Preparar payload con metadata
+      const payload = { elementos };
+      
+      // Si se proporciona metadata con distribucion_capacidades, incluirla
+      if (metadata?.distribucion_capacidades) {
+        payload.distribucion_capacidades = metadata.distribucion_capacidades;
+        if (EnvConfig.DEBUG_MODE) {
+          console.log("📦 Incluyendo distribucion_capacidades en payload:", metadata.distribucion_capacidades);
+        }
+      }
+      
       const response = await httpService.put(
         `${this.baseUrl}/${eventoId}/layout/personalizar`,
-        { elementos }
+        payload
       );
 
       if (EnvConfig.DEBUG_MODE) {

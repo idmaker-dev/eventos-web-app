@@ -35,6 +35,8 @@ export default function ConfiguracionLayout() {
   const [descripcionConfiguracion, setDescripcionConfiguracion] = useState("");
   const [mostrarFormularioNombre, setMostrarFormularioNombre] = useState(false);
   const [elementosIniciales, setElementosIniciales] = useState([]);
+  const [metadataLayout, setMetadataLayout] = useState(null); // 🆕 Estado para metadata
+  const [layoutFinal, setLayoutFinal] = useState(null); // 🆕 Estado para layout completo con metadata
 
   // Hook para gestionar configuraciones
   const {
@@ -91,6 +93,15 @@ export default function ConfiguracionLayout() {
       setElementosIniciales(JSON.parse(JSON.stringify(elementosCargados))); // Copia profunda
       setNombreConfiguracion(result.data.configuracion.nombre);
       setDescripcionConfiguracion(result.data.configuracion.descripcion || "");
+      
+      // 🆕 Cargar layout completo con distribucion_capacidades
+      const layoutCompleto = {
+        elementos: elementosCargados,
+        distribucion_capacidades: result.data.configuracion.distribucion_capacidades || null
+      };
+      setLayoutFinal(layoutCompleto);
+      console.log('📥 Layout cargado con distribucion_capacidades:', layoutCompleto.distribucion_capacidades);
+      
       setLayoutGuardado(true);
       calcularContadores(elementosCargados);
     } else {
@@ -111,6 +122,15 @@ export default function ConfiguracionLayout() {
       setAllElements(elementosCopiados);
       setNombreConfiguracion(`Copia de ${result.data.configuracion.nombre}`);
       setDescripcionConfiguracion(result.data.configuracion.descripcion || "");
+      
+      // 🆕 Copiar también distribucion_capacidades si existe
+      const layoutCompleto = {
+        elementos: elementosCopiados,
+        distribucion_capacidades: result.data.configuracion.distribucion_capacidades || null
+      };
+      setLayoutFinal(layoutCompleto);
+      console.log('📥 Layout base copiado con distribucion_capacidades:', layoutCompleto.distribucion_capacidades);
+      
       setLayoutGuardado(false);
       calcularContadores(elementosCopiados);
     } else {
@@ -145,7 +165,15 @@ export default function ConfiguracionLayout() {
   };
 
   // Función que intercepta el guardado para mostrar modal de nombre
-  const handleSolicitarGuardado = () => {
+  const handleSolicitarGuardado = (elementos, metadata) => {
+    // Guardar la metadata recibida en estado
+    if (metadata?.distribucion_capacidades) {
+      console.log('📦 Metadata recibida con distribucion_capacidades:', metadata);
+      setMetadataLayout(metadata);
+    } else {
+      console.warn('⚠️ No se recibió distribucion_capacidades en metadata');
+      setMetadataLayout(null);
+    }
     // Si ya tiene nombre, mostrar el modal para confirmar/editar
     // Si no tiene nombre, mostrar el modal para pedirlo
     setMostrarFormularioNombre(true);
@@ -157,6 +185,9 @@ export default function ConfiguracionLayout() {
       return;
     }
 
+    // Usar metadata del estado
+    console.log('💾 Guardando con metadata desde estado:', metadataLayout);
+
     const datosConfiguracion = {
       nombre: nombreConfiguracion,
       descripcion: descripcionConfiguracion,
@@ -164,7 +195,10 @@ export default function ConfiguracionLayout() {
       totalMesas: allElements.filter(
         (el) => el.type === "mesa" || el.type === "mesaRectangular"
       ).length,
+      distribucion_capacidades: metadataLayout?.distribucion_capacidades || null, // 🆕 Incluir configuración de capacidades
     };
+
+    console.log('📤 Enviando datosConfiguracion:', datosConfiguracion);
 
     let result;
     if (configuracion.modo === "editar" && configuracion.configuracion?.id) {
@@ -188,6 +222,8 @@ export default function ConfiguracionLayout() {
       // Actualizar elementos iniciales para nueva comparación
       setElementosIniciales(JSON.parse(JSON.stringify(allElements)));
       setMostrarFormularioNombre(false);
+      // Limpiar metadata
+      setMetadataLayout(null);
     } else {
       showError(result.error || "Error al guardar configuración");
     }
@@ -326,8 +362,8 @@ export default function ConfiguracionLayout() {
         setContadores={setContadores}
         layoutGuardado={layoutGuardado}
         setLayoutGuardado={setLayoutGuardado}
-        layoutFinal={null}
-        setLayoutFinal={() => {}}
+        layoutFinal={layoutFinal}
+        setLayoutFinal={setLayoutFinal}
         invitados={null}
         setInvitados={null}
         onGuardarLayout={handleSolicitarGuardado}
