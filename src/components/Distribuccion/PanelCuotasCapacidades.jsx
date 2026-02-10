@@ -1,119 +1,151 @@
 import React, { useState, useEffect } from "react";
-import { Plus, X, RefreshCw, Edit2, Check } from "lucide-react";
+import { Check, Edit2 } from "lucide-react";
 
 /**
- * Panel para gestionar cuotas de capacidades de mesas
- * Muestra distribución actual y permite editarla
+ * Panel simplificado para gestionar capacidad de mesas
+ * Sistema: capacidad base + habilitar aumentos con límite
  */
 export default function PanelCuotasCapacidades({ 
   elementos, 
-  onCuotasActualizadas,
-  modoEdicion = true 
+  onConfiguracionActualizada,
+  modoEdicion = true,
+  configuracionInicial = null // 🆕 Recibir configuración guardada
 }) {
-  const [cuotas, setCuotas] = useState([]);
+  const [configuracion, setConfiguracion] = useState({
+    capacidad_base: 10,
+    permitir_aumento: false,
+    capacidad_maxima: 12,
+    mesas_pueden_aumentar: 0,
+    mesas_aumentadas: 0
+  });
+
   const [editando, setEditando] = useState(false);
-  const [cuotasEditadas, setCuotasEditadas] = useState([]);
+  const [configEditada, setConfigEditada] = useState({...configuracion});
 
-  // Calcular cuotas actuales basándose en las mesas existentes
+  // 🆕 Efecto para cargar configuración inicial guardada
   useEffect(() => {
-    calcularCuotasActuales();
-  }, [elementos]);
+    if (configuracionInicial) {
+      console.log('📥 PanelCuotasCapacidades: Cargando configuración inicial:', configuracionInicial);
+      setConfiguracion(configuracionInicial);
+      setConfigEditada(configuracionInicial);
+    }
+  }, [configuracionInicial]);
 
-  const calcularCuotasActuales = () => {
+  // Calcular estado actual basándose en las mesas existentes (solo si no hay configuración inicial)
+  useEffect(() => {
+    if (!configuracionInicial) {
+      calcularEstadoActual();
+    } else {
+      // Actualizar solo el contador de mesas aumentadas
+      actualizarContadorMesasAumentadas();
+    }
+  }, [elementos, configuracionInicial]);
+
+  const calcularEstadoActual = () => {
     // Filtrar solo mesas (redondas y rectangulares)
     const mesas = elementos.filter(el => 
       el.type === "mesa" || el.type === "mesaRectangular"
     );
 
     if (mesas.length === 0) {
-      setCuotas([]);
       return;
     }
 
-    // Agrupar por capacidad
-    const agrupadas = mesas.reduce((acc, mesa) => {
-      const cap = mesa.capacidad || 10;
-      if (!acc[cap]) {
-        acc[cap] = { capacidad: cap, cantidad: 0, asignadas: 0 };
-      }
-      acc[cap].cantidad++;
-      acc[cap].asignadas++;
-      return acc;
-    }, {});
+    // Determinar capacidad base (la más común)
+    const capacidades = mesas.map(m => m.capacidad || 10);
+    const frecuencia = {};
+    capacidades.forEach(cap => {
+      frecuencia[cap] = (frecuencia[cap] || 0) + 1;
+    });
+    
+    const capacidadBase = parseInt(
+      Object.keys(frecuencia).reduce((a, b) => 
+        frecuencia[a] > frecuencia[b] ? a : b
+      )
+    );
 
-    // Convertir a array y ordenar por capacidad
-    const cuotasCalculadas = Object.values(agrupadas)
-      .sort((a, b) => a.capacidad - b.capacidad);
+    // Contar cuántas mesas están por encima de la base
+    const mesasAumentadas = mesas.filter(m => (m.capacidad || 10) > capacidadBase).length;
+    
+    // Determinar capacidad máxima
+    const capacidadMaxima = Math.max(...capacidades);
 
-    setCuotas(cuotasCalculadas);
+    setConfiguracion({
+      capacidad_base: capacidadBase,
+      permitir_aumento: mesasAumentadas > 0,
+      capacidad_maxima: capacidadMaxima,
+      mesas_pueden_aumentar: mesasAumentadas, // Al menos las que ya están aumentadas
+      mesas_aumentadas: mesasAumentadas
+    });
+  };
+
+  // 🆕 Actualizar solo el contador de mesas aumentadas (cuando ya hay configuración guardada)
+  const actualizarContadorMesasAumentadas = () => {
+    const mesas = elementos.filter(el => 
+      el.type === "mesa" || el.type === "mesaRectangular"
+    );
+
+    if (mesas.length === 0) {
+      return;
+    }
+
+    // Contar cuántas mesas están por encima de la capacidad base guardada
+    const mesasAumentadas = mesas.filter(m => 
+      (m.capacidad || 10) > (configuracionInicial?.capacidad_base || configuracion.capacidad_base)
+    ).length;
+
+    setConfiguracion(prev => ({
+      ...prev,
+      mesas_aumentadas: mesasAumentadas
+    }));
   };
 
   const iniciarEdicion = () => {
-    setCuotasEditadas(JSON.parse(JSON.stringify(cuotas)));
+    setConfigEditada({...configuracion});
     setEditando(true);
   };
 
   const cancelarEdicion = () => {
     setEditando(false);
-    setCuotasEditadas([]);
+    setConfigEditada({...configuracion});
   };
 
-  const agregarCuota = () => {
-    const nuevaCapacidad = cuotasEditadas.length > 0 
-      ? Math.max(...cuotasEditadas.map(c => c.capacidad)) + 1 
-      : 8;
-    
-    setCuotasEditadas([
-      ...cuotasEditadas,
-      { capacidad: nuevaCapacidad, cantidad: 0, asignadas: 0 }
-    ]);
-  };
-
-  const eliminarCuota = (index) => {
-    setCuotasEditadas(cuotasEditadas.filter((_, i) => i !== index));
-  };
-
-  const actualizarCuota = (index, campo, valor) => {
-    const nuevasCuotas = [...cuotasEditadas];
-    nuevasCuotas[index][campo] = parseInt(valor) || 0;
-    setCuotasEditadas(nuevasCuotas);
-  };
-
-  const guardarCuotas = () => {
-    // Validar que haya al menos una cuota
-    if (cuotasEditadas.length === 0) {
-      alert("Debe haber al menos una cuota de capacidad");
+  const guardarConfiguracion = () => {
+    // Validar que capacidad máxima >= capacidad base
+    if (configEditada.capacidad_maxima < configEditada.capacidad_base) {
+      alert("La capacidad máxima debe ser mayor o igual a la capacidad base");
       return;
     }
 
-    // Validar que no haya capacidades duplicadas
-    const capacidades = cuotasEditadas.map(c => c.capacidad);
-    const duplicadas = capacidades.filter((c, i) => capacidades.indexOf(c) !== i);
-    if (duplicadas.length > 0) {
-      alert(`Hay capacidades duplicadas: ${duplicadas.join(", ")}`);
-      return;
+    // Si no se permite aumento, ajustar valores
+    if (!configEditada.permitir_aumento) {
+      configEditada.mesas_pueden_aumentar = 0;
+      configEditada.capacidad_maxima = configEditada.capacidad_base;
     }
 
-    setCuotas(cuotasEditadas);
+    setConfiguracion(configEditada);
     setEditando(false);
     
     // Notificar al componente padre
-    if (onCuotasActualizadas) {
-      onCuotasActualizadas(cuotasEditadas);
+    if (onConfiguracionActualizada) {
+      onConfiguracionActualizada(configEditada);
     }
   };
 
-  const totalMesas = cuotas.reduce((sum, c) => sum + c.cantidad, 0);
-  const totalMesasEditadas = cuotasEditadas.reduce((sum, c) => sum + c.cantidad, 0);
+  const totalMesas = elementos.filter(el => 
+    el.type === "mesa" || el.type === "mesaRectangular"
+  ).length;
+
+  const disponiblesParaAumentar = configuracion.mesas_pueden_aumentar - configuracion.mesas_aumentadas;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          📊 Distribución de Capacidades
+          📊 Capacidad de Mesas
         </h3>
         
-        {modoEdicion && !editando && cuotas.length > 0 && (
+        {modoEdicion && !editando && totalMesas > 0 && (
           <button
             onClick={iniciarEdicion}
             className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
@@ -124,157 +156,154 @@ export default function PanelCuotasCapacidades({
         )}
       </div>
 
-      {cuotas.length === 0 && !editando ? (
+      {totalMesas === 0 && !editando ? (
         <div className="text-center py-4 text-gray-500 dark:text-gray-400">
           <p className="text-xs">No hay mesas en el layout</p>
-          <p className="text-xs mt-1">Agrega mesas para ver la distribución</p>
+          <p className="text-xs mt-1">Agrega mesas para configurar capacidades</p>
         </div>
       ) : editando ? (
         // Modo edición
         <div className="space-y-4">
           <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-              Define cuántas mesas de cada capacidad quieres en tu layout
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Configura la capacidad base y si permites aumentar asientos en algunas mesas
             </p>
           </div>
 
-          <div className="space-y-2">
-            {cuotasEditadas.map((cuota, index) => (
-              <div
-                key={index}
-                className="flex gap-2 items-center bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700"
-              >
-                <div className="flex-1">
-                  <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
-                    Capacidad (asientos)
-                  </label>
-                  <select
-                    value={cuota.capacidad}
-                    onChange={(e) => actualizarCuota(index, 'capacidad', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-                  >
-                    {[...Array(12)].map((_, i) => (
-                      <option key={i + 1} value={i + 1}>
-                        {i + 1} asientos
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex-1">
-                  <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
-                    Cantidad de mesas
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={cuota.cantidad}
-                    onChange={(e) => actualizarCuota(index, 'cantidad', e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-                  />
-                </div>
-
-                <button
-                  onClick={() => eliminarCuota(index)}
-                  disabled={cuotasEditadas.length === 1}
-                  className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition disabled:opacity-30 disabled:cursor-not-allowed mt-5"
-                  title="Eliminar cuota"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
+          {/* Capacidad Base */}
+          <div>
+            <label className="text-xs font-medium text-gray-700 dark:text-gray-300 block mb-1">
+              Capacidad Base (asientos por mesa)
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="20"
+              value={configEditada.capacidad_base}
+              onChange={(e) => setConfigEditada({
+                ...configEditada,
+                capacidad_base: parseInt(e.target.value) || 10
+              })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Todas las mesas empiezan con esta capacidad
+            </p>
           </div>
 
-          <button
-            onClick={agregarCuota}
-            className="w-full py-2 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg transition flex items-center justify-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Agregar otra capacidad
-          </button>
-
-          <div className="bg-gray-100 dark:bg-gray-900 p-3 rounded-lg">
-            <div className="flex justify-between items-center text-sm">
-              <span className="font-semibold text-gray-700 dark:text-gray-300">
-                Total de mesas:
-              </span>
-              <span className="text-lg font-bold text-gray-900 dark:text-white">
-                {totalMesasEditadas}
-              </span>
+          {/* Checkbox Permitir Aumento */}
+          <div className="flex items-start gap-3 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <input
+              type="checkbox"
+              id="permitir_aumento"
+              checked={configEditada.permitir_aumento}
+              onChange={(e) => setConfigEditada({
+                ...configEditada,
+                permitir_aumento: e.target.checked
+              })}
+              className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <div className="flex-1">
+              <label 
+                htmlFor="permitir_aumento"
+                className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
+              >
+                Habilitar aumento de asientos
+              </label>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Permite aumentar la capacidad en algunas mesas específicas
+              </p>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          {/* Opciones de aumento (solo si está habilitado) */}
+          {configEditada.permitir_aumento && (
+            <div className="space-y-3 pl-7 border-l-2 border-blue-300 dark:border-blue-700">
+              {/* Capacidad Máxima */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                  Capacidad Máxima (asientos por mesa)
+                </label>
+                <input
+                  type="number"
+                  min={configEditada.capacidad_base}
+                  max="20"
+                  value={configEditada.capacidad_maxima}
+                  onChange={(e) => setConfigEditada({
+                    ...configEditada,
+                    capacidad_maxima: parseInt(e.target.value) || 12
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Máximo de asientos que puede tener una mesa
+                </p>
+              </div>
+
+              {/* Límite de Mesas que pueden aumentar */}
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                  Máximo de mesas que pueden aumentar
+                </label>
+                <input
+                  type="number"
+                  min={configuracion.mesas_aumentadas}
+                  max={totalMesas}
+                  value={configEditada.mesas_pueden_aumentar}
+                  onChange={(e) => setConfigEditada({
+                    ...configEditada,
+                    mesas_pueden_aumentar: parseInt(e.target.value) || 0
+                  })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  De {totalMesas} mesas totales, ¿cuántas podrán aumentarse?
+                </p>
+                {configuracion.mesas_aumentadas > 0 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    ⚠️ Actualmente {configuracion.mesas_aumentadas} mesas ya están aumentadas
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Botones */}
+          <div className="flex gap-2 pt-2">
             <button
-              onClick={guardarCuotas}
-              className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition flex items-center justify-center gap-2"
+              onClick={guardarConfiguracion}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition"
             >
               <Check className="w-4 h-4" />
-              Guardar Cuotas
+              Guardar
             </button>
             <button
               onClick={cancelarEdicion}
-              className="flex-1 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition"
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition"
             >
               Cancelar
             </button>
           </div>
         </div>
       ) : (
-        // Modo visualización
-        <div className="space-y-2">
-          {cuotas.map((cuota, index) => {
-            const porcentaje = cuota.cantidad > 0 
-              ? Math.round((cuota.asignadas / cuota.cantidad) * 100) 
-              : 0;
-            const disponibles = cuota.cantidad - cuota.asignadas;
-
-            return (
-              <div
-                key={index}
-                className="bg-gray-50 dark:bg-gray-900 p-2 rounded border border-gray-200 dark:border-gray-700"
-              >
-                <div className="flex justify-between items-center mb-1">
-                  <div className="flex items-center gap-1">
-                    <span className="text-lg font-bold text-gray-900 dark:text-white">
-                      {cuota.capacidad}
-                    </span>
-                    <span className="text-xs text-gray-600 dark:text-gray-400">
-                      asientos
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-sm font-bold ${
-                      disponibles === 0 ? "text-red-600" :
-                      disponibles <= 3 ? "text-orange-600" :
-                      "text-green-600"
-                    }`}>
-                      {cuota.asignadas} / {cuota.cantidad}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {disponibles} disp.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                  <div
-                    className={`h-1.5 rounded-full transition-all ${
-                      porcentaje === 100 ? "bg-red-500" :
-                      porcentaje >= 80 ? "bg-orange-500" :
-                      "bg-green-500"
-                    }`}
-                    style={{ width: `${porcentaje}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded border border-blue-200 dark:border-blue-800">
+        // Vista de solo lectura
+        <div className="space-y-3">
+          {/* Capacidad Base */}
+          <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                Capacidad base:
+              </span>
+              <span className="text-lg font-bold text-gray-900 dark:text-white">
+                {configuracion.capacidad_base} asientos
+              </span>
+            </div>
+          </div>
+
+          {/* Total de Mesas */}
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-gray-600 dark:text-gray-400">
                 Total de mesas:
               </span>
               <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
@@ -283,13 +312,67 @@ export default function PanelCuotasCapacidades({
             </div>
           </div>
 
-          <button
-            onClick={calcularCuotasActuales}
-            className="w-full py-1.5 text-xs text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded transition flex items-center justify-center gap-1"
-          >
-            <RefreshCw className="w-3 h-3" />
-            Recalcular desde mesas actuales
-          </button>
+          {/* Si están habilitados los aumentos */}
+          {configuracion.permitir_aumento && (
+            <>
+              <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    Capacidad máxima:
+                  </span>
+                  <span className="text-lg font-bold text-gray-900 dark:text-white">
+                    {configuracion.capacidad_maxima} asientos
+                  </span>
+                </div>
+              </div>
+
+              {/* Contador de Mesas Aumentadas */}
+              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Mesas aumentadas:
+                  </span>
+                  <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                    {configuracion.mesas_aumentadas} / {configuracion.mesas_pueden_aumentar}
+                  </span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2">
+                  <div
+                    className={`h-1.5 rounded-full transition-all ${
+                      disponiblesParaAumentar === 0 ? "bg-red-500" :
+                      disponiblesParaAumentar <= 3 ? "bg-orange-500" :
+                      "bg-green-500"
+                    }`}
+                    style={{ 
+                      width: `${(configuracion.mesas_aumentadas / configuracion.mesas_pueden_aumentar) * 100}%` 
+                    }}
+                  />
+                </div>
+
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  {disponiblesParaAumentar > 0 ? (
+                    <span className="text-green-600 dark:text-green-400 font-medium">
+                      ✓ {disponiblesParaAumentar} mesas disponibles para aumentar
+                    </span>
+                  ) : (
+                    <span className="text-red-600 dark:text-red-400 font-medium">
+                      ⚠️ Límite alcanzado
+                    </span>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {!configuracion.permitir_aumento && (
+            <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+                Aumentos de capacidad no habilitados
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

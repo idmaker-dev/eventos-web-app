@@ -55,20 +55,31 @@ export default function DistribuccionEditor({
   const [capacidadMesaModal, setCapacidadMesaModal] = useState(8);
   const [showModalMesasMultiples, setShowModalMesasMultiples] = useState(false);
   const [showModalRenumerar, setShowModalRenumerar] = useState(false);
-  const [cuotasCapacidades, setCuotasCapacidades] = useState([]);
+  const [configuracionCapacidad, setConfiguracionCapacidad] = useState({
+    capacidad_base: 10,
+    permitir_aumento: false,
+    capacidad_maxima: 12,
+    mesas_pueden_aumentar: 0,
+    mesas_aumentadas: 0
+  });
   
-  // Callback cuando se actualizan las cuotas desde el panel
-  const handleCuotasActualizadas = useCallback((nuevasCuotas) => {
-    console.log('📊 Cuotas actualizadas:', nuevasCuotas);
-    setCuotasCapacidades(nuevasCuotas);
+  // 🆕 Efecto para restaurar configuración de capacidades desde layout cargado
+  useEffect(() => {
+    if (layoutFinal?.distribucion_capacidades) {
+      console.log('📥 Restaurando configuración de capacidades desde layout:', layoutFinal.distribucion_capacidades);
+      setConfiguracionCapacidad(layoutFinal.distribucion_capacidades);
+    }
+  }, [layoutFinal]);
+  
+  // Callback cuando se actualiza la configuración desde el panel
+  const handleConfiguracionActualizada = useCallback((nuevaConfiguracion) => {
+    console.log('📊 Configuración actualizada:', nuevaConfiguracion);
+    setConfiguracionCapacidad(nuevaConfiguracion);
     
     // Guardar en metadata del layout para persistir
     if (onGuardarLayout && allElements.length > 0) {
       const metadata = {
-        distribucion_capacidades: {
-          capacidad_base: nuevasCuotas[0]?.capacidad || 10,
-          cuotas: nuevasCuotas
-        }
+        distribucion_capacidades: nuevaConfiguracion
       };
       onGuardarLayout(allElements, metadata);
     }
@@ -1004,12 +1015,17 @@ export default function DistribuccionEditor({
     const nuevasMesas = [];
     let numeroInicial = obtenerSiguienteNumeroMesa();
 
-    // ℹ️ NOTA: NO distribuimos capacidades automáticamente
-    // Las cuotas solo sirven para validación/límites cuando el admin cambia capacidades manualmente
-    // TODAS las mesas se crean con la capacidad base especificada
+    // ℹ️ NOTA: TODAS las mesas se crean con la capacidad base especificada
+    // La configuración de capacidades define:
+    // - capacidad_base: capacidad inicial de todas las mesas
+    // - permitir_aumento: si se permite aumentar capacidad en algunas mesas
+    // - capacidad_maxima: límite máximo de asientos
+    // - mesas_pueden_aumentar: cuántas mesas pueden aumentarse del total
     if (distribucion_capacidades) {
-      console.log('ℹ️ Cuotas definidas (solo para validación):', distribucion_capacidades.cuotas);
+      console.log('ℹ️ Configuración de capacidades:', distribucion_capacidades);
       console.log('ℹ️ Todas las mesas iniciarán con capacidad base:', capacidad);
+      // 🆕 Actualizar el estado de configuración de capacidades
+      setConfiguracionCapacidad(distribucion_capacidades);
     }
 
     // Espaciado fijo entre mesas (píxeles)
@@ -1637,6 +1653,7 @@ export default function DistribuccionEditor({
       totalMesas: allElements.filter(
         (el) => el.type === "mesa" || el.type === "mesaRectangular"
       ).length,
+      distribucion_capacidades: configuracionCapacidad, // 🆕 Incluir configuración de capacidades
     };
 
     // Si se proporciona una función personalizada de guardado, usarla
@@ -2067,8 +2084,9 @@ export default function DistribuccionEditor({
               <StatsPanel stats={stats} />
               <PanelCuotasCapacidades 
                 elementos={allElements}
-                onCuotasActualizadas={handleCuotasActualizadas}
+                onConfiguracionActualizada={handleConfiguracionActualizada}
                 modoEdicion={true}
+                configuracionInicial={configuracionCapacidad}
               />
             </div>
 

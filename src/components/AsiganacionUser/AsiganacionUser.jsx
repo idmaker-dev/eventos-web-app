@@ -20,6 +20,10 @@ import ModalRestricciones from "../Distribuccion/ModalRestricciones.jsx";
 import ModalMesaDetalles from "../Distribuccion/ModalMesaDetalles.jsx";
 import { useDisponibilidadMesas } from "../../hooks/useDisponibilidadMesas";
 import { useSignalRUser } from "../../hooks/useSignalRUser";
+import { useConfirm, usePrompt } from "../../hooks/useDialog";
+import ConfirmDialog from "../ui/ConfirmDialog";
+import PromptDialog from "../ui/PromptDialog";
+import httpService from "../../services/httpService";
 import MesaSilla from "./../../assets/recursos/MESAS-SILLA.svg";
 import IconPersona from "./../../assets/recursos/ICONOPERSONA.svg";
 import IconGrupo from "./../../assets/recursos/ICONOPERSONAS.svg";
@@ -86,6 +90,10 @@ export default function AsignacionUser({
   const [mesasSeleccionadas, setMesasSeleccionadas] = useState([]);
   // Array de objetos: [{ numeroMesa, cantidadPersonas, personas: [] }]
 
+  // 🎨 Hooks para diálogos personalizados (reemplazan alert/confirm/prompt)
+  const { showConfirm, dialogState: confirmState, handleClose: handleConfirmClose } = useConfirm();
+  const { showPrompt, dialogState: promptState, handleClose: handlePromptClose, handleSubmit: handlePromptSubmit } = usePrompt();
+
   // Obtener disponibilidad de mesas (incluye layout completo + disponibilidad)
   const {
     elementos: elementosConDisponibilidad,
@@ -96,6 +104,15 @@ export default function AsignacionUser({
 
   // Layout del salón - SIEMPRE desde el endpoint de disponibilidad
   const allElements = elementosConDisponibilidad || [];
+  
+  // 🆕 Configuración de capacidades del evento
+  const configuracionCapacidad = eventoInfo?.distribucion_capacidades || {
+    capacidad_base: 10,
+    permitir_aumento: false,
+    capacidad_maxima: 12,
+    mesas_pueden_aumentar: 0,
+    mesas_aumentadas: 0
+  };
 
   /* -----------------------
      Util / Notificaciones
@@ -137,6 +154,16 @@ export default function AsignacionUser({
         // Solo refrescar silenciosamente, no mostrar notificación
         console.log(
           "🔄 [AsignacionUser] Refrescando disponibilidad por cambio en mesa"
+        );
+      } else if (notificacion.tipo === "capacidad_mesa_cambiada") {
+        // Notificar cambio de capacidad en mesa
+        mostrarNotificacion(
+          notificacion.mensaje,
+          "info"
+        );
+        console.log(
+          "📊 [AsignacionUser] Capacidad de mesa actualizada:",
+          notificacion.data
         );
       }
 
@@ -398,6 +425,32 @@ export default function AsignacionUser({
   /* -----------------------
     Lógica de asignación
   ----------------------- */
+  
+  // 🆕 Función para aumentar capacidad de una mesa
+  const aumentarCapacidadMesa = async (mesaId, nuevaCapacidad) => {
+    try {
+      console.log(`📊 Aumentando capacidad de mesa ${mesaId} a ${nuevaCapacidad}...`);
+      
+      const response = await httpService.put(
+        `/eventos/${eventoId}/mesas/${mesaId}/capacidad`,
+        { nueva_capacidad: nuevaCapacidad }
+      );
+
+      console.log('✅ Capacidad aumentada exitosamente:', response);
+      
+      // Refrescar disponibilidad para obtener datos actualizados
+      await refrescarDisponibilidad();
+      
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('❌ Error al aumentar capacidad:', error);
+      return { 
+        success: false, 
+        error: error.userMessage || error.message || 'Error al aumentar capacidad'
+      };
+    }
+  };
+  
   // Función auxiliar para formatear restricciones desde la pre-configuración
   const formatearRestricciones = (restriccionesObj) => {
     if (!restriccionesObj) return "Ninguna";
@@ -414,7 +467,7 @@ export default function AsignacionUser({
       : "Ninguna";
   };
 
-  const seleccionarMesa = (numeroMesa) => {
+  const seleccionarMesa = async (numeroMesa) => {
     console.log(`🎯 [seleccionarMesa] Iniciando selección de Mesa ${numeroMesa}`, {
       usuarioId: usuarioActual.id,
       totalBoletos: usuarioActual.cantidad,
@@ -532,11 +585,17 @@ export default function AsignacionUser({
     }
 
     // ✅ Validar capacidad disponible SEGÚN BOLETOS RESTANTES (no todos los boletos)
-    const espacioDisponible = mesaSeleccionada.disponibilidad
-      ? mesaSeleccionada.disponibilidad.asientos_disponibles
-      : mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
+    // 🔥 PRIORIZAR disponibilidad.asientos_disponibles del backend (datos actualizados en tiempo real)
+    const espacioDisponible = mesaSeleccionada.disponibilidad?.asientos_disponibles ?? 
+      (Number(mesaSeleccionada.capacidad || 0) - Number(mesaSeleccionada.invitados || 0));
     
-    console.log('🔍 Espacio disponible en mesa:', { espacioDisponible, disponibilidad: mesaSeleccionada.disponibilidad });
+    console.log('🔍 Espacio disponible en mesa:', { 
+      espacioDisponible, 
+      capacidad: mesaSeleccionada.capacidad,
+      invitados: mesaSeleccionada.invitados,
+      disponibilidad: mesaSeleccionada.disponibilidad,
+      usandoFallback: !mesaSeleccionada.disponibilidad
+    });
     
     if (espacioDisponible < 1) {
       console.error('❌ Mesa sin espacio disponible');
@@ -614,20 +673,155 @@ export default function AsignacionUser({
       mesasYaSeleccionadas: mesasSeleccionadas.length
     });
 
-    // 📌 Si tiene < 8 boletos TOTALES, asignar automáticamente todos los restantes
-    // (no puede seleccionar múltiples mesas, así que debe usar todos)
+    // 📌 Si tiene < 8 boletos TOTALES, validar si puede aumentar mesa para cubrir todos
+    // 🔥 IMPORTANTE: Usar maxPersonasParaMesa que ya considera el espacio disponible
     if (usuarioActual.cantidad < 8) {
-      cantidadNum = boletosRestantes;
-      console.log(`✅ Asignación automática (< 8 boletos): ${cantidadNum} personas a Mesa ${numeroMesa}`);
+      cantidadNum = maxPersonasParaMesa; // ✅ Respeta límite de espacio disponible
+      console.log(`✅ Asignación automática (< 8 boletos): ${cantidadNum} personas a Mesa ${numeroMesa} (espacio: ${espacioDisponible})`);
+      
+      // 🚨 Si no hay espacio suficiente, verificar si se puede aumentar la mesa
+      if (cantidadNum < boletosRestantes && configuracionCapacidad.permitir_aumento) {
+        const capacidadActual = mesaSeleccionada.capacidad || 10;
+        const capacidadMaxima = configuracionCapacidad.capacidad_maxima || 12;
+        const capacidadBase = configuracionCapacidad.capacidad_base || 10;
+        const cuposDisponibles = configuracionCapacidad.mesas_pueden_aumentar - configuracionCapacidad.mesas_aumentadas;
+        
+        // Calcular si aumentar resolvería el problema
+        const invitadosActuales = mesaSeleccionada.disponibilidad?.asientos_ocupados || 0;
+        const espacioSiAumentara = capacidadMaxima - invitadosActuales;
+        const mesaEstaAumentada = capacidadActual > capacidadBase;
+        
+        console.log('🔍 Evaluando aumento de capacidad:', {
+          capacidadActual,
+          capacidadMaxima,
+          invitadosActuales,
+          espacioSiAumentara,
+          boletosRestantes,
+          cuposDisponibles,
+          mesaEstaAumentada
+        });
+        
+        // Si aumentar la mesa resuelve el problema y hay cupos disponibles
+        if (espacioSiAumentara >= boletosRestantes && (cuposDisponibles > 0 || mesaEstaAumentada)) {
+          const confirmar = await showConfirm({
+            title: '⚠️ Espacio Insuficiente',
+            message: `Mesa ${numeroMesa} tiene ${espacioDisponible} espacios, necesitas ${boletosRestantes}.\n\n💡 SOLUCIÓN: Aumentar mesa de ${capacidadActual} a ${capacidadMaxima} asientos\nEsto te daría ${espacioSiAumentara} espacios disponibles.\n\n¿Deseas aumentar la capacidad de esta mesa?`,
+            confirmText: 'Sí, aumentar capacidad',
+            cancelText: 'No, gracias',
+            type: 'warning'
+          });
+          
+          if (confirmar) {
+            mostrarNotificacion('⏳ Aumentando capacidad de mesa...', 'info');
+            const resultado = await aumentarCapacidadMesa(mesaSeleccionada.id, capacidadMaxima);
+            
+            if (!resultado.success) {
+              mostrarNotificacion(
+                `❌ No se pudo aumentar la capacidad: ${resultado.error}`,
+                'error'
+              );
+              return;
+            }
+            
+            mostrarNotificacion('✅ Capacidad aumentada exitosamente', 'success');
+            
+            // Esperar un momento para que se actualicen los datos
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Reintentar selección con nueva capacidad
+            seleccionarMesa(numeroMesa);
+            return;
+          }
+        }
+        
+        // Si no se puede aumentar o usuario rechazó, mostrar advertencia
+        mostrarNotificacion(
+          `⚠️ La Mesa ${numeroMesa} solo tiene ${espacioDisponible} espacios disponibles.\n\n` +
+          `Se asignarán ${cantidadNum} personas de tus ${boletosRestantes} boletos restantes.\n\n` +
+          `Deberás seleccionar otra mesa para los ${boletosRestantes - cantidadNum} boletos restantes.`,
+          "warning"
+        );
+      }
     } else {
-      // >= 8 boletos: Preguntar cuántas personas quiere asignar
-      const cantidadPersonas = prompt(
-        `¿Cuántas personas deseas asignar a la Mesa ${numeroMesa}?\n\n` +
-        `Boletos restantes: ${boletosRestantes}\n` +
-        `Espacios disponibles en la mesa: ${espacioDisponible}\n` +
-        `Máximo permitido: ${maxPersonasParaMesa}`,
-        maxPersonasParaMesa.toString()
-      );
+      // >= 8 boletos: Evaluar si necesita aumentar capacidad
+      const capacidadActual = mesaSeleccionada.capacidad || 10;
+      const capacidadMaxima = configuracionCapacidad.capacidad_maxima || 12;
+      const capacidadBase = configuracionCapacidad.capacidad_base || 10;
+      const invitadosActuales = mesaSeleccionada.disponibilidad?.asientos_ocupados || 0;
+      const espacioSiAumentara = capacidadMaxima - invitadosActuales;
+      const cuposDisponibles = configuracionCapacidad.mesas_pueden_aumentar - configuracionCapacidad.mesas_aumentadas;
+      const mesaEstaAumentada = capacidadActual > capacidadBase;
+      
+      // 🔥 Si espacio insuficiente Y se puede aumentar Y aumentar resolvería el problema
+      const puedeAumentar = configuracionCapacidad.permitir_aumento && 
+                           (cuposDisponibles > 0 || mesaEstaAumentada) &&
+                           espacioSiAumentara > espacioDisponible &&
+                           capacidadActual < capacidadMaxima;
+      
+      const necesitaAumento = espacioDisponible < boletosRestantes;
+      
+      console.log('🔍 Evaluando opciones para >= 8 boletos:', {
+        espacioDisponible,
+        boletosRestantes,
+        capacidadActual,
+        capacidadMaxima,
+        espacioSiAumentara,
+        puedeAumentar,
+        necesitaAumento,
+        cuposDisponibles
+      });
+      
+      // Si necesita aumento Y puede aumentar, ofrecer opciones
+      if (necesitaAumento && puedeAumentar) {
+        const opcion = await showConfirm({
+          title: '📊 Opciones de Asignación',
+          message: `Mesa ${numeroMesa}: ${capacidadActual} asientos, ${espacioDisponible} disponibles\nTus boletos restantes: ${boletosRestantes}\n\n▶ OPCIÓN 1 (Cancelar):\n→ Asignar ${maxPersonasParaMesa} personas a esta mesa\n→ Quedarán ${boletosRestantes - maxPersonasParaMesa} boletos para otra mesa\n\n▶ OPCIÓN 2 (Confirmar):\n→ Aumentar mesa a ${capacidadMaxima} asientos\n→ Tendrás ${espacioSiAumentara} espacios disponibles\n${espacioSiAumentara >= boletosRestantes ? '→ Cabrán todos tus boletos' : `→ Asignar ${Math.min(boletosRestantes, espacioSiAumentara)} personas aquí`}`,
+          confirmText: 'Aumentar capacidad',
+          cancelText: 'Asignación parcial',
+          type: 'info'
+        });
+        
+        if (opcion) {
+          // Usuario eligió aumentar
+          mostrarNotificacion('⏳ Aumentando capacidad de mesa...', 'info');
+          const resultado = await aumentarCapacidadMesa(mesaSeleccionada.id, capacidadMaxima);
+          
+          if (!resultado.success) {
+            mostrarNotificacion(
+              `❌ No se pudo aumentar la capacidad: ${resultado.error}`,
+              'error'
+            );
+            return;
+          }
+          
+          mostrarNotificacion('✅ Capacidad aumentada exitosamente', 'success');
+          
+          // Esperar un momento para que se actualicen los datos
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Reintentar selección con nueva capacidad
+          seleccionarMesa(numeroMesa);
+          return;
+        }
+        // Si canceló, continúa con asignación parcial normal
+      }
+      
+      // Preguntar cuántas personas quiere asignar (flujo normal)
+      const cantidadPersonas = await showPrompt({
+        title: 'Cantidad a asignar',
+        message: `¿Cuántas personas deseas asignar a la Mesa ${numeroMesa}?\n\nBoletos restantes: ${boletosRestantes}\nEspacios disponibles en la mesa: ${espacioDisponible}\nMáximo permitido: ${maxPersonasParaMesa}`,
+        inputType: 'number',
+        defaultValue: maxPersonasParaMesa.toString(),
+        min: 1,
+        max: maxPersonasParaMesa,
+        validation: (value) => {
+          const num = Number(value);
+          if (num < 1 || num > maxPersonasParaMesa) {
+            return `Debe ser un número entre 1 y ${maxPersonasParaMesa}`;
+          }
+          return null;
+        }
+      });
 
       if (cantidadPersonas === null) {
         // Usuario canceló
@@ -635,14 +829,7 @@ export default function AsignacionUser({
         return;
       }
 
-      cantidadNum = parseInt(cantidadPersonas, 10);
-      if (isNaN(cantidadNum) || cantidadNum < 1 || cantidadNum > maxPersonasParaMesa) {
-        mostrarNotificacion(
-          `Cantidad inválida. Debes ingresar un número entre 1 y ${maxPersonasParaMesa}.`,
-          "error"
-        );
-        return;
-      }
+      cantidadNum = cantidadPersonas;
       
       console.log(`✅ Cantidad ingresada por usuario: ${cantidadNum}`);
     }
@@ -751,9 +938,13 @@ export default function AsignacionUser({
     const totalBoletosAsignados = mesasSeleccionadas.reduce((total, mesa) => total + mesa.cantidadPersonas, 0);
     if (totalBoletosAsignados < usuarioActual.cantidad) {
       const boletosRestantes = usuarioActual.cantidad - totalBoletosAsignados;
-      const confirmar = window.confirm(
-        `Aún tienes ${boletosRestantes} boleto(s) sin asignar.\n\n¿Deseas guardar la selección de todas formas?`
-      );
+      const confirmar = await showConfirm({
+        title: 'Boletos sin asignar',
+        message: `Aún tienes ${boletosRestantes} boleto(s) sin asignar.\n\n¿Deseas guardar la selección de todas formas?`,
+        confirmText: 'Sí, guardar',
+        cancelText: 'Cancelar',
+        type: 'warning'
+      });
       if (!confirmar) return;
     }
 
@@ -830,16 +1021,19 @@ export default function AsignacionUser({
     }
   };
 
-  const cancelarAsignacion = () => {
+  const cancelarAsignacion = async () => {
     // Verificar si hay mesas seleccionadas pendientes
     if (mesasSeleccionadas.length > 0) {
       const totalBoletos = mesasSeleccionadas.reduce((total, mesa) => total + mesa.cantidadPersonas, 0);
-      const mensaje = `¿Deseas descartar todas las mesas seleccionadas?\n\n` +
-        `Mesas seleccionadas: ${mesasSeleccionadas.length}\n` +
-        `Total boletos asignados: ${totalBoletos}\n\n` +
-        `Tendrás que volver a seleccionar y configurar las mesas.`;
+      const mensaje = `¿Deseas descartar todas las mesas seleccionadas?\n\nMesas seleccionadas: ${mesasSeleccionadas.length}\nTotal boletos asignados: ${totalBoletos}\n\nTendrás que volver a seleccionar y configurar las mesas.`;
       
-      const confirmar = window.confirm(mensaje);
+      const confirmar = await showConfirm({
+        title: '¿Descartar selección?',
+        message: mensaje,
+        confirmText: 'Sí, descartar',
+        cancelText: 'No, mantener',
+        type: 'warning'
+      });
       if (!confirmar) return;
       
       // Limpiar mesas seleccionadas
@@ -860,11 +1054,15 @@ export default function AsignacionUser({
     
     // Verificar si hay asignación confirmada
     if (asignacionActual) {
-      const mensaje = "¿Estás seguro de que deseas cancelar tu asignación?\n\n" +
-        `Perderás todos los lugares asignados.\n\n` +
-        "Tendrás que seleccionar y configurar nuevamente.";
+      const mensaje = "¿Estás seguro de que deseas cancelar tu asignación?\n\nPerderás todos los lugares asignados.\n\nTendrás que seleccionar y configurar nuevamente.";
 
-      const confirmar = window.confirm(mensaje);
+      const confirmar = await showConfirm({
+        title: '¿Cancelar asignación?',
+        message: mensaje,
+        confirmText: 'Sí, cancelar',
+        cancelText: 'No, mantener',
+        type: 'warning'
+      });
       if (!confirmar) return;
 
       setAsignacionActual(null);
@@ -884,10 +1082,14 @@ export default function AsignacionUser({
   };
   
   // 🆕 Función para remover una mesa específica de la selección
-  const removerMesaSeleccionada = (numeroMesa) => {
-    const confirmar = window.confirm(
-      `¿Deseas quitar la Mesa ${numeroMesa} de tu selección?`
-    );
+  const removerMesaSeleccionada = async (numeroMesa) => {
+    const confirmar = await showConfirm({
+      title: '¿Quitar mesa?',
+      message: `¿Deseas quitar la Mesa ${numeroMesa} de tu selección?`,
+      confirmText: 'Sí, quitar',
+      cancelText: 'No, mantener',
+      type: 'warning'
+    });
     if (!confirmar) return;
     
     const nuevasMesas = mesasSeleccionadas.filter(m => m.numeroMesa !== numeroMesa);
@@ -1988,6 +2190,34 @@ export default function AsignacionUser({
           isUserMode={true}
         />
       )}
+
+      {/* 🎨 Diálogos personalizados */}
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        onClose={handleConfirmClose}
+        onConfirm={confirmState.resolver}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+      />
+
+      <PromptDialog
+        isOpen={promptState.isOpen}
+        onClose={handlePromptClose}
+        onSubmit={handlePromptSubmit}
+        title={promptState.title}
+        message={promptState.message}
+        placeholder={promptState.placeholder}
+        defaultValue={promptState.defaultValue}
+        inputType={promptState.inputType}
+        min={promptState.min}
+        max={promptState.max}
+        confirmText={promptState.confirmText}
+        cancelText={promptState.cancelText}
+        validation={promptState.validation}
+      />
     </div>
   );
 }

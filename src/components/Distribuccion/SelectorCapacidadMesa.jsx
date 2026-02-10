@@ -1,16 +1,16 @@
 import React, { useState } from "react";
 import { Users, Check, X } from "lucide-react";
-import axios from "axios";
+import httpService from "../../services/httpService";
 
 /**
  * Componente para cambiar la capacidad de una mesa individual
- * Valida contra las cuotas definidas en distribucion_capacidades
+ * Sistema simplificado: valida contra límite de mesas que pueden aumentar
  */
 export default function SelectorCapacidadMesa({ 
   mesa, 
   eventoId, 
   onCapacidadCambiada,
-  cuotas = [] // Array de { capacidad, cantidad, asignadas }
+  configuracion = null // { capacidad_base, permitir_aumento, capacidad_maxima, mesas_pueden_aumentar, mesas_aumentadas }
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedCapacidad, setSelectedCapacidad] = useState(mesa.capacidad);
@@ -33,18 +33,16 @@ export default function SelectorCapacidadMesa({
     setError(null);
 
     try {
-      const token = localStorage.getItem("token");
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:7071/api";
-
-      const response = await axios.put(
-        `${API_BASE_URL}/eventos/${eventoId}/mesas/${mesa.id}/capacidad`,
-        { nueva_capacidad: selectedCapacidad },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await httpService.put(
+        `/eventos/${eventoId}/mesas/${mesa.id}/capacidad`,
+        { nueva_capacidad: selectedCapacidad }
       );
+
+      console.log("✅ Response completa:", response);
 
       // Callback para actualizar el estado en el componente padre
       if (onCapacidadCambiada) {
-        onCapacidadCambiada(response.data.data);
+        onCapacidadCambiada(response.data);
       }
 
       setIsEditing(false);
@@ -67,15 +65,72 @@ export default function SelectorCapacidadMesa({
     setError(null);
   };
 
-  // Calcular disponibilidad de cuotas
-  const getCuotaInfo = (capacidad) => {
-    const cuota = cuotas.find(c => c.capacidad === capacidad);
-    if (!cuota) return { disponibles: "∞", color: "text-gray-500" };
-    
-    const disponibles = cuota.cantidad - cuota.asignadas;
-    const color = disponibles > 0 ? "text-green-600" : "text-red-600";
-    return { disponibles, color };
+  // Generar opciones de capacidad basadas en configuración
+  const getOpcionesCapacidad = () => {
+    if (!configuracion) {
+      // Si no hay configuración, opciones por defecto 1-12
+      return Array.from({ length: 12 }, (_, i) => i + 1);
+    }
+
+    const { capacidad_base, permitir_aumento, capacidad_maxima } = configuracion;
+
+    if (!permitir_aumento) {
+      // Solo permitir capacidad base
+      return [capacidad_base];
+    }
+
+    // Generar rango desde base hasta máxima
+    const opciones = [];
+    for (let i = capacidad_base; i <= capacidad_maxima; i++) {
+      opciones.push(i);
+    }
+    return opciones;
   };
+
+  // Calcular información de disponibilidad
+  const getInfoDisponibilidad = () => {
+    if (!configuracion || !configuracion.permitir_aumento) {
+      return { texto: "", mostrar: false };
+    }
+
+    const { capacidad_base, mesas_pueden_aumentar, mesas_aumentadas } = configuracion;
+    const disponibles = mesas_pueden_aumentar - mesas_aumentadas;
+
+    // Si la mesa actual está por encima de la base, ya cuenta como aumentada
+    const mesaEstaAumentada = mesa.capacidad > capacidad_base;
+    // Si la selección nueva está por encima de la base, contaría como aumentada
+    const nuevaEstaraAumentada = selectedCapacidad > capacidad_base;
+
+    // Si intentamos aumentar una mesa que no estaba aumentada
+    if (!mesaEstaAumentada && nuevaEstaraAumentada) {
+      if (disponibles <= 0) {
+        return {
+          texto: `⚠️ No hay cupos disponibles (${mesas_aumentadas}/${mesas_pueden_aumentar} usados)`,
+          mostrar: true,
+          color: "text-red-600"
+        };
+      }
+      return {
+        texto: `✓ ${disponibles} cupos disponibles`,
+        mostrar: true,
+        color: "text-green-600"
+      };
+    }
+
+    // Si estamos devolviendo una mesa aumentada a la base
+    if (mesaEstaAumentada && !nuevaEstaraAumentada) {
+      return {
+        texto: `✓ Liberará 1 cupo (${disponibles + 1} disponibles)`,
+        mostrar: true,
+        color: "text-blue-600"
+      };
+    }
+
+    return { texto: "", mostrar: false };
+  };
+
+  const opciones = getOpcionesCapacidad();
+  const infoDisponibilidad = getInfoDisponibilidad();
 
   if (!isEditing) {
     return (
@@ -100,23 +155,19 @@ export default function SelectorCapacidadMesa({
             setError(null);
           }}
           disabled={loading}
-          className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-casal dark:bg-gray-700 dark:text-white"
+          className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white disabled:opacity-50"
         >
-          {[...Array(12)].map((_, i) => {
-            const capacidad = i + 1;
-            const info = getCuotaInfo(capacidad);
-            return (
-              <option key={capacidad} value={capacidad}>
-                {capacidad} asientos {cuotas.length > 0 ? `(${info.disponibles} disp.)` : ""}
-              </option>
-            );
-          })}
+          {opciones.map(cap => (
+            <option key={cap} value={cap}>
+              {cap} asientos
+            </option>
+          ))}
         </select>
 
         <button
           onClick={handleCambiarCapacidad}
-          disabled={loading}
-          className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition disabled:opacity-50"
+          disabled={loading || selectedCapacidad === mesa.capacidad}
+          className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
           title="Confirmar"
         >
           <Check className="w-4 h-4" />
@@ -125,23 +176,32 @@ export default function SelectorCapacidadMesa({
         <button
           onClick={handleCancel}
           disabled={loading}
-          className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition disabled:opacity-50"
+          className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
           title="Cancelar"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      {error && (
-        <p className="text-xs text-red-600 dark:text-red-400">
-          {error}
-        </p>
+      {/* Información de disponibilidad */}
+      {infoDisponibilidad.mostrar && (
+        <div className={`text-xs ${infoDisponibilidad.color} font-medium`}>
+          {infoDisponibilidad.texto}
+        </div>
       )}
 
+      {/* Mensaje de error */}
+      {error && (
+        <div className="text-xs text-red-600 font-medium">
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* Loading indicator */}
       {loading && (
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Cambiando capacidad...
-        </p>
+        <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+          Guardando...
+        </div>
       )}
     </div>
   );

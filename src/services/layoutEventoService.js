@@ -167,12 +167,13 @@ class LayoutEventoService {
    * @param {Array} elementos - Array de elementos personalizados
    * @returns {Promise<Object>} Layout personalizado actualizado
    */
-  async personalizarLayout(eventoId, elementos) {
+  async personalizarLayout(eventoId, elementos, metadata = null) {
     try {
       if (EnvConfig.DEBUG_MODE) {
         console.log("🔄 Personalizando layout del evento:", {
           eventoId,
           totalElementos: elementos.length,
+          metadata: metadata
         });
       }
 
@@ -192,19 +193,15 @@ class LayoutEventoService {
         );
       }
 
-      // 🆕 Extraer distribucion_capacidades de los elementos si existe
-      let distribucion_capacidades = null;
-      if (elementos && elementos.length > 0) {
-        // Buscar si algún elemento tiene metadatos de distribución de capacidades
-        const metadataElement = elementos.find(el => el.distribucion_capacidades);
-        if (metadataElement) {
-          distribucion_capacidades = metadataElement.distribucion_capacidades;
-        }
-      }
-      
+      // 🆕 Preparar payload con metadata
       const payload = { elementos };
-      if (distribucion_capacidades) {
-        payload.distribucion_capacidades = distribucion_capacidades;
+      
+      // Si se proporciona metadata con distribucion_capacidades, incluirla
+      if (metadata?.distribucion_capacidades) {
+        payload.distribucion_capacidades = metadata.distribucion_capacidades;
+        if (EnvConfig.DEBUG_MODE) {
+          console.log("📦 Incluyendo distribucion_capacidades en payload:", metadata.distribucion_capacidades);
+        }
       }
       
       const response = await httpService.put(
