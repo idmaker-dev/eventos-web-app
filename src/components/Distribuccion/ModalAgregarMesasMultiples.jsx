@@ -7,7 +7,15 @@ export default function ModalAgregarMesasMultiples({ isOpen, onClose, onConfirm 
   const [tipoMesa, setTipoMesa] = useState("mesa"); // "mesa" (redonda) o "mesaRectangular"
   const [distribucion, setDistribucion] = useState("automatica"); // "automatica" o "manual"
   const [direccionNumeracion, setDireccionNumeracion] = useState("horizontal-derecha-abajo");
-  const [numeroVuelta, setNumeroVuelta] = useState(null); // Número de mesa donde se hace la vuelta 
+  const [numeroVuelta, setNumeroVuelta] = useState(null); // Número de mesa donde se hace la vuelta
+  
+  // 🆕 Estado para configuración simplificada de capacidades
+  const [usarConfiguracionCapacidades, setUsarConfiguracionCapacidades] = useState(false);
+  const [capacidadBase, setCapacidadBase] = useState(10);
+  const [permitirAumento, setPermitirAumento] = useState(false);
+  const [capacidadMaxima, setCapacidadMaxima] = useState(12);
+  const [mesasPuedenAumentar, setMesasPuedenAumentar] = useState(0);
+  
   // Opciones de dirección:
   // horizontal-derecha-abajo: Izq→Der, luego siguiente fila (como leer)
   // horizontal-izquierda-abajo: Der→Izq, luego siguiente fila
@@ -24,14 +32,39 @@ export default function ModalAgregarMesasMultiples({ isOpen, onClose, onConfirm 
   if (!isOpen) return null;
 
   const handleConfirmar = () => {
-    onConfirm({
+    // Validar límite de mesas que pueden aumentar
+    if (usarConfiguracionCapacidades && permitirAumento) {
+      if (mesasPuedenAumentar > cantidadMesas) {
+        alert(`El límite de mesas que pueden aumentar (${mesasPuedenAumentar}) no puede ser mayor al total de mesas (${cantidadMesas})`);
+        return;
+      }
+      if (capacidadMaxima < capacidadBase) {
+        alert(`La capacidad máxima (${capacidadMaxima}) no puede ser menor a la capacidad base (${capacidadBase})`);
+        return;
+      }
+    }
+
+    const config = {
       cantidad: cantidadMesas,
-      capacidad: capacidadPorMesa,
+      capacidad: capacidadBase, // Usar capacidad base
       tipo: tipoMesa,
       distribucion: distribucion,
       direccionNumeracion: direccionNumeracion,
       numeroVuelta: numeroVuelta,
-    });
+    };
+
+    // 🆕 Agregar configuración simplificada de capacidades si está habilitada
+    if (usarConfiguracionCapacidades) {
+      config.distribucion_capacidades = {
+        capacidad_base: capacidadBase,
+        permitir_aumento: permitirAumento,
+        capacidad_maxima: permitirAumento ? capacidadMaxima : capacidadBase,
+        mesas_pueden_aumentar: permitirAumento ? mesasPuedenAumentar : 0,
+        mesas_aumentadas: 0 // Inicialmente ninguna está aumentada
+      };
+    }
+
+    onConfirm(config);
     onClose();
   };
 
@@ -43,8 +76,24 @@ export default function ModalAgregarMesasMultiples({ isOpen, onClose, onConfirm 
     if (cantidadMesas > 1) setCantidadMesas(cantidadMesas - 1);
   };
 
+  const incrementarCapacidadBase = () => {
+    if (capacidadBase < 20) {
+      setCapacidadBase(capacidadBase + 1);
+      // Ajustar capacidad máxima si es necesaria
+      if (permitirAumento && capacidadMaxima < capacidadBase + 1) {
+        setCapacidadMaxima(capacidadBase + 1);
+      }
+    }
+  };
+
+  const decrementarCapacidadBase = () => {
+    if (capacidadBase > 6) {
+      setCapacidadBase(capacidadBase - 1);
+    }
+  };
+
   const incrementarCapacidad = () => {
-    if (capacidadPorMesa < 12) setCapacidadPorMesa(capacidadPorMesa + 1);
+    if (capacidadPorMesa < 20) setCapacidadPorMesa(capacidadPorMesa + 1);
   };
 
   const decrementarCapacidad = () => {
@@ -173,6 +222,149 @@ export default function ModalAgregarMesasMultiples({ isOpen, onClose, onConfirm 
             <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
               Rango: 6 a 12 asientos
             </p>
+          </div>
+
+          {/* 🆕 Distribución Avanzada de Capacidades */}
+          {/* Configuración de Capacidades */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="usarConfiguracion"
+                checked={usarConfiguracionCapacidades}
+                onChange={(e) => {
+                  setUsarConfiguracionCapacidades(e.target.checked);
+                  if (e.target.checked) {
+                    // Inicializar con valores sensatos
+                    setCapacidadBase(10);
+                    setPermitirAumento(false);
+                    setCapacidadMaxima(12);
+                    setMesasPuedenAumentar(0);
+                  }
+                }}
+                className="mt-1 w-4 h-4 text-casal border-gray-300 rounded focus:ring-casal"
+              />
+              <div className="flex-1">
+                <label
+                  htmlFor="usarConfiguracion"
+                  className="text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer"
+                >
+                  Configurar Capacidad de Mesas
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Define la capacidad base y si permites aumentar asientos en algunas mesas
+                </p>
+              </div>
+            </div>
+
+            {usarConfiguracionCapacidades && (
+              <div className="space-y-4 mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                {/* Capacidad Base */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Capacidad Base (asientos por mesa)
+                  </label>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      onClick={decrementarCapacidadBase}
+                      className="p-2 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-300 dark:border-gray-600"
+                      disabled={capacidadBase <= 6}
+                    >
+                      <Minus className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                    </button>
+                    <input
+                      type="number"
+                      min="6"
+                      max="20"
+                      value={capacidadBase}
+                      onChange={(e) => setCapacidadBase(Math.max(6, Math.min(20, parseInt(e.target.value) || 6)))}
+                      className="w-20 text-center text-lg font-bold px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-casal dark:bg-gray-700 dark:text-white"
+                    />
+                    <button
+                      onClick={incrementarCapacidadBase}
+                      className="p-2 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition border border-gray-300 dark:border-gray-600"
+                      disabled={capacidadBase >= 20}
+                    >
+                      <Plus className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 text-center mt-2">
+                    Todas las mesas empezarán con esta capacidad
+                  </p>
+                </div>
+
+                {/* Habilitar Aumentos */}
+                <div className="flex items-start gap-3 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <input
+                    type="checkbox"
+                    id="permitirAumento"
+                    checked={permitirAumento}
+                    onChange={(e) => setPermitirAumento(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-casal border-gray-300 rounded focus:ring-casal"
+                  />
+                  <div className="flex-1">
+                    <label
+                      htmlFor="permitirAumento"
+                      className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer"
+                    >
+                      Habilitar aumento de asientos
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Permite aumentar la capacidad en algunas mesas específicas
+                    </p>
+                  </div>
+                </div>
+
+                {/* Opciones de Aumento */}
+                {permitirAumento && (
+                  <div className="space-y-3 pl-4 border-l-2 border-casal">
+                    {/* Capacidad Máxima */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Capacidad Máxima (asientos por mesa)
+                      </label>
+                      <input
+                        type="number"
+                        min={capacidadBase}
+                        max="20"
+                        value={capacidadMaxima}
+                        onChange={(e) => setCapacidadMaxima(Math.max(capacidadBase, Math.min(20, parseInt(e.target.value) || capacidadBase)))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-casal dark:bg-gray-700 dark:text-white"
+                      />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Máximo de asientos que puede tener una mesa
+                      </p>
+                    </div>
+
+                    {/* Límite de Mesas */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Máximo de mesas que pueden aumentar
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={cantidadMesas}
+                        value={mesasPuedenAumentar}
+                        onChange={(e) => setMesasPuedenAumentar(Math.max(0, Math.min(cantidadMesas, parseInt(e.target.value) || 0)))}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-casal dark:bg-gray-700 dark:text-white"
+                      />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        De {cantidadMesas} mesas totales, ¿cuántas podrán aumentarse?
+                      </p>
+                    </div>
+
+                    {/* Resumen */}
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                      <p className="text-xs text-gray-700 dark:text-gray-300">
+                        <strong>Resumen:</strong> {cantidadMesas} mesas de {capacidadBase} asientos.
+                        {mesasPuedenAumentar > 0 && ` Hasta ${mesasPuedenAumentar} podrán aumentarse a ${capacidadMaxima} asientos.`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Tipo de Mesa */}

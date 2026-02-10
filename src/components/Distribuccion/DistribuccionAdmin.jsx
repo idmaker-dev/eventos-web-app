@@ -38,6 +38,7 @@ export default function DistribuccionAdmin({
   setLayoutFinal,
   invitados,
   setInvitados,
+  salon,
 }) {
   const [activeId, setActiveId] = useState(null);
   const [activeElement, setActiveElement] = useState(null);
@@ -522,7 +523,7 @@ export default function DistribuccionAdmin({
       mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
     const cantidadInvitados = datosInvitado.cantidad;
 
-    // Verificar si hay espacio suficiente
+    // ✅ CASO 1: Espacio suficiente para todos los boletos
     if (espacioDisponible >= cantidadInvitados) {
       setAllElements((prev) =>
         prev.map((element) =>
@@ -531,7 +532,6 @@ export default function DistribuccionAdmin({
             ? {
                 ...element,
                 invitados: element.invitados + cantidadInvitados,
-                // Actualizar contador de personas con necesidades especiales
                 invitadosEspeciales: datosInvitado.necesidadEspecial
                   ? (element.invitadosEspeciales || 0) + cantidadInvitados
                   : element.invitadosEspeciales || 0,
@@ -540,10 +540,19 @@ export default function DistribuccionAdmin({
         )
       );
 
+      // Actualizar invitado: reducir cantidad o eliminarlo si se asignaron todos
+      setInvitados((prev) =>
+        prev.map((inv) =>
+          inv.id === datosInvitado.id
+            ? { ...inv, cantidad: 0, asignado: true }
+            : inv
+        )
+      );
+
       // Mostrar confirmación específica para necesidades especiales
       if (datosInvitado.necesidadEspecial) {
         alert(
-          `✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}\n\n` +
+          `✅ ${datosInvitado.nombre} (${cantidadInvitados} personas) asignado a Mesa ${numeroMesa}\n\n` +
             `Silla especial reservada para persona con necesidades de accesibilidad.\n` +
             `La mesa cuenta con ${
               mesaSeleccionada.sillasEspeciales?.length || 0
@@ -551,16 +560,80 @@ export default function DistribuccionAdmin({
         );
       } else {
         alert(
-          `✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}`
+          `✅ ${datosInvitado.nombre} (${cantidadInvitados} personas) asignado a Mesa ${numeroMesa}`
         );
       }
-    } else {
-      alert(
-        `No hay suficiente espacio en la Mesa ${numeroMesa}\n\n` +
-          `Espacio disponible: ${espacioDisponible} asientos\n` +
-          `Personas a asignar: ${cantidadInvitados}`
-      );
+      return;
     }
+
+    // 🆕 CASO 2: Espacio insuficiente - ASIGNACIÓN PARCIAL
+    if (espacioDisponible > 0 && espacioDisponible < cantidadInvitados) {
+      const maxAsignable = espacioDisponible;
+      
+      const respuesta = window.confirm(
+        `⚠️ Espacio insuficiente en Mesa ${numeroMesa}\n\n` +
+        `${datosInvitado.nombre} tiene ${cantidadInvitados} boletos\n` +
+        `La mesa tiene ${espacioDisponible} espacios disponibles\n\n` +
+        `¿Deseas asignar ${maxAsignable} personas a esta mesa?\n` +
+        `(Quedarán ${cantidadInvitados - maxAsignable} boletos pendientes)`
+      );
+
+      if (!respuesta) return;
+
+      // Preguntar cuántos desea asignar (máximo = espacioDisponible)
+      const cantidadInput = prompt(
+        `¿Cuántas personas de ${datosInvitado.nombre} deseas asignar a Mesa ${numeroMesa}?\n\n` +
+        `Máximo permitido: ${maxAsignable}`,
+        maxAsignable.toString()
+      );
+
+      if (cantidadInput === null) return; // Usuario canceló
+
+      const cantidadAsignar = parseInt(cantidadInput, 10);
+
+      if (isNaN(cantidadAsignar) || cantidadAsignar < 1 || cantidadAsignar > maxAsignable) {
+        alert(`Cantidad inválida. Debe ser entre 1 y ${maxAsignable}`);
+        return;
+      }
+
+      // Asignar la cantidad especificada a la mesa
+      setAllElements((prev) =>
+        prev.map((element) =>
+          element.numero === numeroMesa &&
+          (element.type === "mesa" || element.type === "mesaRectangular")
+            ? {
+                ...element,
+                invitados: element.invitados + cantidadAsignar,
+                invitadosEspeciales: datosInvitado.necesidadEspecial
+                  ? (element.invitadosEspeciales || 0) + cantidadAsignar
+                  : element.invitadosEspeciales || 0,
+              }
+            : element
+        )
+      );
+
+      // Actualizar invitado: reducir cantidad
+      const nuevaCantidad = cantidadInvitados - cantidadAsignar;
+      setInvitados((prev) =>
+        prev.map((inv) =>
+          inv.id === datosInvitado.id
+            ? { ...inv, cantidad: nuevaCantidad, asignado: nuevaCantidad === 0 }
+            : inv
+        )
+      );
+
+      alert(
+        `✅ ${cantidadAsignar} personas de ${datosInvitado.nombre} asignadas a Mesa ${numeroMesa}\n\n` +
+        `Boletos restantes: ${nuevaCantidad}`
+      );
+      return;
+    }
+
+    // ❌ CASO 3: Mesa llena
+    alert(
+      `❌ La Mesa ${numeroMesa} está llena\n\n` +
+      `No hay espacios disponibles`
+    );
   };
 
   /* -----------------------
@@ -1171,7 +1244,7 @@ export default function DistribuccionAdmin({
           <div className="block md:flex md:justify-between lg:justify-between gap-10 px-4 pb-4">
             <div className="dark:text-gray-100 mb-4 md:mb-0">
               <h3 className="text-xl font-semibold">
-                Plano del Salón - "{"Jardín Romántico"}"
+                Plano del Salón{salon?.nombre ? ` - "${salon.nombre}"` : ''}
               </h3>
             </div>
             <div>

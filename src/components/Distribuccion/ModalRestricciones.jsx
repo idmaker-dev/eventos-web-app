@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, User, ChevronRight, ChevronLeft, CheckIcon } from "lucide-react";
 import { Button, Checkbox } from "@headlessui/react";
 
@@ -6,6 +6,8 @@ export default function ModalRestricciones({
   isOpen,
   onClose,
   invitado,
+  cantidadPersonasEspecifica, // ✅ Nueva prop: cantidad específica para esta mesa
+  personasPreconfiguradas, // ✅ Personas ya configuradas del modal de espera
   mesaNumero,
   restricciones,
   setRestricciones,
@@ -16,27 +18,93 @@ export default function ModalRestricciones({
   tipoMenu,
   setTipoMenu,
   onConfirm,
+  configuracionTurnos = null, // ✅ Configuración de turnos para obtener tipos_menu
 }) {
   const [personaActual, setPersonaActual] = useState(0);
   const [datosPersonas, setDatosPersonas] = useState([]);
-  const cantidadPersonas = invitado?.cantidad || 1;
+  // ✅ Usar cantidad específica si se proporciona, si no usar cantidad total del invitado
+  const cantidadPersonas = cantidadPersonasEspecifica ?? invitado?.cantidad ?? 1;
+  const carruselRef = useRef(null); // ✅ Ref para el carrusel
 
   // Inicializar datos para cada persona
   useEffect(() => {
     if (isOpen && cantidadPersonas > 0) {
-      const inicializarDatos = Array.from(
-        { length: cantidadPersonas },
-        (_, index) => ({
-          nombre: "",
-          tipoMenu: "normal",
-          restricciones: {},
-          otraRestriccion: "",
-        })
-      );
+      console.log('🔍 [ModalRestricciones] Inicializando:', { 
+        cantidadPersonas, 
+        tienePreconfiguradas: !!personasPreconfiguradas,
+        cantidadPreconfiguradas: personasPreconfiguradas?.length 
+      });
+      
+      let inicializarDatos;
+      
+      // ✅ Si hay personas pre-configuradas, usarlas
+      if (personasPreconfiguradas && personasPreconfiguradas.length > 0) {
+        inicializarDatos = personasPreconfiguradas.map((persona, index) => ({
+          nombre: persona.nombre || "",
+          tipoMenu: persona.tipoMenu || "normal",
+          restricciones: persona.restricciones || {},
+          otraRestriccion: persona.otraRestriccion || "",
+        }));
+        console.log('✅ Usando personas pre-configuradas:', inicializarDatos);
+      } else {
+        // Sin pre-configuración: inicializar vacío
+        inicializarDatos = Array.from(
+          { length: cantidadPersonas },
+          (_, index) => ({
+            nombre: "",
+            tipoMenu: "normal",
+            restricciones: {},
+            otraRestriccion: "",
+          })
+        );
+      }
+      
       setDatosPersonas(inicializarDatos);
       setPersonaActual(0);
     }
-  }, [isOpen, cantidadPersonas]);
+  }, [isOpen, cantidadPersonas, configuracionTurnos, personasPreconfiguradas]);
+
+  // ✅ Obtener tipos de menú desde configuración o usar defaults
+  // DEBE estar ANTES del early return para cumplir con las reglas de hooks
+  const opcionesMenu = React.useMemo(() => {
+    console.log('🍽️ [ModalRestricciones] Generando opcionesMenu:', configuracionTurnos?.tipos_menu);
+    
+    if (configuracionTurnos?.tipos_menu && configuracionTurnos.tipos_menu.length > 0) {
+      return configuracionTurnos.tipos_menu.map(tipo => {
+        // Manejar si tipo es string o objeto
+        const tipoId = typeof tipo === 'string' ? tipo : tipo.id || tipo.value;
+        const tipoLabel = typeof tipo === 'string' 
+          ? `Menú ${tipo.charAt(0).toUpperCase() + tipo.slice(1)}` 
+          : tipo.label || tipo.nombre || `Menú ${tipoId}`;
+        
+        return {
+          id: tipoId,
+          label: tipoLabel,
+          descripcion: `Opción de menú ${tipoId}`,
+        };
+      });
+    }
+    
+    // Fallback a opciones por defecto
+    return [
+      {
+        id: "normal",
+        label: "Menú Normal",
+        descripcion: "Menú completo estándar",
+      },
+      {
+        id: "infantil",
+        label: "Menú Infantil",
+        descripcion: "Adaptado para niños",
+      },
+      { id: "especial", label: "Menú Especial", descripcion: "Opciones gourmet" },
+      {
+        id: "celiaco",
+        label: "Menú Celíaco",
+        descripcion: "Sin gluten certificado",
+      },
+    ];
+  }, [configuracionTurnos]);
 
   if (!isOpen) return null;
 
@@ -80,21 +148,40 @@ export default function ModalRestricciones({
     );
   };
 
-  // Navegación entre personas
+  // Navegación entre personas con scroll automático
   const irSiguientePersona = () => {
     if (personaActual < cantidadPersonas - 1) {
-      setPersonaActual(personaActual + 1);
+      const nuevaPersona = personaActual + 1;
+      setPersonaActual(nuevaPersona);
+      scrollToPersona(nuevaPersona);
     }
   };
 
   const irPersonaAnterior = () => {
     if (personaActual > 0) {
-      setPersonaActual(personaActual - 1);
+      const nuevaPersona = personaActual - 1;
+      setPersonaActual(nuevaPersona);
+      scrollToPersona(nuevaPersona);
     }
   };
 
   const irAPersona = (index) => {
     setPersonaActual(index);
+    scrollToPersona(index);
+  };
+
+  // Scroll automático al botón de la persona seleccionada
+  const scrollToPersona = (index) => {
+    if (carruselRef.current) {
+      const buttons = carruselRef.current.children;
+      if (buttons[index]) {
+        buttons[index].scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center'
+        });
+      }
+    }
   };
 
   // Confirmar asignación (nombre ahora es opcional)
@@ -104,25 +191,6 @@ export default function ModalRestricciones({
       cantidadTotal: cantidadPersonas,
     });
   };
-
-  const opcionesMenu = [
-    {
-      id: "normal",
-      label: "Menú Normal",
-      descripcion: "Menú completo estándar",
-    },
-    {
-      id: "infantil",
-      label: "Menú Infantil",
-      descripcion: "Adaptado para niños",
-    },
-    { id: "especial", label: "Menú Especial", descripcion: "Opciones gourmet" },
-    {
-      id: "celiaco",
-      label: "Menú Celíaco",
-      descripcion: "Sin gluten certificado",
-    },
-  ];
 
   const personaActualData = datosPersonas[personaActual] || {};
 
@@ -174,13 +242,16 @@ export default function ModalRestricciones({
               </div>
             </div>
 
-            {/* Indicadores de personas */}
-            <div className="flex gap-2">
+            {/* Indicadores de personas con scroll horizontal */}
+            <div 
+              ref={carruselRef}
+              className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800"
+            >
               {Array.from({ length: cantidadPersonas }, (_, index) => (
                 <button
                   key={index}
                   onClick={() => irAPersona(index)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
                     index === personaActual
                       ? "bg-purple-500 text-white"
                       : datosPersonas[index]?.nombre?.trim()

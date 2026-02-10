@@ -24,7 +24,7 @@ const ModalConfiguracionTurnos = ({ isOpen, onClose, eventoId, configuracionExis
     fecha_inicio_seleccion: '',
     fecha_fin_seleccion: '',
     duracion_turno_minutos: 15,
-    tiempo_muerto_minutos: 5,
+    tiempo_muerto_minutos: 2,
     horarios_disponibles: [
       { dia_semana: 'lunes', hora_inicio: '09:00', hora_fin: '17:00' },
       { dia_semana: 'martes', hora_inicio: '09:00', hora_fin: '17:00' },
@@ -37,6 +37,7 @@ const ModalConfiguracionTurnos = ({ isOpen, onClose, eventoId, configuracionExis
     tipos_menu: [
       { id: 'normal', nombre: 'Normal', descripcion: 'Menú estándar' },
       { id: 'infantil', nombre: 'Infantil', descripcion: 'Menú para niños' },
+      { id: 'vegano', nombre: 'Vegano', descripcion: 'Menú vegano' },
       { id: 'especial', nombre: 'Especial', descripcion: 'Menú especial' }
     ],
     restricciones_dieteticas: ['Ninguna', 'Vegetariano', 'Vegano', 'Sin gluten', 'Sin lactosa'],
@@ -56,6 +57,7 @@ const ModalConfiguracionTurnos = ({ isOpen, onClose, eventoId, configuracionExis
   const tiposMenuDisponibles = [
     { id: 'normal', nombre: 'Normal', descripcion: 'Menú estándar' },
     { id: 'infantil', nombre: 'Infantil', descripcion: 'Menú para niños' },
+    { id: 'vegano', nombre: 'Vegano', descripcion: 'Menú vegano' },
     { id: 'especial', nombre: 'Especial', descripcion: 'Menú especial' },
     { id: 'celiaco', nombre: 'Celíaco', descripcion: 'Sin gluten' },
     { id: 'kosher', nombre: 'Kosher', descripcion: 'Certificado Kosher' }
@@ -232,7 +234,7 @@ const ModalConfiguracionTurnos = ({ isOpen, onClose, eventoId, configuracionExis
       return false;
     }
 
-    if (config.duracion_turno_minutos < 5 || config.duracion_turno_minutos > 60) {
+    if (config.duracion_turno_minutos < 2 || config.duracion_turno_minutos > 60) {
       showError('La duración del turno debe estar entre 5 y 60 minutos');
       return false;
     }
@@ -365,9 +367,9 @@ const ModalConfiguracionTurnos = ({ isOpen, onClose, eventoId, configuracionExis
                   </label>
                   <Input
                     type="number"
-                    min="5"
+                    min="2"
                     max="60"
-                    step="5"
+                    step="1"
                     value={config.duracion_turno_minutos}
                     onChange={(e) => handleChange('duracion_turno_minutos', parseInt(e.target.value))}
                     className={inputClasses}
@@ -592,12 +594,12 @@ const ModalConfiguracionTurnos = ({ isOpen, onClose, eventoId, configuracionExis
             {/* Generar Turnos */}
             {!configuracionExistente && (
               <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label className="flex items-start gap-3 cursor-pointer">
                   <Checkbox
                     checked={config.generar_turnos_inmediatamente}
                     onChange={(checked) => handleChange('generar_turnos_inmediatamente', checked)}
                     className={clsx(
-                      "group size-5 rounded border-2 bg-white dark:bg-gray-700",
+                      "group size-5 rounded border-2 bg-white dark:bg-gray-700 flex-shrink-0 mt-0.5",
                       "data-[checked]:bg-[#246370] data-[checked]:border-[#246370]"
                     )}
                   >
@@ -605,9 +607,19 @@ const ModalConfiguracionTurnos = ({ isOpen, onClose, eventoId, configuracionExis
                       <path d="M3 8L6 11L11 3.5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </Checkbox>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Generar turnos automáticamente al guardar
-                  </span>
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                      Generar turnos automáticamente al guardar
+                    </span>
+                    {config.generar_turnos_inmediatamente && (
+                      <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-md">
+                        <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                          <strong>⚠️ Advertencia:</strong> Los turnos se generarán automáticamente siguiendo la <strong>regla de prioridad por fecha de liquidación</strong>. 
+                          El invitado que pagó primero obtendrá el primer turno. Si necesitas control manual del orden, desmarca esta opción.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </label>
               </div>
             )}
