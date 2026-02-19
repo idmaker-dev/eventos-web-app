@@ -46,16 +46,16 @@ export const useSignalRUser = (onMesaCambiada, invitadoId = null) => {
 
       // Validar que el invitado coincida (si se proporcionó invitadoId)
       if (invitadoIdRef.current) {
-        if (data.invitadoId && data.invitadoId !== invitadoIdRef.current) {
-          console.log(
-            "⚠️ [useSignalRUser] Invitado diferente, ignorando notificación",
-            "Esperado:",
-            invitadoIdRef.current,
-            "Recibido:",
-            data.invitadoId
-          );
-          return;
-        }
+        // if (data.invitadoId && data.invitadoId !== invitadoIdRef.current) {
+        //   console.log(
+        //     "⚠️ [useSignalRUser] Invitado diferente, ignorando notificación",
+        //     "Esperado:",
+        //     invitadoIdRef.current,
+        //     "Recibido:",
+        //     data.invitadoId
+        //   );
+        //   return;
+        // }
         console.log("✅ [useSignalRUser] InvitadoId validado correctamente");
       } else {
         console.log(
@@ -94,16 +94,16 @@ export const useSignalRUser = (onMesaCambiada, invitadoId = null) => {
 
       // Validar que el invitado coincida (si se proporcionó invitadoId)
       if (invitadoIdRef.current) {
-        if (data.invitadoId && data.invitadoId !== invitadoIdRef.current) {
-          console.log(
-            "⚠️ [useSignalRUser] Invitado diferente, ignorando notificación",
-            "Esperado:",
-            invitadoIdRef.current,
-            "Recibido:",
-            data.invitadoId
-          );
-          return;
-        }
+        // if (data.invitadoId && data.invitadoId !== invitadoIdRef.current) {
+        //   console.log(
+        //     "⚠️ [useSignalRUser] Invitado diferente, ignorando notificación",
+        //     "Esperado:",
+        //     invitadoIdRef.current,
+        //     "Recibido:",
+        //     data.invitadoId
+        //   );
+        //   return;
+        // }
         console.log("✅ [useSignalRUser] InvitadoId validado correctamente");
       } else {
         console.log(

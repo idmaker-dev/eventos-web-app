@@ -12,6 +12,8 @@ import {
   CheckCircle,
   Clock2,
   X,
+  Download,
+  Ticket,
 } from "lucide-react";
 import { Button } from "@headlessui/react";
 import { Tooltip } from "../ui/Tooltip.jsx";
@@ -30,6 +32,10 @@ import ConfirmDialog from "../ui/ConfirmDialog";
 import PromptDialog from "../ui/PromptDialog";
 import eventService from "../../services/eventService";
 import turnosService from "../../services/turnosService";
+import asignacionService from "../../services/asignacionService";
+import ConfiguradorBoletosCortesia from "./ConfiguradorBoletosCortesia";
+import AsignadorBoletosCortesia from "./AsignadorBoletosCortesia";
+import { useBoletosCortesia } from "../../hooks/useBoletosCortesia";
 
 export default function DistribuccionMonitor({
   allElements,
@@ -64,6 +70,7 @@ export default function DistribuccionMonitor({
   const [invitadosCompletados, setInvitadosCompletados] = useState([]);
   const [estadisticas, setEstadisticas] = useState({});
   const [cargandoDatos, setCargandoDatos] = useState(false);
+  const [descargandoExcel, setDescargandoExcel] = useState(false);
   
   // 🆕 Estado para configuración de capacidades (sistema simplificado)
   const [configuracionCapacidad, setConfiguracionCapacidad] = useState({
@@ -181,8 +188,12 @@ export default function DistribuccionMonitor({
   const [motivoBloqueo, setMotivoBloqueo] = useState("");
   const [procesandoBloqueo, setProcesandoBloqueo] = useState(false);
   
-  // Estado para panel de capacidades desplegable
+  // Modal de asignación de boletos de cortesía
+  const [showAsignadorCortesia, setShowAsignadorCortesia] = useState(false);
+  
+  // Estado para paneles desplegables
   const [panelCapacidadesAbierto, setPanelCapacidadesAbierto] = useState(false);
+  const [panelBoletosAbierto, setPanelBoletosAbierto] = useState(false);
   
   // 🆕 Estado para asignaciones parciales acumuladas
   const [asignacionesParciales, setAsignacionesParciales] = useState([]);
@@ -194,6 +205,12 @@ export default function DistribuccionMonitor({
   const { showPrompt, dialogState: promptState, handleClose: handlePromptClose, handleSubmit: handlePromptSubmit } = usePrompt();
 
   const containerRef = useRef(null);
+
+  // Hook para obtener estado de boletos de cortesía
+  const { estado: estadoBoletos, fetchEstado: fetchEstadoBoletos } = useBoletosCortesia(eventoActual?.id);
+  
+  // Estado para configuración de turnos (tipos de menús, restricciones, etc.)
+  const [configuracionTurnos, setConfiguracionTurnos] = useState(null);
   const canvasRef = useRef(null);
   const isPanningRef = useRef(false);
   const panLastRef = useRef({ x: 0, y: 0 });
@@ -276,7 +293,18 @@ export default function DistribuccionMonitor({
         setAllElements(elementosActualizados);
       }
 
-      // 2. Cargar estado de invitados con turnos
+      // 2. Cargar configuración de turnos (menús, restricciones)
+      try {
+        const resultadoConfig = await turnosService.obtenerConfiguracion(eventoActual.id);
+        if (resultadoConfig.success && resultadoConfig.data) {
+          setConfiguracionTurnos(resultadoConfig.data);
+          console.log('✅ [Monitor] Configuración de turnos cargada:', resultadoConfig.data);
+        }
+      } catch (error) {
+        console.warn('⚠️ [Monitor] No se pudo cargar configuración de turnos:', error);
+      }
+
+      // 3. Cargar estado de invitados con turnos
       const resultadoEstado = await eventService.getEstadoInvitados(eventoActual.id);
       if (resultadoEstado?.success) {
         // Invitados pendientes: PENDIENTES + EN_CURSO + NO_PRESENTADOS
@@ -297,13 +325,21 @@ export default function DistribuccionMonitor({
         setEstadisticas(resultadoEstado.estadisticas || {});
       }
 
+      // 4. Actualizar estado de boletos de cortesía
+      try {
+        await fetchEstadoBoletos();
+        console.log('✅ [Monitor] Estado de boletos de cortesía actualizado');
+      } catch (error) {
+        console.warn('⚠️ [Monitor] No se pudo actualizar estado de boletos:', error);
+      }
+
       console.log('✅ [Monitor] Actualización completa');
     } catch (error) {
       console.error('❌ [Monitor] Error al actualizar datos:', error);
     } finally {
       setCargandoDatos(false);
     }
-  }, [eventoActual?.id, cargarDisponibilidad, setAllElements, cargandoDatos]);
+  }, [eventoActual?.id, cargarDisponibilidad, setAllElements, cargandoDatos, fetchEstadoBoletos]);
 
   // 📡 Callback para cuando se selecciona una mesa o se bloquea (SignalR)
   const handleMesaSeleccionada = useCallback(async (data) => {
@@ -370,6 +406,13 @@ export default function DistribuccionMonitor({
     actualizarDatosMonitor();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Cargar estado de boletos de cortesía al montar o cambiar evento
+  useEffect(() => {
+    if (eventoActual?.id) {
+      fetchEstadoBoletos();
+    }
+  }, [eventoActual?.id, fetchEstadoBoletos]);
 
   // Función para asignar invitados a mesa
   const asignarInvitadosMesa = async (numeroMesa, datosInvitado) => {
@@ -551,10 +594,48 @@ export default function DistribuccionMonitor({
     nombre,
     restricciones: res,
     otra: otraText,
-    tipoMenu
+    tipoMenu,
+    necesidadesEspeciales,
+    datosPersonas,
+    personas, // 🆕 El modal envía "personas" no "datosPersonas"
+    cantidadTotal
   }) => {
+    console.log('🔍 [Monitor] handleConfirmRestricciones recibió:', {
+      nombre, res, otraText, tipoMenu, necesidadesEspeciales, 
+      datosPersonas, personas, cantidadTotal
+    });
+    
     if (!pendingAsignacion) return;
     const { invitado, numeroMesa, cantidadAsignar } = pendingAsignacion;
+
+    // ✅ Manejar nuevo formato del modal (array de personas)
+    const personasArray = personas || datosPersonas;
+    let nombreFinal, restriccionesFinal, otraFinal, tipoMenuFinal, necesidadesEspecialesFinal;
+    
+    if (personasArray && personasArray.length > 0) {
+      // Usar datos de la primera persona cuando hay múltiples
+      const primeraPersona = personasArray[0];
+      nombreFinal = primeraPersona.nombre || invitado.nombre;
+      restriccionesFinal = primeraPersona.restricciones || {};
+      otraFinal = primeraPersona.otraRestriccion || "";
+      tipoMenuFinal = primeraPersona.tipoMenu || "normal";
+      necesidadesEspecialesFinal = primeraPersona.necesidadesEspeciales || { requiereAccesibilidad: false, comentarios: "" };
+      
+      console.log('✅ [Monitor] Usando datos de personasArray[0]:', {
+        nombreFinal, restriccionesFinal, otraFinal, tipoMenuFinal, necesidadesEspecialesFinal
+      });
+    } else {
+      // Fallback a propiedades individuales (formato antiguo)
+      nombreFinal = nombre || invitado.nombre;
+      restriccionesFinal = res || {};
+      otraFinal = otraText || "";
+      tipoMenuFinal = tipoMenu || "normal";
+      necesidadesEspecialesFinal = necesidadesEspeciales || { requiereAccesibilidad: false, comentarios: "" };
+      
+      console.log('⚠️ [Monitor] Usando formato antiguo (props individuales):', {
+        nombreFinal, restriccionesFinal, otraFinal, tipoMenuFinal, necesidadesEspecialesFinal
+      });
+    }
 
     const mesaSeleccionada = allElements.find(
       (el) =>
@@ -587,10 +668,21 @@ export default function DistribuccionMonitor({
           invitado,
           numeroMesa,
           cantidadAsignar: cantidad,
-          nombre: nombre || invitado.nombre,
-          restricciones: res,
-          otra: otraText,
-          tipoMenu: tipoMenu || "normal"
+          nombre: nombreFinal,
+          restricciones: restriccionesFinal,
+          otra: otraFinal,
+          tipoMenu: tipoMenuFinal,
+          necesidadesEspeciales: necesidadesEspecialesFinal,
+          personasDetalladas: personasArray ? personasArray.map(p => ({
+            nombre: p.nombre,
+            tipoMenu: p.tipoMenu,
+            restricciones: { ...p.restricciones },
+            otraRestriccion: p.otraRestriccion || "",  // 🆕 Incluir explícitamente
+            necesidadesEspeciales: p.necesidadesEspeciales ? {
+              requiereAccesibilidad: p.necesidadesEspeciales.requiereAccesibilidad,
+              comentarios: p.necesidadesEspeciales.comentarios
+            } : { requiereAccesibilidad: false, comentarios: "" }
+          })) : [],  // 🆕 Deep clone
         }
       ]);
       
@@ -629,12 +721,23 @@ export default function DistribuccionMonitor({
                 ...(el.assignedGuests || []),
                 {
                   id: invitado.id,
-                  nombre: nombre || invitado.nombre,
+                  nombre: nombreFinal,
                   cantidad,
-                  restricciones: res,
-                  otra: otraText,
-                  tipoMenu: tipoMenu || "normal",
+                  restricciones: restriccionesFinal,
+                  otra: otraFinal,
+                  tipoMenu: tipoMenuFinal,
                   necesidadEspecial: invitado.necesidadEspecial || false,
+                  necesidadesEspeciales: necesidadesEspecialesFinal,
+                  personasDetalladas: personasArray ? personasArray.map(p => ({
+                    nombre: p.nombre,
+                    tipoMenu: p.tipoMenu,
+                    restricciones: { ...p.restricciones },
+                    otraRestriccion: p.otraRestriccion || "",  // 🆕 Incluir explícitamente
+                    necesidadesEspeciales: p.necesidadesEspeciales ? {
+                      requiereAccesibilidad: p.necesidadesEspeciales.requiereAccesibilidad,
+                      comentarios: p.necesidadesEspeciales.comentarios
+                    } : { requiereAccesibilidad: false, comentarios: "" }
+                  })) : [],  // 🆕 Guardar array completo con deep clone
                 },
               ],
             }
@@ -665,7 +768,7 @@ export default function DistribuccionMonitor({
       );
 
       mostrarNotificacion(
-        `✅ ${cantidad} personas de ${nombre || invitado.nombre} asignadas a Mesa ${numeroMesa}\n\n` +
+        `✅ ${cantidad} personas de ${nombreFinal} asignadas a Mesa ${numeroMesa}\n\n` +
         `⚠️ Quedan ${cantidadRestante} personas por asignar\n\n` +
         `⚠️ Recuerda hacer clic en "Guardar asignaciones" para guardar los cambios`,
         "success"
@@ -690,12 +793,13 @@ export default function DistribuccionMonitor({
     setPendingAsignacion(null);
     setPendingNombre("");
   };
+  
   // 🆕 Confirmar asignaciones parciales acumuladas
   const confirmarAsignacionesParciales = () => {
     if (asignacionesParciales.length === 0) return;
     
     // Aplicar todas las asignaciones acumuladas
-    asignacionesParciales.forEach(({ invitado, numeroMesa, cantidadAsignar, nombre, restricciones, otra, tipoMenu }) => {
+    asignacionesParciales.forEach(({ invitado, numeroMesa, cantidadAsignar, nombre, restricciones, otra, tipoMenu, necesidadesEspeciales, personasDetalladas }) => {
       setAllElements((prev) =>
         prev.map((el) =>
           el.numero === numeroMesa &&
@@ -716,6 +820,17 @@ export default function DistribuccionMonitor({
                     otra,
                     tipoMenu,
                     necesidadEspecial: invitado.necesidadEspecial || false,
+                    necesidadesEspeciales: necesidadesEspeciales || { requiereAccesibilidad: false, comentarios: "" },
+                    personasDetalladas: personasDetalladas ? personasDetalladas.map(p => ({
+                      nombre: p.nombre,
+                      tipoMenu: p.tipoMenu,
+                      restricciones: { ...p.restricciones },
+                      otraRestriccion: p.otraRestriccion || "",  // 🆕 Incluir explícitamente
+                      necesidadesEspeciales: p.necesidadesEspeciales ? {
+                        requiereAccesibilidad: p.necesidadesEspeciales.requiereAccesibilidad,
+                        comentarios: p.necesidadesEspeciales.comentarios
+                      } : { requiereAccesibilidad: false, comentarios: "" }
+                    })) : [],  // 🆕 Deep clone al aplicar
                   },
                 ],
               }
@@ -798,6 +913,47 @@ export default function DistribuccionMonitor({
     }
   };
   
+  // 🆕 Descargar Excel de selecciones
+  const descargarExcelSelecciones = async () => {
+    if (!eventoActual?.id) {
+      mostrarNotificacion("No hay evento activo", "error");
+      return;
+    }
+
+    setDescargandoExcel(true);
+    
+    try {
+      const blob = await asignacionService.descargarExcelSelecciones(eventoActual.id);
+      
+      // Crear URL temporal para el blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Crear elemento <a> temporal para descargar
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Selecciones_${eventoActual.nombre_evento?.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      mostrarNotificacion(
+        "✅ Excel descargado exitosamente",
+        "success"
+      );
+    } catch (error) {
+      console.error("Error al descargar Excel:", error);
+      mostrarNotificacion(
+        error.message || "Error al descargar el archivo Excel",
+        "error"
+      );
+    } finally {
+      setDescargandoExcel(false);
+    }
+  };
+
   // Guardar asignaciones en el backend
   const guardarAsignaciones = async () => {
     if (!eventoActual?.id) {
@@ -818,6 +974,7 @@ export default function DistribuccionMonitor({
           elemento.assignedGuests.length > 0
         ) {
           elemento.assignedGuests.forEach((guest) => {
+            // Flujo normal para invitados regulares
             if (!asignacionesPorInvitado.has(guest.id)) {
               asignacionesPorInvitado.set(guest.id, {
                 invitadoId: guest.id,
@@ -828,13 +985,35 @@ export default function DistribuccionMonitor({
 
             const invitadoData = asignacionesPorInvitado.get(guest.id);
             
-            // Preparar array de personas para este invitado
-            const personasArray = Array.from({ length: guest.cantidad }, (_, index) => ({
-              nombre: index === 0 ? guest.nombre : `${guest.nombre} - Acompañante ${index + 1}`,
-              tipoMenu: guest.tipoMenu || "normal",
-              restricciones: guest.restricciones || {},
-              otraRestriccion: guest.otra || ""
-            }));
+            // ✅ Usar personasDetalladas si existen (datos del modal), sino crear genéricas
+            let personasArray;
+            if (guest.personasDetalladas && guest.personasDetalladas.length > 0) {
+              // Usar personas detalladas configuradas en el modal
+              console.log(`✅ [Monitor] Usando personasDetalladas (${guest.personasDetalladas.length} personas) para invitado ${guest.nombre}`);
+              personasArray = guest.personasDetalladas.map(persona => ({
+                nombre: persona.nombre || "",
+                tipoMenu: persona.tipoMenu || "normal",
+                restricciones: { ...(persona.restricciones || {}) },
+                otraRestriccion: persona.otraRestriccion || "",
+                necesidadesEspeciales: persona.necesidadesEspeciales ? {
+                  requiereAccesibilidad: persona.necesidadesEspeciales.requiereAccesibilidad,
+                  comentarios: persona.necesidadesEspeciales.comentarios
+                } : { requiereAccesibilidad: false, comentarios: "" }
+              }));
+            } else {
+              // Fallback a personas genéricas (formato antiguo)
+              console.log(`⚠️ [Monitor] No hay personasDetalladas, creando ${guest.cantidad} personas genéricas para invitado ${guest.nombre}`);
+              personasArray = Array.from({ length: guest.cantidad }, (_, index) => ({
+                nombre: index === 0 ? guest.nombre : `${guest.nombre} - Acompañante ${index + 1}`,
+                tipoMenu: guest.tipoMenu || "normal",
+                restricciones: { ...(guest.restricciones || {}) },
+                otraRestriccion: guest.otra || "",
+                necesidadesEspeciales: guest.necesidadesEspeciales ? {
+                  requiereAccesibilidad: guest.necesidadesEspeciales.requiereAccesibilidad,
+                  comentarios: guest.necesidadesEspeciales.comentarios
+                } : { requiereAccesibilidad: false, comentarios: "" }
+              }));
+            }
 
             invitadoData.mesas.push({
               mesa_id: elemento.id || `mesa-${elemento.numero}`,
@@ -853,17 +1032,21 @@ export default function DistribuccionMonitor({
         return;
       }
 
-      console.log(`💾 Guardando ${asignacionesPorInvitado.size} asignaciones en el backend...`);
+      console.log(`💾 Guardando asignaciones en el backend...`);
+      console.log(`📊 Total de invitados: ${asignacionesPorInvitado.size}`);
 
-      // Guardar cada asignación
+      // Guardar cada asignación de invitados regulares
       let exitosas = 0;
       let fallidas = 0;
 
       for (const [invitadoId, asignacion] of asignacionesPorInvitado) {
         try {
+          // ✅ Concatenar todas las personas de todas las mesas para el array raíz
+          const todasLasPersonas = asignacion.mesas.flatMap(mesa => mesa.personas || []);
+          
           const datosSeleccion = {
             mesas_seleccionadas: asignacion.mesas,
-            personas: asignacion.mesas[0]?.personas || []
+            personas: todasLasPersonas
           };
 
           const resultado = await turnosService.guardarSeleccionAdmin(
@@ -884,6 +1067,8 @@ export default function DistribuccionMonitor({
           console.error(`❌ Error al guardar asignación para ${asignacion.nombreInvitado}:`, error);
         }
       }
+
+
 
       // Guardar también en localStorage (para compatibilidad con sistema legacy)
       const asignacionesMonitor = {
@@ -1314,6 +1499,7 @@ export default function DistribuccionMonitor({
             onDoubleClick={() => openMesaModal(element.numero)}
             readOnly={false}
           />
+          
           {/* Overlay para mesas bloqueadas */}
           {estaBloqueada && (
             <div 
@@ -1490,6 +1676,19 @@ export default function DistribuccionMonitor({
             >
               <Save className={`w-4 h-4 ${guardando ? "animate-pulse" : ""}`} />
               {guardando ? "Guardando..." : "Guardar Asignaciones"}
+            </Button>
+            <Button
+              onClick={descargarExcelSelecciones}
+              disabled={descargandoExcel}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                descargandoExcel
+                  ? "bg-blue-400 text-white cursor-not-allowed"
+                  : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg"
+              }`}
+              title="Descargar reporte Excel con todas las selecciones de mesas"
+            >
+              <Download className={`w-4 h-4 ${descargandoExcel ? "animate-bounce" : ""}`} />
+              {descargandoExcel ? "Descargando..." : "Descargar Excel"}
             </Button>
           </div>
         </div>
@@ -1976,6 +2175,57 @@ export default function DistribuccionMonitor({
                   )}
                 </div>
               </div>
+
+              {/* Panel de Boletos de Cortesía (Desplegable) */}
+              <div className="mt-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                  {/* Header clickeable */}
+                  <button
+                    onClick={() => setPanelBoletosAbierto(!panelBoletosAbierto)}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Ticket className="w-4 h-4 text-casal" />
+                      <span className="font-semibold text-gray-700 dark:text-gray-200">
+                        Boletos de Cortesía
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        ({estadoBoletos.boletos_disponibles || 0} disponibles)
+                      </span>
+                    </div>
+                    {panelBoletosAbierto ? (
+                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    )}
+                  </button>
+                  
+                  {/* Contenido desplegable */}
+                  {panelBoletosAbierto && (
+                    <div className="border-t border-gray-200 dark:border-gray-700">
+                      <div className="p-4 space-y-3">
+                        {/* Configurador */}
+                        <ConfiguradorBoletosCortesia
+                          eventoId={eventoActual?.id}
+                          onConfigured={() => {
+                            cargarDisponibilidad();
+                            fetchEstadoBoletos();
+                          }}
+                        />
+                        
+                        {/* Botón para asignar */}
+                        <button
+                          onClick={() => setShowAsignadorCortesia(true)}
+                          className="w-full py-2.5 px-4 bg-casal hover:bg-casal/90 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center space-x-2 shadow-sm"
+                        >
+                          <Ticket className="w-4 h-4" />
+                          <span>Asignar Boletos de Cortesía</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1998,6 +2248,7 @@ export default function DistribuccionMonitor({
           nombre={pendingNombre}
           setNombre={setPendingNombre}
           onConfirm={handleConfirmRestricciones}
+          configuracionTurnos={configuracionTurnos}
         />
       )}
 
@@ -2312,6 +2563,22 @@ export default function DistribuccionMonitor({
         confirmText={promptState.confirmText}
         cancelText={promptState.cancelText}
         validation={promptState.validation}
+      />
+
+      {/* Modal de asignación de boletos de cortesía */}
+      <AsignadorBoletosCortesia
+        isOpen={showAsignadorCortesia}
+        onClose={() => setShowAsignadorCortesia(false)}
+        eventoId={eventoActual?.id}
+        mesas={allElements.filter(el => el.type === "mesa" || el.type === "mesaRectangular")}
+        configuracionTurnos={configuracionTurnos}
+        onAsignacionExitosa={() => {
+          // Recargar disponibilidad y datos después de asignar
+          cargarDisponibilidad();
+          actualizarDatosMonitor();
+          fetchEstadoBoletos(); // Actualizar contador de boletos
+          mostrarNotificacion("Boletos de cortesía asignados exitosamente", "success");
+        }}
       />
     </div>
   );

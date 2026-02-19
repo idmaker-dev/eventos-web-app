@@ -473,7 +473,7 @@ export default function ModalInicioAsignacion({
                             </p>
                           )}
                           <div className="flex gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                            <span>📊 {config.total_mesas || 0} mesas</span>
+                            <span>📊 {config.totalMesas || 0} mesas</span>
                             <span>📐 {config.elementos?.length || 0} elementos</span>
                           </div>
                         </div>

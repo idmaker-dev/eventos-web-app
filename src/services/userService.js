@@ -55,7 +55,7 @@ class UserService {
 
   async actualizarUsuario(id, data) {
     try {
-      const response = await httpService.put(`/usuarios/${id}`, data);
+      const response = await httpService.put(`/usuarios/actualizar/${id}`, data);
       return {
         success: response?.success !== false,
         data: response?.data || response,

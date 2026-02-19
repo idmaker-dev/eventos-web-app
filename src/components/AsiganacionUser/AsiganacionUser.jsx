@@ -90,29 +90,32 @@ export default function AsignacionUser({
   const [mesasSeleccionadas, setMesasSeleccionadas] = useState([]);
   // Array de objetos: [{ numeroMesa, cantidadPersonas, personas: [] }]
 
+  // 🎯 Estado para preconfiguración
+  const [preconfiguracion, setPreconfiguracion] = useState(null);
+  const [mostrandoPreconfiguracion, setMostrandoPreconfiguracion] = useState(false);
+
   // 🎨 Hooks para diálogos personalizados (reemplazan alert/confirm/prompt)
   const { showConfirm, dialogState: confirmState, handleClose: handleConfirmClose } = useConfirm();
   const { showPrompt, dialogState: promptState, handleClose: handlePromptClose, handleSubmit: handlePromptSubmit } = usePrompt();
 
-  // Obtener disponibilidad de mesas (incluye layout completo + disponibilidad)
-  const {
-    elementos: elementosConDisponibilidad,
-    eventoInfo,
-    isLoading: loadingDisponibilidad, // eslint-disable-line no-unused-vars
-    refrescar: refrescarDisponibilidad,
-  } = useDisponibilidadMesas(eventoId, true);
+  // 🔄 Cargar preconfiguración al inicio
+  useEffect(() => {
+    const cargarPreconfiguracion = () => {
+      try {
+        const configGuardada = localStorage.getItem(`config-asientos-${usuarioActual.id}`);
+        if (configGuardada) {
+          const config = JSON.parse(configGuardada);
+          console.log('✅ Preconfiguración cargada:', config);
+          setPreconfiguracion(config);
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar preconfiguración:', error);
+      }
+    };
 
-  // Layout del salón - SIEMPRE desde el endpoint de disponibilidad
-  const allElements = elementosConDisponibilidad || [];
-  
-  // 🆕 Configuración de capacidades del evento
-  const configuracionCapacidad = eventoInfo?.distribucion_capacidades || {
-    capacidad_base: 10,
-    permitir_aumento: false,
-    capacidad_maxima: 12,
-    mesas_pueden_aumentar: 0,
-    mesas_aumentadas: 0
-  };
+    cargarPreconfiguracion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuarioActual.id]);
 
   /* -----------------------
      Util / Notificaciones
@@ -137,6 +140,43 @@ export default function AsignacionUser({
       }
     }, 5000);
   }, []);
+
+  // 📝 Función para eliminar preconfiguración
+  const eliminarPreconfiguracion = useCallback(async () => {
+    const confirmar = await showConfirm({
+      title: '¿Eliminar preconfiguración?',
+      message: 'Se eliminará la información preconfigurada. Tendrás que volver a configurar los datos de cada persona.\n\n¿Deseas continuar?',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      type: 'warning'
+    });
+
+    if (confirmar) {
+      localStorage.removeItem(`config-asientos-${usuarioActual.id}`);
+      setPreconfiguracion(null);
+      mostrarNotificacion('Preconfiguración eliminada correctamente', 'success');
+    }
+  }, [usuarioActual.id, showConfirm, mostrarNotificacion]);
+
+  // Obtener disponibilidad de mesas (incluye layout completo + disponibilidad)
+  const {
+    elementos: elementosConDisponibilidad,
+    eventoInfo,
+    isLoading: loadingDisponibilidad, // eslint-disable-line no-unused-vars
+    refrescar: refrescarDisponibilidad,
+  } = useDisponibilidadMesas(eventoId, true);
+
+  // Layout del salón - SIEMPRE desde el endpoint de disponibilidad
+  const allElements = elementosConDisponibilidad || [];
+  
+  // 🆕 Configuración de capacidades del evento
+  const configuracionCapacidad = eventoInfo?.distribucion_capacidades || {
+    capacidad_base: 10,
+    permitir_aumento: false,
+    capacidad_maxima: 12,
+    mesas_pueden_aumentar: 0,
+    mesas_aumentadas: 0
+  };
 
   // 📡 Callback para notificaciones de SignalR (cambios en mesas)
   const handleMesaCambiada = useCallback(
@@ -835,7 +875,7 @@ export default function AsignacionUser({
     }
 
     // 🆕 Verificar si hay configuración previa del modal de espera
-    const configuracionPrevia = seleccionGuardada?.configuracion;
+    const configuracionPrevia = preconfiguracion || seleccionGuardada?.configuracion;
     let personasPreconfiguradas = null;
     
     if (configuracionPrevia?.personas && configuracionPrevia.personas.length > 0) {
@@ -844,10 +884,23 @@ export default function AsignacionUser({
       const indiceInicio = personasYaAsignadas;
       const indiceFin = indiceInicio + cantidadNum;
       
-      // Extraer las personas correspondientes para esta mesa
-      personasPreconfiguradas = configuracionPrevia.personas.slice(indiceInicio, indiceFin);
+      // ✅ COPIA PROFUNDA para evitar referencias compartidas entre mesas
+      // slice() solo copia referencias, necesitamos clonar cada objeto persona
+      personasPreconfiguradas = configuracionPrevia.personas
+        .slice(indiceInicio, indiceFin)
+        .map(persona => ({
+          ...persona,
+          restricciones: { ...persona.restricciones },
+          necesidadesEspeciales: persona.necesidadesEspeciales ? {
+            requiereAccesibilidad: persona.necesidadesEspeciales.requiereAccesibilidad,
+            comentarios: persona.necesidadesEspeciales.comentarios
+          } : {
+            requiereAccesibilidad: false,
+            comentarios: ""
+          }
+        }));
       
-      console.log('✅ Usando configuración previa:', {
+      console.log('✅ Usando configuración previa (copia profunda):', {
         totalPreconfiguradas: configuracionPrevia.personas.length,
         personasYaAsignadas,
         indiceInicio,
@@ -954,9 +1007,30 @@ export default function AsignacionUser({
         // Preparar datos para el formato de turnos con MÚLTIPLES MESAS
         const datosSeleccion = {
           mesas_seleccionadas: mesasSeleccionadas.map(mesa => ({
-            mesa_id: mesa.numeroMesa,
-            numero_mesa: mesa.numeroMesa,
+            mesa_id: `mesa-${mesa.numeroMesa}`,
+            mesa_numero: mesa.numeroMesa,
+            mesa_tipo: "mesa",
             cantidad_personas: mesa.cantidadPersonas,
+            // ✅ CREAR asientos_seleccionados con TODA la información de cada persona
+            asientos_seleccionados: mesa.personas.map((persona, index) => {
+              // Convertir restricciones de objeto {vegetariano: true} a array ["vegetariano"]
+              const restriccionesDieteticas = persona.restricciones 
+                ? Object.keys(persona.restricciones).filter(key => persona.restricciones[key])
+                : [];
+              
+              return {
+                asiento_id: `mesa-${mesa.numeroMesa}_${invitadoId}_${index + 1}`,
+                asiento_numero: index + 1,
+                nombre_comensal: persona.nombre?.trim() || "",
+                tipo_menu: persona.tipoMenu || "normal",
+                restricciones_dieteticas: restriccionesDieteticas,
+                notas: persona.otraRestriccion?.trim() || "",
+                necesidades_especiales: {
+                  requiere_accesibilidad: persona.necesidadesEspeciales?.requiereAccesibilidad || false,
+                  comentarios: persona.necesidadesEspeciales?.comentarios?.trim() || ""
+                }
+              };
+            })
           })),
           personas: mesasSeleccionadas.flatMap(mesa => mesa.personas),
         };
@@ -1783,6 +1857,60 @@ export default function AsignacionUser({
                   alimenticias
                 </p>
               </div>
+
+              {/* 🎯 Indicador de Preconfiguración */}
+              {preconfiguracion && !asignacionActual && (
+                <div className="mt-3">
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-purple-600" />
+                        <div>
+                          <p className="text-sm font-semibold text-purple-800">
+                            Preconfiguración Cargada
+                          </p>
+                          <p className="text-xs text-purple-600">
+                            {preconfiguracion.personas?.length || 0} {(preconfiguracion.personas?.length || 0) === 1 ? 'persona' : 'personas'} configuradas
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setMostrandoPreconfiguracion(!mostrandoPreconfiguracion)}
+                          className="text-xs text-purple-700 hover:text-purple-900 font-medium underline"
+                        >
+                          {mostrandoPreconfiguracion ? 'Ocultar' : 'Ver detalles'}
+                        </button>
+                        <button
+                          onClick={eliminarPreconfiguracion}
+                          className="text-xs text-red-600 hover:text-red-800 font-medium underline"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Detalles de la preconfiguración */}
+                    {mostrandoPreconfiguracion && preconfiguracion.personas && (
+                      <div className="mt-3 pt-3 border-t border-purple-200 space-y-2 max-h-48 overflow-y-auto">
+                        {preconfiguracion.personas.map((persona, idx) => (
+                          <div key={idx} className="bg-white rounded px-3 py-2 text-xs">
+                            <p className="font-medium text-gray-800">
+                              {idx + 1}. {persona.nombre || 'Sin nombre'}
+                            </p>
+                            <div className="flex gap-4 mt-1 text-gray-600">
+                              <span>Menú: {persona.tipoMenu || 'normal'}</span>
+                              {persona.restricciones && Object.keys(persona.restricciones).length > 0 && (
+                                <span>Restricciones: {Object.keys(persona.restricciones).join(', ')}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 🆕 Mostrar mesas seleccionadas (m\u00faltiples) */}

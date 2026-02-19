@@ -7,7 +7,7 @@ import EnvConfig from "../utils/config";
  */
 class AsignacionService {
   constructor() {
-    this.baseUrl = "/api/eventos";
+    this.baseUrl = "eventos";
   }
 
   /**
@@ -703,6 +703,271 @@ class AsignacionService {
         success: false,
         error:
           error.userMessage || error.message || "Error al guardar la selección",
+        details: error,
+      };
+    }
+  }
+
+  /**
+   * Descargar Excel con todas las selecciones de mesas del evento
+   * @param {string} eventoId - ID del evento
+   * @returns {Promise<Blob>} Archivo Excel
+   */
+  async descargarExcelSelecciones(eventoId) {
+    try {
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("🔄 Descargando Excel de selecciones:", { eventoId });
+      }
+
+      if (!eventoId) {
+        throw new Error("eventoId es requerido");
+      }
+
+      const response = await httpService.get(
+        `${this.baseUrl}/${eventoId}/seleccion-mesas/descargar-excel`,
+        { responseType: 'blob' }
+      );
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("✅ Excel descargado exitosamente");
+      }
+
+      return response;
+    } catch (error) {
+      if (EnvConfig.DEBUG_MODE) {
+        console.error("❌ Error al descargar Excel:", error);
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener estado de boletos de cortesía de un evento
+   * @param {string} eventoId - ID del evento
+   * @returns {Promise<Object>} Estado de boletos (total, usados, disponibles)
+   */
+  async obtenerEstadoBoletosCortesia(eventoId) {
+    try {
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("🔄 Obteniendo estado boletos cortesía:", { eventoId });
+      }
+
+      if (!eventoId) {
+        throw new Error("eventoId es requerido");
+      }
+
+      const response = await httpService.get(
+        `${this.baseUrl}/${eventoId}/boletos-cortesia`
+      );
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("✅ Estado boletos cortesía obtenido:", response);
+      }
+
+      return response;
+    } catch (error) {
+      console.error("❌ Error al obtener estado boletos cortesía:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener asignaciones actuales de boletos de cortesía
+   * @param {string} eventoId - ID del evento
+   * @returns {Promise<Object>} Asignaciones de cortesía
+   */
+  async obtenerAsignacionesCortesia(eventoId) {
+    try {
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("🔄 Obteniendo asignaciones cortesía:", { eventoId });
+      }
+
+      if (!eventoId) {
+        throw new Error("eventoId es requerido");
+      }
+
+      const response = await httpService.get(
+        `${this.baseUrl}/${eventoId}/boletos-cortesia/asignaciones`
+      );
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("✅ Asignaciones cortesía obtenidas:", response);
+      }
+
+      return {
+        success: true,
+        data: response.data || response,
+        message: response.message || "Asignaciones obtenidas exitosamente",
+      };
+    } catch (error) {
+      console.error("❌ Error al obtener asignaciones cortesía:", error);
+      return {
+        success: false,
+        error:
+          error.userMessage ||
+          error.message ||
+          "Error al obtener asignaciones",
+        details: error,
+        data: { mesas_seleccionadas: [] },
+      };
+    }
+  }
+
+  /**
+   * Configurar cantidad total de boletos de cortesía para un evento
+   * @param {string} eventoId - ID del evento
+   * @param {number} cantidad - Cantidad total de boletos de cortesía
+   * @returns {Promise<Object>} Resultado de la configuración
+   */
+  async configurarBoletosCortesia(eventoId, cantidad) {
+    try {
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("🔄 Configurando boletos cortesía:", { eventoId, cantidad });
+      }
+
+      if (!eventoId) {
+        throw new Error("eventoId es requerido");
+      }
+
+      if (typeof cantidad !== "number" || cantidad < 0) {
+        throw new Error("cantidad debe ser un número mayor o igual a 0");
+      }
+
+      const response = await httpService.put(
+        `${this.baseUrl}/${eventoId}/boletos-cortesia`,
+        { cantidad }
+      );
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("✅ Boletos cortesía configurados:", response);
+      }
+
+      return response;
+    } catch (error) {
+      console.error("❌ Error al configurar boletos cortesía:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Asignar boletos de cortesía a mesas
+   * @param {string} eventoId - ID del evento
+   * @param {Object} seleccion - Datos de la selección de mesas
+   * @param {Array} seleccion.mesas_seleccionadas - Array de mesas seleccionadas
+   * @returns {Promise<Object>} Resultado de la asignación
+   */
+  async asignarBoletosCortesia(eventoId, seleccion) {
+    try {
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("🔄 Asignando boletos cortesía:", { eventoId, seleccion });
+      }
+
+      if (!eventoId) {
+        throw new Error("eventoId es requerido");
+      }
+
+      if (
+        !seleccion ||
+        !seleccion.mesas_seleccionadas ||
+        seleccion.mesas_seleccionadas.length === 0
+      ) {
+        throw new Error("Se requiere al menos una mesa seleccionada");
+      }
+
+      // Usar el endpoint de guardar-admin (mismo que usa el monitor para asignaciones del admin)
+      const response = await httpService.post(
+        `${this.baseUrl}/${eventoId}/seleccion-mesas/guardar-admin?invitadoId=cortesia`,
+        seleccion
+      );
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("✅ Boletos cortesía asignados:", response);
+      }
+
+      return response;
+    } catch (error) {
+      console.error("❌ Error al asignar boletos cortesía:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Eliminar una mesa específica de las asignaciones de cortesía
+   * @param {string} eventoId - ID del evento
+   * @param {string} mesaId - ID de la mesa a eliminar
+   * @returns {Promise<Object>} Resultado de la operación
+   */
+  async eliminarMesaCortesia(eventoId, mesaId) {
+    try {
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("🔄 Eliminando mesa de cortesía:", { eventoId, mesaId });
+      }
+
+      if (!eventoId || !mesaId) {
+        throw new Error("eventoId y mesaId son requeridos");
+      }
+
+      const response = await httpService.delete(
+        `${this.baseUrl}/${eventoId}/boletos-cortesia/mesas/${mesaId}`
+      );
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("✅ Mesa de cortesía eliminada:", response);
+      }
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || "Mesa eliminada exitosamente",
+      };
+    } catch (error) {
+      console.error("❌ Error al eliminar mesa de cortesía:", error);
+      return {
+        success: false,
+        error: error.userMessage || error.message || "Error al eliminar mesa",
+        details: error,
+      };
+    }
+  }
+
+  /**
+   * Limpiar todas las asignaciones de cortesía de un evento
+   * @param {string} eventoId - ID del evento
+   * @returns {Promise<Object>} Resultado de la operación
+   */
+  async limpiarAsignacionesCortesia(eventoId) {
+    try {
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("🔄 Limpiando asignaciones de cortesía:", { eventoId });
+      }
+
+      if (!eventoId) {
+        throw new Error("eventoId es requerido");
+      }
+
+      const response = await httpService.delete(
+        `${this.baseUrl}/${eventoId}/boletos-cortesia`
+      );
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("✅ Asignaciones de cortesía limpiadas:", response);
+      }
+
+      return {
+        success: true,
+        data: response.data,
+        message:
+          response.message || "Asignaciones eliminadas exitosamente",
+      };
+    } catch (error) {
+      console.error("❌ Error al limpiar asignaciones de cortesía:", error);
+      return {
+        success: false,
+        error:
+          error.userMessage ||
+          error.message ||
+          "Error al limpiar asignaciones",
         details: error,
       };
     }

@@ -37,6 +37,10 @@ export default function ModalMesaDetalles({
         : {},
       otraRestriccion: asiento.notas?.trim() || '',
       necesidadEspecial: false,
+      necesidadesEspeciales: asiento.necesidades_especiales || asiento.necesidadesEspeciales || {
+        requiereAccesibilidad: false,
+        comentarios: ''
+      },
       fechaAsignacion: new Date().toLocaleDateString('es-ES', { 
         year: 'numeric', 
         month: 'long', 
@@ -189,10 +193,10 @@ export default function ModalMesaDetalles({
                                 </p>
                               </div>
                             </div>
-                            {responsable.necesidadEspecial && (
-                              <div className="flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-1 rounded-full text-xs">
-                                <Accessibility className="w-3 h-3" />
-                                Accesibilidad
+                            {(responsable.necesidadEspecial || responsable.necesidadesEspeciales?.requiereAccesibilidad) && (
+                              <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full text-xs font-medium">
+                                <Accessibility className="w-4 h-4" />
+                                Requiere accesibilidad
                               </div>
                             )}
                           </div>
@@ -297,6 +301,44 @@ export default function ModalMesaDetalles({
                                   )}
                                 </div>
                               </div>
+
+                              {/* Necesidades Especiales / Accesibilidad */}
+                              {(persona.necesidadesEspeciales?.requiereAccesibilidad || persona.necesidadesEspeciales?.comentarios) && (
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                  <div className="bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <div className="bg-blue-600 rounded-lg p-1.5">
+                                        <Accessibility className="w-4 h-4 text-white" />
+                                      </div>
+                                      <h6 className="font-semibold text-blue-900 dark:text-blue-100">
+                                        Necesidades Especiales
+                                      </h6>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      {persona.necesidadesEspeciales.requiereAccesibilidad && (
+                                        <div className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg px-3 py-2">
+                                          <CheckIcon className="w-4 h-4 text-blue-700 dark:text-blue-300" />
+                                          <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                            ♿ Requiere silla de ruedas / accesibilidad
+                                          </span>
+                                        </div>
+                                      )}
+
+                                      {persona.necesidadesEspeciales.comentarios && (
+                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
+                                          <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+                                            💬 Comentarios adicionales:
+                                          </p>
+                                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                                            {persona.necesidadesEspeciales.comentarios}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
