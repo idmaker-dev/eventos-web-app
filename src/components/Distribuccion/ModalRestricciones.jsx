@@ -19,6 +19,7 @@ export default function ModalRestricciones({
   setTipoMenu,
   onConfirm,
   configuracionTurnos = null, // ✅ Configuración de turnos para obtener tipos_menu
+  subtitulo = null, // ✅ Subtítulo opcional adicional
 }) {
   const [personaActual, setPersonaActual] = useState(0);
   const [datosPersonas, setDatosPersonas] = useState([]);
@@ -44,6 +45,10 @@ export default function ModalRestricciones({
           tipoMenu: persona.tipoMenu || "normal",
           restricciones: persona.restricciones || {},
           otraRestriccion: persona.otraRestriccion || "",
+          necesidadesEspeciales: {
+            requiereAccesibilidad: persona.necesidadesEspeciales?.requiereAccesibilidad || false,
+            comentarios: persona.necesidadesEspeciales?.comentarios || ""
+          }
         }));
         console.log('✅ Usando personas pre-configuradas:', inicializarDatos);
       } else {
@@ -55,6 +60,10 @@ export default function ModalRestricciones({
             tipoMenu: "normal",
             restricciones: {},
             otraRestriccion: "",
+            necesidadesEspeciales: {
+              requiereAccesibilidad: false,
+              comentarios: ""
+            }
           })
         );
       }
@@ -148,6 +157,38 @@ export default function ModalRestricciones({
     );
   };
 
+  const handleAccesibilidadChange = (checked) => {
+    setDatosPersonas((prev) =>
+      prev.map((persona, index) =>
+        index === personaActual
+          ? {
+              ...persona,
+              necesidadesEspeciales: {
+                ...persona.necesidadesEspeciales,
+                requiereAccesibilidad: checked
+              }
+            }
+          : persona
+      )
+    );
+  };
+
+  const handleComentariosEspecialesChange = (valor) => {
+    setDatosPersonas((prev) =>
+      prev.map((persona, index) =>
+        index === personaActual
+          ? {
+              ...persona,
+              necesidadesEspeciales: {
+                ...persona.necesidadesEspeciales,
+                comentarios: valor
+              }
+            }
+          : persona
+      )
+    );
+  };
+
   // Navegación entre personas con scroll automático
   const irSiguientePersona = () => {
     if (personaActual < cantidadPersonas - 1) {
@@ -186,6 +227,7 @@ export default function ModalRestricciones({
 
   // Confirmar asignación (nombre ahora es opcional)
   const handleConfirmar = () => {
+    console.log('🔍 [ModalRestricciones] Enviando datosPersonas:', JSON.parse(JSON.stringify(datosPersonas)));
     onConfirm({
       personas: datosPersonas,
       cantidadTotal: cantidadPersonas,
@@ -206,6 +248,7 @@ export default function ModalRestricciones({
             <p className="text-xs dark:text-gray-400">
               Mesa {mesaNumero} • {cantidadPersonas}{" "}
               {cantidadPersonas === 1 ? "persona" : "personas"}
+              {subtitulo && <span className="ml-2 text-purple-600 dark:text-purple-400 font-medium">• {subtitulo}</span>}
             </p>
           </div>
           <Button
@@ -334,6 +377,62 @@ export default function ModalRestricciones({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Necesidades Especiales / Accesibilidad */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-100 mb-3">
+              Necesidades Especiales{" "}
+              <span className="text-xs font-normal text-gray-500">
+                (accesibilidad y otras necesidades)
+              </span>
+            </label>
+            <div className="p-4 border-2 rounded-2xl bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 space-y-3">
+              {/* Checkbox para silla de ruedas */}
+              <label className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all border-2 ${
+                personaActualData.necesidadesEspeciales?.requiereAccesibilidad
+                  ? 'bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700'
+                  : 'bg-white dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-gray-800 border-transparent hover:border-blue-200 dark:hover:border-gray-700'
+              }`}>
+                <Checkbox
+                  checked={personaActualData.necesidadesEspeciales?.requiereAccesibilidad || false}
+                  onChange={handleAccesibilidadChange}
+                  className="group relative flex h-6 w-6 cursor-pointer rounded-md bg-white/10 text-white p-1 ring-1 ring-blue-400 dark:ring-blue-600 ring-inset transition duration-200 ease-in-out focus:outline-none data-[focus]:outline-2 data-[focus]:outline-blue-500 data-[checked]:bg-blue-600"
+                >
+                  <CheckIcon className="hidden h-4 w-4 fill-blue-600 group-data-[checked]:block" />
+                </Checkbox>
+
+                <div className="flex-1">
+                  <span className={`font-medium text-base transition-colors ${
+                    personaActualData.necesidadesEspeciales?.requiereAccesibilidad
+                      ? 'text-blue-800 dark:text-blue-200'
+                      : 'text-gray-700 dark:text-gray-300'
+                  }`}>
+                    ♿ Requiere silla de ruedas / accesibilidad
+                  </span>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    Necesita espacio especial para silla de ruedas o movilidad reducida
+                  </p>
+                </div>
+              </label>
+
+              {/* Campo de comentarios adicionales */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Comentarios o necesidades adicionales
+                </label>
+                <textarea
+                  value={personaActualData.necesidadesEspeciales?.comentarios || ""}
+                  onChange={(e) => handleComentariosEspecialesChange(e.target.value)}
+                  placeholder="Ej: Necesita estar cerca de la salida, prefiere mesa con espacio amplio, usa andadera, etc."
+                  rows={3}
+                  className="block w-full rounded-lg border-2 border-gray-200 dark:border-gray-700 px-3 py-2 text-sm dark:bg-gray-900 dark:text-white text-gray-700 placeholder:italic focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  💡 Esta información ayudará al organizador a preparar mejor la mesa
+                </p>
+              </div>
             </div>
           </div>
 

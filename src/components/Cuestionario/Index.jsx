@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import InlineSpinner from "../ui/InlineSpinner";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import logo from "../../assets/LOGOPLANORIA1.png";
 import IconCuestionario from "../../assets/recursos/IconoCuestionario.svg";
 import confirmacionWhatsapp from "../../assets/recursos/ConfirmacionWhastapp.svg";
@@ -54,6 +54,7 @@ const formatearHora = (fechaString) => {
 
 export default function Cuestionario() {
   const { eventId } = useParams();
+  const navigate = useNavigate();
   const { crearInvitado } = useCuestionario();
   const { showSuccess, showError } = useNotifications();
 
@@ -95,6 +96,9 @@ export default function Cuestionario() {
   const [codigoGenerado, setCodigoGenerado] = useState(null);
   const [tiempoExpiracion, setTiempoExpiracion] = useState(null);
   const [intentosRestantes, setIntentosRestantes] = useState(3);
+  const [codigoVerificado, setCodigoVerificado] = useState(false);
+  const [mostrarCamposCodigo, setMostrarCamposCodigo] = useState(false);
+  const [isEnviandoFormulario, setIsEnviandoFormulario] = useState(false);
 
   useEffect(() => {
     if (eventId) {
@@ -153,10 +157,8 @@ export default function Cuestionario() {
       if (response.status === "ok") {
         setCodigoGenerado(response.codigo);
         setTiempoExpiracion(response.expira);
+        setMostrarCamposCodigo(true);
         showSuccess("Código enviado por WhatsApp. Revisa tu teléfono.");
-
-        // Avanzar al paso de verificación
-        setPasoActual(2);
       } else {
         showError("Error al generar el código de verificación");
       }
@@ -205,10 +207,8 @@ export default function Cuestionario() {
       );
 
       if (response.success) {
-        showSuccess("Teléfono verificado correctamente");
-
-        // Ahora que el código está verificado, proceder a crear el invitado
-        await handleConfirmarConCodigoVerificado();
+        setCodigoVerificado(true);
+        showSuccess("Teléfono verificado correctamente. Ahora puedes enviar el formulario.");
       }
     } catch (error) {
       console.error("Error al verificar código:", error);
@@ -252,7 +252,7 @@ export default function Cuestionario() {
   const validarCampos = () => {
     const nuevosErrores = {};
 
-    // Validar campos básicos (excluyendo teléfono como solicitaste)
+    // Validar campos básicos
     if (!nombre.trim())
       nuevosErrores.nombre = "El nombre completo es obligatorio";
     // if (!carrera.trim()) nuevosErrores.carrera = "La carrera es obligatoria";
@@ -263,6 +263,13 @@ export default function Cuestionario() {
 
     if (!fechaNacimiento)
       nuevosErrores.fechaNacimiento = "La fecha de nacimiento es obligatoria";
+
+    // Validar teléfono y código
+    if (!telefono.trim())
+      nuevosErrores.telefono = "El número de teléfono es obligatorio";
+    
+    if (!codigoVerificado)
+      nuevosErrores.codigoVerificado = "Debes verificar tu número de teléfono";
 
     if (tutorRequerido) {
       if (!contactoEmergencia.trim())
@@ -299,12 +306,15 @@ export default function Cuestionario() {
     return Object.keys(nuevosErrores).length === 0;
   };
 
-  // Nueva función para crear el invitado después de verificar el código
-  const handleConfirmarConCodigoVerificado = async () => {
+  // Función para enviar el formulario completo
+  const handleEnviarFormulario = async () => {
     // Validar campos obligatorios antes de enviar
     if (!validarCampos()) {
+      showError("Por favor completa todos los campos obligatorios");
       return;
     }
+
+    setIsEnviandoFormulario(true);
 
     const payload = {
       id_evento: eventId,
@@ -353,8 +363,12 @@ export default function Cuestionario() {
           // No mostramos error al usuario ya que el registro fue exitoso
         }
 
-        setPasoActual(3);
         showSuccess("¡Registro completado exitosamente!");
+        
+        // Redirigir a la página de firma de contrato
+        setTimeout(() => {
+          navigate(`/firma-contrato/${res.invitado.id}`);
+        }, 1500);
       } else {
         console.error("Error al guardar:", res.error);
         showError("Error al completar el registro. Intenta nuevamente.");
@@ -362,6 +376,8 @@ export default function Cuestionario() {
     } catch (error) {
       console.error("Error al crear invitado:", error);
       showError("Error al completar el registro. Intenta nuevamente.");
+    } finally {
+      setIsEnviandoFormulario(false);
     }
   };
 
@@ -835,16 +851,167 @@ export default function Cuestionario() {
                         )}
                       </div>
                     </div>
+                    {/* Sección de verificación de teléfono */}
+                    <div className="mb-3">
+                      <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                        Número de teléfono (WhatsApp)
+                      </Label>
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1">
+                          <Input
+                            type="text"
+                            value={telefono}
+                            onChange={(e) => {
+                              setTelefono(e.target.value);
+                              limpiarError("telefono");
+                              // Reset estados si cambia el teléfono
+                              if (codigoVerificado) {
+                                setCodigoVerificado(false);
+                                setMostrarCamposCodigo(false);
+                                setCode("");
+                              }
+                            }}
+                            disabled={codigoVerificado}
+                            className={clsx(
+                              "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                              "placeholder:italic",
+                              "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                              "disabled:bg-gray-100 disabled:cursor-not-allowed",
+                              errores.telefono ? "border-red-500" : ""
+                            )}
+                            placeholder="+52 (55) 1234 5678"
+                          />
+                          {errores.telefono && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errores.telefono}
+                            </p>
+                          )}
+                        </div>
+                        {!codigoVerificado && (
+                          <Button
+                            type="button"
+                            onClick={handleGenerarCodigoWhatsApp}
+                            disabled={isGenerandoCodigo || !telefono.trim()}
+                            className="mt-2 bg-green-600 text-white px-4 py-1.5 rounded-3xl hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition text-sm font-medium flex items-center gap-1 whitespace-nowrap"
+                          >
+                            {isGenerandoCodigo ? (
+                              <>
+                                <InlineSpinner size="sm" />
+                                Enviando...
+                              </>
+                            ) : mostrarCamposCodigo ? (
+                              <>
+                                <RotateCcw className="w-4 h-4" />
+                                Reenviar
+                              </>
+                            ) : (
+                              "Enviar código"
+                            )}
+                          </Button>
+                        )}
+                        {codigoVerificado && (
+                          <div className="mt-2 bg-green-100 text-green-700 px-4 py-1.5 rounded-3xl text-sm font-medium flex items-center gap-1">
+                            ✓ Verificado
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Campo de código de verificación */}
+                    {mostrarCamposCodigo && !codigoVerificado && (
+                      <div className="mb-3 p-4 bg-green-50 border-2 border-green-200 rounded-2xl">
+                        <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                          Código de verificación
+                        </Label>
+                        <p className="text-gray-600 text-xs mt-1 mb-2">
+                          Introduce el código que te enviamos por WhatsApp
+                        </p>
+                        <div className="flex gap-2 items-start">
+                          <div className="flex-1">
+                            <Input
+                              type="text"
+                              value={code}
+                              onChange={(e) => setCode(e.target.value)}
+                              className={clsx(
+                                "block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700 text-center font-medium",
+                                "placeholder:italic",
+                                "focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                              )}
+                              placeholder="123456"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={handleVerificarCodigo}
+                            disabled={
+                              isVerificandoCodigo ||
+                              !code.trim() ||
+                              intentosRestantes === 0
+                            }
+                            className="bg-casal text-white px-4 py-1.5 rounded-3xl hover:bg-Acapulco transition disabled:opacity-60 disabled:cursor-not-allowed text-sm font-medium flex items-center gap-1"
+                          >
+                            {isVerificandoCodigo ? (
+                              <>
+                                <InlineSpinner size="sm" />
+                                Verificando...
+                              </>
+                            ) : (
+                              "Verificar"
+                            )}
+                          </Button>
+                        </div>
+
+                        {/* Información de intentos y expiración */}
+                        {intentosRestantes < 3 && intentosRestantes > 0 && (
+                          <div className="mt-2">
+                            <p className="text-yellow-600 text-xs flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              Te quedan {intentosRestantes} intentos
+                            </p>
+                          </div>
+                        )}
+                        {intentosRestantes === 0 && (
+                          <div className="mt-2">
+                            <p className="text-red-600 text-xs flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              Sin intentos restantes. Solicita un nuevo código.
+                            </p>
+                          </div>
+                        )}
+                        {tiempoExpiracion && (
+                          <div className="mt-2">
+                            <p className="text-gray-600 text-xs">
+                              El código expira el{" "}
+                              {new Date(tiempoExpiracion).toLocaleString()}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {errores.codigoVerificado && (
+                      <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-600 text-sm flex items-center gap-1">
+                          <AlertCircle className="w-4 h-4" />
+                          {errores.codigoVerificado}
+                        </p>
+                      </div>
+                    )}
+
                     <div className="my-5 flex justify-center">
                       <Button
-                        onClick={() => {
-                          if (validarCampos()) {
-                            setPasoActual(1);
-                          }
-                        }}
-                        className="bg-casal text-xl text-white w-[70%] mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition"
+                        onClick={handleEnviarFormulario}
+                        disabled={!codigoVerificado || isEnviandoFormulario}
+                        className="bg-casal text-xl text-white w-[70%] mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
-                        Enviar
+                        {isEnviandoFormulario ? (
+                          <>
+                            <InlineSpinner size="sm" />
+                            Enviando...
+                          </>
+                        ) : (
+                          "Enviar"
+                        )}
                       </Button>
                     </div>
                   </Field>

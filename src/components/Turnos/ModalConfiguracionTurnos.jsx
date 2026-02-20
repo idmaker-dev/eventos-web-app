@@ -68,11 +68,13 @@ const ModalConfiguracionTurnos = ({ isOpen, onClose, eventoId, configuracionExis
    */
   useEffect(() => {
     if (configuracionExistente) {
+      console.log('Configuracion existente: ', configuracionExistente);
+      
       setConfig({
         fecha_inicio_seleccion: configuracionExistente.fecha_inicio_seleccion || '',
         fecha_fin_seleccion: configuracionExistente.fecha_fin_seleccion || '',
         duracion_turno_minutos: configuracionExistente.duracion_turno_minutos || 15,
-        tiempo_muerto_minutos: configuracionExistente.tiempo_muerto_minutos || 5,
+        tiempo_muerto_minutos: configuracionExistente.tiempo_muerto_minutos || 0,
         horarios_disponibles: configuracionExistente.horarios_disponibles || [],
         periodos_tiempo_muerto: configuracionExistente.periodos_tiempo_muerto || [],
         dias_excluidos: configuracionExistente.dias_excluidos || [],

@@ -32,7 +32,7 @@ export default function ModalEspera({
   const [horaActual, setHoraActual] = useState(new Date());
   const [mostrarAjustes, setMostrarAjustes] = useState(false);
   const [personaActualVisible, setPersonaActualVisible] = useState(0); // Para navegación del carrusel
-  // ✅ Inicializar TODAS las personas desde el inicio
+  // ✅ Inicializar TODAS las personas desde el inicio con estructura completa
   const cantidadTotal = usuario?.cantidad_personas || usuario?.cantidad || 1;
   const [configuracionAsientos, setConfiguracionAsientos] = useState({
     boletosDisponibles: cantidadTotal,
@@ -40,12 +40,16 @@ export default function ModalEspera({
       id: index + 1,
       nombre: index === 0 ? (usuario?.nombre_completo || usuario?.nombre || "") : "",
       activa: true,
-      // Datos individuales de restricciones
+      // ✅ Datos individuales por persona
       tipoMenu: "normal",
       restricciones: {},
       otraRestriccion: "",
+      necesidadesEspeciales: {
+        requiereAccesibilidad: false,
+        comentarios: ""
+      }
     })),
-    // Campos legacy (se mantienen por compatibilidad)
+    // Campos legacy (se mantienen por compatibilidad pero NO se usan en preconfiguración)
     restriccionesAlimentarias: {
       vegetariano: false,
       vegano: false,
@@ -326,6 +330,27 @@ export default function ModalEspera({
     }));
   };
 
+  // ✅ Actualizar restricciones de la persona actual
+  const toggleRestriccionPersona = (personaId, restriccion) => {
+    setConfiguracionAsientos((prev) => ({
+      ...prev,
+      personas: prev.personas.map((p) => {
+        if (p.id === personaId) {
+          const restriccionesActuales = p.restricciones || {};
+          return {
+            ...p,
+            restricciones: {
+              ...restriccionesActuales,
+              [restriccion]: !restriccionesActuales[restriccion]
+            }
+          };
+        }
+        return p;
+      }),
+    }));
+  };
+
+  // ❌ Mantener para retrocompatibilidad legacy
   const toggleRestriccion = (restriccion) => {
     setConfiguracionAsientos((prev) => ({
       ...prev,
@@ -769,26 +794,27 @@ export default function ModalEspera({
 
                         <div className="mb-3">
                           <label className="block text-sm font-medium text-casal mb-1">
-                            Nombre completo (Persona 1)
+                            Nombre completo (Persona {personaActualVisible + 1})
                           </label>
                           <input
                             type="text"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-casal/50"
                             placeholder="Ingresa el nombre completo"
                             value={
-                              configuracionAsientos.personas[0]?.nombre || ""
+                              configuracionAsientos.personas[personaActualVisible]?.nombre || ""
                             }
-                            onChange={(e) =>
-                              actualizarPersona(1, "nombre", e.target.value)
-                            }
+                            onChange={(e) => {
+                              const personaId = personaActualVisible + 1;
+                              actualizarPersona(personaId, "nombre", e.target.value);
+                            }}
                           />
                         </div>
                       </div>
 
-                      {/* Tipo de Menú */}
+                      {/* Tipo de Menú - POR PERSONA */}
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-casal mb-2">
-                          Tipo de Menú
+                          Tipo de Menú (Persona {personaActualVisible + 1})
                         </label>
                         <p className="text-xs text-gray-500 mb-2">
                           Selecciona uno
@@ -798,14 +824,12 @@ export default function ModalEspera({
                           {opcionesTipoMenu.map((menu) => (
                             <Button
                               key={menu.id}
-                              onClick={() =>
-                                setConfiguracionAsientos((prev) => ({
-                                  ...prev,
-                                  tipoMenu: menu.id,
-                                }))
-                              }
+                              onClick={() => {
+                                const personaId = personaActualVisible + 1;
+                                actualizarPersona(personaId, 'tipoMenu', menu.id);
+                              }}
                               className={`p-3 text-left border rounded-lg text-xs transition ${
-                                configuracionAsientos.tipoMenu === menu.id
+                                (configuracionAsientos.personas[personaActualVisible]?.tipoMenu || 'normal') === menu.id
                                   ? "border-casal bg-casal/10 text-casal"
                                   : "border-gray-200 hover:border-gray-300 bg-gray-100 "
                               }`}
@@ -819,10 +843,10 @@ export default function ModalEspera({
                         </div>
                       </div>
 
-                      {/* Restricciones alimentarias */}
+                      {/* Restricciones alimentarias - POR PERSONA */}
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Restricciones alimentarias
+                          Restricciones alimentarias (Persona {personaActualVisible + 1})
                         </label>
                         <p className="text-xs text-gray-500 mb-2">
                           Puedes seleccionar varias
@@ -850,60 +874,57 @@ export default function ModalEspera({
                               label: "Alergia a marisco",
                               subtitle: "Alérgico a mariscos",
                             },
-                          ].map((restriccion) => (
-                            <Button
-                              key={restriccion.key}
-                              onClick={() => toggleRestriccion(restriccion.key)}
-                              className={`p-2 text-left border rounded-lg text-xs transition ${
-                                configuracionAsientos.restriccionesAlimentarias[
-                                  restriccion.key
-                                ]
-                                  ? "border-casal bg-casal/10 text-casal"
-                                  : "border-gray-200 text-gray-500 hover:border-gray-300"
-                              }`}
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="checkbox"
-                                  checked={
-                                    configuracionAsientos
-                                      .restriccionesAlimentarias[
-                                      restriccion.key
-                                    ]
-                                  }
-                                  onChange={() => {}}
-                                  className="w-3 h-3"
-                                />
-                                <div>
-                                  <div className="font-semibold ">
-                                    {restriccion.label}
-                                  </div>
-                                  <div className="text-gray-400 text-xs">
-                                    {restriccion.subtitle}
+                          ].map((restriccion) => {
+                            const personaId = personaActualVisible + 1;
+                            const restriccionesPersona = configuracionAsientos.personas[personaActualVisible]?.restricciones || {};
+                            const estaActivo = restriccionesPersona[restriccion.key] || false;
+                            
+                            return (
+                              <Button
+                                key={restriccion.key}
+                                onClick={() => toggleRestriccionPersona(personaId, restriccion.key)}
+                                className={`p-2 text-left border rounded-lg text-xs transition ${
+                                  estaActivo
+                                    ? "border-casal bg-casal/10 text-casal"
+                                    : "border-gray-200 text-gray-500 hover:border-gray-300"
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="checkbox"
+                                    checked={estaActivo}
+                                    onChange={() => {}}
+                                    className="w-3 h-3"
+                                  />
+                                  <div>
+                                    <div className="font-semibold ">
+                                      {restriccion.label}
+                                    </div>
+                                    <div className="text-gray-400 text-xs">
+                                      {restriccion.subtitle}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </Button>
-                          ))}
+                              </Button>
+                            );
+                          })}
                         </div>
                       </div>
 
-                      {/* Restricción específica */}
+                      {/* Restricción específica - POR PERSONA */}
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Restricción específica adicional
+                          Restricción específica adicional (Persona {personaActualVisible + 1})
                         </label>
                         <textarea
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-casal/50"
                           placeholder="Ej: Alérgico a frutos secos, intolerancias específicas..."
                           rows={2}
-                          value={configuracionAsientos.restriccionEspecifica}
-                          onChange={(e) =>
-                            setConfiguracionAsientos((prev) => ({
-                              ...prev,
-                              restriccionEspecifica: e.target.value,
-                            }))
-                          }
+                          value={configuracionAsientos.personas[personaActualVisible]?.otraRestriccion || ''}
+                          onChange={(e) => {
+                            const personaId = personaActualVisible + 1;
+                            actualizarPersona(personaId, 'otraRestriccion', e.target.value);
+                          }}
                         />
                       </div>
 
