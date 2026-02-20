@@ -353,6 +353,29 @@ class GuestService {
       };
     }
   }
+
+  /**
+   * Obtener información de un invitado por su ID
+   * @param {string} invitadoId - ID del invitado
+   * @returns {Promise<Object>} Información del invitado
+   */
+  async getInvitadoById(invitadoId) {
+    try {
+      const response = await httpService.get(
+        `/invitadosAlumnos/${invitadoId}`
+      );
+
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al obtener información del invitado",
+      };
+    }
+  }
 }
 
 // Crear instancia singleton

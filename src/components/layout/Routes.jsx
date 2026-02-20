@@ -9,6 +9,7 @@ import Login from "../../pages/Login"
 import AccessDenied from "../../pages/AccessDenied"
 import Comunicacion from "../../pages/Comunicacion"
 import Cuestionario from "../../pages/Cuestionario"
+import FirmaContrato from "../../pages/FirmaContrato"
 import PortalPagos from "../../pages/PortalPagos"
 import Checkout from "../../pages/checkout"
 import PagoTarjeta from "../../pages/PagoTarjeta"
@@ -98,6 +99,7 @@ export default function AppRoutes() {
 
       {/* Ruta pública - Accesible sin autenticación */}
       <Route path="/Cuestionario/:eventId" element={<Cuestionario />} />
+      <Route path="/firma-contrato/:invitadoId" element={<FirmaContrato />} />
       <Route path="/PortalPagos/:invitadoId" element={<PortalPagos />} />
       <Route path="/Checkout/:invitadoId" element={<Checkout />} />
       <Route path="/pago-tarjeta/:invitadoId" element={<PagoTarjeta />} />
