@@ -38,6 +38,46 @@ export default function StatsPanel({ stats = {} }) {
             "text-gray-600"
           }`}>{stats.porcentajeCapacidadUtilizada}%</p>
         </div>
+        
+        {/* 🆕 Cuotas de Capacidades */}
+        {stats.cuotas && stats.cuotas.length > 0 && (
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-700 dark:text-gray-300 font-semibold mb-2">Distribución de Capacidades</p>
+            <div className="space-y-2">
+              {stats.cuotas.map((cuota, index) => {
+                const porcentajeAsignado = cuota.cantidad > 0 ? Math.round((cuota.asignadas / cuota.cantidad) * 100) : 0;
+                const disponibles = cuota.cantidad - cuota.asignadas;
+                return (
+                  <div key={index} className="bg-gray-100 dark:bg-gray-800 p-2 rounded">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-semibold text-gray-700 dark:text-gray-300">{cuota.capacidad} asientos</span>
+                      <span className={`font-bold ${
+                        disponibles === 0 ? "text-red-600" :
+                        disponibles <= 3 ? "text-orange-600" :
+                        "text-green-600"
+                      }`}>
+                        {cuota.asignadas}/{cuota.cantidad}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-1">
+                      <div 
+                        className={`h-1.5 rounded-full ${
+                          porcentajeAsignado === 100 ? "bg-red-500" :
+                          porcentajeAsignado >= 80 ? "bg-orange-500" :
+                          "bg-green-500"
+                        }`}
+                        style={{ width: `${porcentajeAsignado}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {disponibles} disponible{disponibles !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

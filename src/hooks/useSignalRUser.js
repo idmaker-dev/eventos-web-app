@@ -129,6 +129,26 @@ export const useSignalRUser = (onMesaCambiada, invitadoId = null) => {
     // Registrar listeners
     connection.on("mesaBloqueada", handleMesaBloqueada);
     connection.on("mesaSeleccionada", handleMesaSeleccionada);
+    
+    // 🆕 Listener para cambio de capacidad de mesa
+    const handleCapacidadMesaCambiada = (data) => {
+      console.log("📊 [useSignalRUser] Capacidad de mesa cambiada:");
+      console.log("📊 [useSignalRUser] Datos completos:", JSON.stringify(data, null, 2));
+
+      // Ejecutar callback si existe
+      if (callbackRef.current) {
+        console.log("🔔 [useSignalRUser] Ejecutando callback para capacidad cambiada");
+        callbackRef.current({
+          tipo: "capacidad_mesa_cambiada",
+          data,
+          mensaje: `Mesa ${data.numeroMesa}: capacidad cambiada de ${data.capacidad_anterior} a ${data.capacidad_nueva} asientos`,
+        });
+      } else {
+        console.log("⚠️ [useSignalRUser] Callback no disponible");
+      }
+    };
+    
+    connection.on("capacidadMesaCambiada", handleCapacidadMesaCambiada);
 
     console.log("✅ [useSignalRUser] Listeners registrados correctamente");
 
@@ -137,6 +157,7 @@ export const useSignalRUser = (onMesaCambiada, invitadoId = null) => {
       console.log("🧹 [useSignalRUser] Limpiando listeners");
       connection.off("mesaBloqueada", handleMesaBloqueada);
       connection.off("mesaSeleccionada", handleMesaSeleccionada);
+      connection.off("capacidadMesaCambiada", handleCapacidadMesaCambiada);
     };
   }, [connection, conectado]);
 

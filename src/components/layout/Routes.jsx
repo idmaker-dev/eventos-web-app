@@ -29,6 +29,7 @@ import ConfiguracionLayout from "../../pages/ConfiguracionLayout"
 import Clientes from "../../pages/Clientes"
 import Campanas from "../../pages/Campanas"
 // import Comunicacion from "../../pages/Comunicacion"
+import Resumen from "../../pages/resumen"
 
 /* Componentes de protección de rutas */
 import { 
@@ -91,7 +92,10 @@ export default function AppRoutes() {
         <Route path="clientes" element={<Clientes />} />
         <Route path="campanas" element={<Campanas />} />
         <Route path="boletos" element={<Boletos />} />
+        
+        <Route path="Resumen" element={<Resumen />} />
       </Route>
+
       {/* Ruta pública - Accesible sin autenticación */}
       <Route path="/Cuestionario/:eventId" element={<Cuestionario />} />
       <Route path="/PortalPagos/:invitadoId" element={<PortalPagos />} />

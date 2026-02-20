@@ -7,6 +7,11 @@ import {
   Save,
   Accessibility,
   Scan,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle,
+  Clock2,
+  X,
 } from "lucide-react";
 import { Button } from "@headlessui/react";
 import { Tooltip } from "../ui/Tooltip.jsx";
@@ -15,9 +20,14 @@ import MesaRectangular from "./MesaRectangular.jsx";
 import StatsPanel from "./StatsPanel.jsx";
 import ModalMesaDetalles from "./ModalMesaDetalles.jsx";
 import ModalRestricciones from "./ModalRestricciones.jsx";
+import SelectorCapacidadMesa from "./SelectorCapacidadMesa.jsx";
+import PanelCuotasCapacidades from "./PanelCuotasCapacidades.jsx";
 import { useSignalRMonitor } from "../../hooks/useSignalRMonitor";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 import { useDisponibilidadMesas } from "../../hooks/useDisponibilidadMesas";
+import { useConfirm, usePrompt } from "../../hooks/useDialog";
+import ConfirmDialog from "../ui/ConfirmDialog";
+import PromptDialog from "../ui/PromptDialog";
 import eventService from "../../services/eventService";
 import turnosService from "../../services/turnosService";
 
@@ -27,6 +37,7 @@ export default function DistribuccionMonitor({
   salon,
   invitados,
   setInvitados,
+  layoutFinal = null, // 🆕 Recibir layout completo con metadata
 }) {
   const { eventoActual } = useSelectedEvent();
   
@@ -53,6 +64,102 @@ export default function DistribuccionMonitor({
   const [invitadosCompletados, setInvitadosCompletados] = useState([]);
   const [estadisticas, setEstadisticas] = useState({});
   const [cargandoDatos, setCargandoDatos] = useState(false);
+  
+  // 🆕 Estado para configuración de capacidades (sistema simplificado)
+  const [configuracionCapacidad, setConfiguracionCapacidad] = useState({
+    capacidad_base: 10,
+    permitir_aumento: false,
+    capacidad_maxima: 12,
+    mesas_pueden_aumentar: 0,
+    mesas_aumentadas: 0
+  });
+  
+  // 🆕 Función para calcular configuración desde elementos existentes
+  const calcularConfiguracionDesdeElementos = useCallback((elementos) => {
+    const mesas = elementos.filter(el => 
+      el.type === "mesa" || el.type === "mesaRectangular"
+    );
+
+    if (mesas.length === 0) {
+      return;
+    }
+
+    // Determinar capacidad base (la más común)
+    const capacidades = mesas.map(m => m.capacidad || 10);
+    const frecuencia = {};
+    capacidades.forEach(cap => {
+      frecuencia[cap] = (frecuencia[cap] || 0) + 1;
+    });
+    
+    const capacidadBase = parseInt(
+      Object.keys(frecuencia).reduce((a, b) => 
+        frecuencia[a] > frecuencia[b] ? a : b
+      )
+    );
+
+    // Contar cuántas mesas están por encima de la base
+    const mesasAumentadas = mesas.filter(m => (m.capacidad || 10) > capacidadBase).length;
+    
+    // Determinar capacidad máxima
+    const capacidadMaxima = Math.max(...capacidades);
+
+    const config = {
+      capacidad_base: capacidadBase,
+      permitir_aumento: mesasAumentadas > 0,
+      capacidad_maxima: capacidadMaxima,
+      mesas_pueden_aumentar: mesasAumentadas,
+      mesas_aumentadas: mesasAumentadas
+    };
+
+    console.log('📊 [Monitor] Configuración calculada:', config);
+    setConfiguracionCapacidad(config);
+  }, []);
+  
+  // 🆕 Efecto para restaurar configuración de capacidades desde layout cargado
+  useEffect(() => {
+    if (layoutFinal?.distribucion_capacidades) {
+      console.log('📥 [Monitor] Restaurando configuración de capacidades desde layout:', layoutFinal.distribucion_capacidades);
+      setConfiguracionCapacidad(layoutFinal.distribucion_capacidades);
+    } else if (allElements.length > 0) {
+      // Si no hay configuración guardada, calcular desde elementos
+      console.log('🔢 [Monitor] Calculando configuración desde elementos');
+      calcularConfiguracionDesdeElementos(allElements);
+    }
+  }, [layoutFinal, allElements, calcularConfiguracionDesdeElementos]);
+  
+  // 🆕 Callback cuando se cambia capacidad de una mesa
+  const handleCapacidadCambiada = useCallback((resultado) => {
+    console.log("📊 Capacidad cambiada:", resultado);
+    
+    // Actualizar configuración de capacidad en el estado
+    if (resultado.distribucion) {
+      setConfiguracionCapacidad(resultado.distribucion);
+    }
+    
+    // Actualizar la mesa en allElements
+    setAllElements(prev => 
+      prev.map(el => 
+        el.id === resultado.mesa.id 
+          ? { ...el, capacidad: resultado.mesa.capacidad }
+          : el
+      )
+    );
+    
+    // Recargar disponibilidad para actualizar estadísticas
+    cargarDisponibilidad();
+  }, [cargarDisponibilidad, setAllElements]);
+
+  // 🆕 Función para calcular mesas aumentadas en tiempo real
+  const calcularMesasAumentadas = () => {
+    const mesas = allElements.filter(el => 
+      el.type === "mesa" || el.type === "mesaRectangular"
+    );
+    
+    if (mesas.length === 0) return 0;
+    
+    const capacidadBase = configuracionCapacidad.capacidad_base || 10;
+    return mesas.filter(m => (m.capacidad || 10) > capacidadBase).length;
+  };
 
   const openDesignModal = () => setShowDesignModal(true);
   const closeDesignModal = () => setShowDesignModal(false);
@@ -73,6 +180,18 @@ export default function DistribuccionMonitor({
   const [mesaParaBloqueo, setMesaParaBloqueo] = useState(null);
   const [motivoBloqueo, setMotivoBloqueo] = useState("");
   const [procesandoBloqueo, setProcesandoBloqueo] = useState(false);
+  
+  // Estado para panel de capacidades desplegable
+  const [panelCapacidadesAbierto, setPanelCapacidadesAbierto] = useState(false);
+  
+  // 🆕 Estado para asignaciones parciales acumuladas
+  const [asignacionesParciales, setAsignacionesParciales] = useState([]);
+  // Array de objetos: [{ invitado, numeroMesa, cantidadAsignar, nombre, restricciones, otra, tipoMenu }]
+  const [invitadoEnProceso, setInvitadoEnProceso] = useState(null);
+
+  // 🎨 Hooks para diálogos personalizados (reemplazan alert/confirm/prompt)
+  const { showConfirm, dialogState: confirmState, handleClose: handleConfirmClose } = useConfirm();
+  const { showPrompt, dialogState: promptState, handleClose: handlePromptClose, handleSubmit: handlePromptSubmit } = usePrompt();
 
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -135,6 +254,17 @@ export default function DistribuccionMonitor({
         const elementosActualizados = resultadoDisponibilidad.data?.layout?.elementos || [];
         console.log('✅ [Monitor] Layout actualizado:', elementosActualizados.length, 'elementos');
         console.log('✅ [Monitor] Elementos con disponibilidad:', elementosActualizados.filter(e => e.disponibilidad).length);
+        
+        // 🆕 Cargar configuración de capacidades desde el layout
+        const distribucionCapacidades = resultadoDisponibilidad.data?.layout?.configuracion_layout?.distribucion_capacidades;
+        if (distribucionCapacidades && distribucionCapacidades.capacidad_base) {
+          console.log('📊 [Monitor] Configuración de capacidades cargada:', distribucionCapacidades);
+          setConfiguracionCapacidad(distribucionCapacidades);
+        } else {
+          console.log('ℹ️ [Monitor] No hay configuración definida, calculando desde mesas existentes...');
+          // Calcular configuración desde las mesas actuales
+          calcularConfiguracionDesdeElementos(elementosActualizados);
+        }
         
         // Log de tipos de elementos para debugging
         const tiposElementos = elementosActualizados.reduce((acc, el) => {
@@ -242,8 +372,9 @@ export default function DistribuccionMonitor({
   }, []);
 
   // Función para asignar invitados a mesa
-  const asignarInvitadosMesa = (numeroMesa, datosInvitado) => {
-    const mesaSeleccionada = allElements.find(
+  const asignarInvitadosMesa = async (numeroMesa, datosInvitado) => {
+    // 🔥 USAR elementosConDisponibilidad que tiene datos actualizados del backend
+    const mesaSeleccionada = (elementosConDisponibilidad || allElements).find(
       (el) =>
         el.numero === numeroMesa &&
         (el.type === "mesa" || el.type === "mesaRectangular")
@@ -273,7 +404,26 @@ export default function DistribuccionMonitor({
       return;
     }
 
-    const cantidad = Number(datosInvitado?.cantidad || 1);
+    // 🆕 Calcular cantidad real disponible considerando asignaciones parciales acumuladas
+    const cantidadOriginal = Number(datosInvitado?.cantidad || 1);
+    const yaAsignado = asignacionesParciales
+      .filter(a => a.invitado.id === datosInvitado.id)
+      .reduce((sum, a) => sum + a.cantidadAsignar, 0);
+    const cantidadDisponibleInvitado = cantidadOriginal - yaAsignado;
+    
+    // Si ya no quedan boletos por asignar
+    if (cantidadDisponibleInvitado <= 0) {
+      mostrarNotificacion(
+        `❌ ${datosInvitado.nombre} ya tiene todos sus boletos asignados.\n\n` +
+        `Total: ${cantidadOriginal} boletos\n` +
+        `Ya asignados: ${yaAsignado} boletos\n\n` +
+        `💡 Confirma las asignaciones pendientes en el panel azul.`,
+        "error"
+      );
+      return;
+    }
+
+    const cantidad = cantidadDisponibleInvitado; // Usar la cantidad real restante
     const sillasEspecialesDisponibles = Array.isArray(
       mesaSeleccionada.sillasEspeciales
     )
@@ -308,39 +458,93 @@ export default function DistribuccionMonitor({
         return;
       }
     }
-    const espacioDisponible =
-      Number(mesaSeleccionada.capacidad || 0) -
-      Number(mesaSeleccionada.invitados || 0);
+    
+    // 🔥 USAR disponibilidad.asientos_disponibles del backend (datos actualizados)
+    const espacioDisponible = mesaSeleccionada.disponibilidad?.asientos_disponibles ?? 
+      (Number(mesaSeleccionada.capacidad || 0) - Number(mesaSeleccionada.invitados || 0));
 
-    if (espacioDisponible <= 0) {
+    // ===== CASO 1: Espacio suficiente para TODOS =====
+    if (espacioDisponible >= cantidad) {
+      // Abrir modal de restricciones
+      setPendingAsignacion({ invitado: datosInvitado, numeroMesa, cantidadAsignar: cantidad });
+      setPendingNombre(datosInvitado?.nombre || "");
+      setRestricciones({
+        vegetariano: 0,
+        vegano: 0,
+        sinGluten: 0,
+        alergiaMarisco: 0,
+      });
+      setOtra("");
+      setShowRestrModal(true);
+      return;
+    }
+
+    // ===== CASO 2: Asignación PARCIAL =====
+    if (espacioDisponible > 0 && espacioDisponible < cantidad) {
+      const personasRestantes = cantidad - espacioDisponible;
+      
+      const mensajeAsignaciones = yaAsignado > 0 
+        ? `\n\n💡 Ya tienes ${yaAsignado} de ${cantidadOriginal} personas asignadas en el panel.\nRestantes por asignar: ${cantidad}`
+        : '';
+      
+      const confirmar = await showConfirm({
+        title: '⚠️ Asignación Parcial',
+        message: `Mesa ${numeroMesa} tiene ${espacioDisponible} espacios disponibles\nPersonas restantes del invitado: ${cantidad}${mensajeAsignaciones}\n\n¿Deseas asignar ${espacioDisponible} personas a esta mesa?\nQuedarán ${personasRestantes} personas pendientes de asignar.`,
+        confirmText: 'Sí, asignar',
+        cancelText: 'Cancelar',
+        type: 'warning'
+      });
+
+      if (!confirmar) {
+        return;
+      }
+
+      // Preguntar cuántas personas asignar (máximo = espacioDisponible)
+      const cantidadAsignar = await showPrompt({
+        title: 'Cantidad a asignar',
+        message: `¿Cuántas personas deseas asignar a la Mesa ${numeroMesa}?\n\nMáximo disponible: ${espacioDisponible}\nRestantes del invitado: ${cantidad}${yaAsignado > 0 ? `\nYa asignadas: ${yaAsignado}` : ''}`,
+        inputType: 'number',
+        defaultValue: espacioDisponible.toString(),
+        min: 1,
+        max: Math.min(espacioDisponible, cantidad),
+        validation: (value) => {
+          const num = Number(value);
+          if (num > espacioDisponible) {
+            return `No puedes asignar ${num} personas. Máximo disponible: ${espacioDisponible}`;
+          }
+          if (num > cantidad) {
+            return `No puedes asignar ${num} personas. Solo quedan ${cantidad} personas del invitado por asignar.`;
+          }
+          return null;
+        }
+      });
+
+      if (cantidadAsignar === null) {
+        return; // Usuario canceló
+      }
+
+      // Abrir modal de restricciones con la cantidad parcial
+      setPendingAsignacion({ invitado: datosInvitado, numeroMesa, cantidadAsignar });
+      setPendingNombre(datosInvitado?.nombre || "");
+      setRestricciones({
+        vegetariano: 0,
+        vegano: 0,
+        sinGluten: 0,
+        alergiaMarisco: 0,
+      });
+      setOtra("");
+      setShowRestrModal(true);
+      return;
+    }
+
+    // ===== CASO 3: Mesa LLENA =====
+    if (espacioDisponible === 0) {
       mostrarNotificacion(
-        `❌ La Mesa ${numeroMesa} ya está llena (0 espacios disponibles).`,
+        `❌ La Mesa ${numeroMesa} está llena.\n\nNo hay espacios disponibles.`,
         "error"
       );
       return;
     }
-
-    if (cantidad > espacioDisponible) {
-      mostrarNotificacion(
-        `❌ No hay suficiente espacio en la Mesa ${numeroMesa}\n\n` +
-          `Espacio disponible: ${espacioDisponible} asientos\n` +
-          `Personas a asignar: ${cantidad}`,
-        "error"
-      );
-      return;
-    }
-
-    // Abrir modal de restricciones
-    setPendingAsignacion({ invitado: datosInvitado, numeroMesa });
-    setPendingNombre(datosInvitado?.nombre || "");
-    setRestricciones({
-      vegetariano: 0,
-      vegano: 0,
-      sinGluten: 0,
-      alergiaMarisco: 0,
-    });
-    setOtra("");
-    setShowRestrModal(true);
   };
   //Confirmación desde ModalRestricciones
   const handleConfirmRestricciones = ({
@@ -350,7 +554,7 @@ export default function DistribuccionMonitor({
     tipoMenu
   }) => {
     if (!pendingAsignacion) return;
-    const { invitado, numeroMesa } = pendingAsignacion;
+    const { invitado, numeroMesa, cantidadAsignar } = pendingAsignacion;
 
     const mesaSeleccionada = allElements.find(
       (el) =>
@@ -364,7 +568,51 @@ export default function DistribuccionMonitor({
       return;
     }
 
-    const cantidad = invitado.cantidad;
+    // Usar cantidadAsignar si existe (asignación parcial), sino usar cantidad total del invitado
+    const cantidad = cantidadAsignar || invitado.cantidad;
+    const esAsignacionParcial = cantidadAsignar && cantidadAsignar < invitado.cantidad;
+    
+    // 🆕 Si es asignación parcial, acumular en el panel en lugar de aplicar inmediatamente
+    if (esAsignacionParcial) {
+      // Calcular cuánto llevamos asignado hasta ahora
+      const yaAsignado = asignacionesParciales
+        .filter(a => a.invitado.id === invitado.id)
+        .reduce((sum, a) => sum + a.cantidadAsignar, 0);
+      
+      const nuevoRestante = invitado.cantidad - yaAsignado - cantidad;
+
+      setAsignacionesParciales(prev => [
+        ...prev,
+        {
+          invitado,
+          numeroMesa,
+          cantidadAsignar: cantidad,
+          nombre: nombre || invitado.nombre,
+          restricciones: res,
+          otra: otraText,
+          tipoMenu: tipoMenu || "normal"
+        }
+      ]);
+      
+      setInvitadoEnProceso({
+        id: invitado.id,
+        nombre: invitado.nombre,
+        cantidadOriginal: invitado.cantidad,
+        cantidadRestante: nuevoRestante
+      });
+      
+      mostrarNotificacion(
+        `✅ ${cantidad} personas agregadas al panel de asignaciones\n\n` +
+        `Quedan ${nuevoRestante} personas por asignar\n\n` +
+        `💡 Continúa arrastrando a otras mesas o confirma las asignaciones`,
+        "info"
+      );
+      
+      setShowRestrModal(false);
+      setPendingAsignacion(null);
+      setPendingNombre("");
+      return;
+    }
 
     // Actualizar estado local (el guardado en backend se hace con el botón "Guardar asignaciones")
     setAllElements((prev) =>
@@ -394,19 +642,162 @@ export default function DistribuccionMonitor({
       )
     );
 
-    setInvitadosSinAsignar((prev) =>
-      prev.filter((inv) => inv.id !== invitado.id)
-    );
+    // Si es asignación parcial, actualizar la cantidad del invitado, sino eliminarlo de la lista
+    if (esAsignacionParcial) {
+      const cantidadRestante = invitado.cantidad - cantidad;
+      
+      // Actualizar invitadosSinAsignar
+      setInvitadosSinAsignar((prev) =>
+        prev.map((inv) =>
+          inv.id === invitado.id
+            ? { ...inv, cantidad: cantidadRestante }
+            : inv
+        )
+      );
 
-    mostrarNotificacion(
-      `✅ ${nombre || invitado.nombre} asignado a Mesa ${numeroMesa}\n\n⚠️ Recuerda hacer clic en "Guardar asignaciones" para guardar los cambios`,
-      "success"
-    );
+      // Actualizar invitadosPendientes también
+      setInvitadosPendientes((prev) =>
+        prev.map((turno) =>
+          turno.invitado_id === invitado.id
+            ? { ...turno, cantidad_boletos: cantidadRestante }
+            : turno
+        )
+      );
+
+      mostrarNotificacion(
+        `✅ ${cantidad} personas de ${nombre || invitado.nombre} asignadas a Mesa ${numeroMesa}\n\n` +
+        `⚠️ Quedan ${cantidadRestante} personas por asignar\n\n` +
+        `⚠️ Recuerda hacer clic en "Guardar asignaciones" para guardar los cambios`,
+        "success"
+      );
+    } else {
+      setInvitadosSinAsignar((prev) =>
+        prev.filter((inv) => inv.id !== invitado.id)
+      );
+
+      // También remover de invitadosPendientes
+      setInvitadosPendientes((prev) =>
+        prev.filter((turno) => turno.invitado_id !== invitado.id)
+      );
+
+      mostrarNotificacion(
+        `✅ ${nombre || invitado.nombre} asignado a Mesa ${numeroMesa}\n\n⚠️ Recuerda hacer clic en "Guardar asignaciones" para guardar los cambios`,
+        "success"
+      );
+    }
 
     setShowRestrModal(false);
     setPendingAsignacion(null);
     setPendingNombre("");
   };
+  // 🆕 Confirmar asignaciones parciales acumuladas
+  const confirmarAsignacionesParciales = () => {
+    if (asignacionesParciales.length === 0) return;
+    
+    // Aplicar todas las asignaciones acumuladas
+    asignacionesParciales.forEach(({ invitado, numeroMesa, cantidadAsignar, nombre, restricciones, otra, tipoMenu }) => {
+      setAllElements((prev) =>
+        prev.map((el) =>
+          el.numero === numeroMesa &&
+          (el.type === "mesa" || el.type === "mesaRectangular")
+            ? {
+                ...el,
+                invitados: (el.invitados || 0) + cantidadAsignar,
+                invitadosEspeciales: invitado.necesidadEspecial
+                  ? (el.invitadosEspeciales || 0) + cantidadAsignar
+                  : el.invitadosEspeciales || 0,
+                assignedGuests: [
+                  ...(el.assignedGuests || []),
+                  {
+                    id: invitado.id,
+                    nombre,
+                    cantidad: cantidadAsignar,
+                    restricciones,
+                    otra,
+                    tipoMenu,
+                    necesidadEspecial: invitado.necesidadEspecial || false,
+                  },
+                ],
+              }
+            : el
+        )
+      );
+    });
+    
+    // Calcular cantidad total asignada
+    const totalAsignado = asignacionesParciales.reduce((sum, asig) => sum + asig.cantidadAsignar, 0);
+    const cantidadRestante = invitadoEnProceso.cantidadOriginal - totalAsignado;
+    
+    // Actualizar o eliminar invitado de la lista
+    if (cantidadRestante > 0) {
+      setInvitadosSinAsignar((prev) =>
+        prev.map((inv) =>
+          inv.id === invitadoEnProceso.id
+            ? { ...inv, cantidad: cantidadRestante }
+            : inv
+        )
+      );
+      
+      setInvitadosPendientes((prev) =>
+        prev.map((turno) =>
+          turno.invitado_id === invitadoEnProceso.id
+            ? { ...turno, cantidad_boletos: cantidadRestante }
+            : turno
+        )
+      );
+    } else {
+      setInvitadosSinAsignar((prev) =>
+        prev.filter((inv) => inv.id !== invitadoEnProceso.id)
+      );
+      
+      setInvitadosPendientes((prev) =>
+        prev.filter((turno) => turno.invitado_id !== invitadoEnProceso.id)
+      );
+    }
+    
+    mostrarNotificacion(
+      `✅ ${asignacionesParciales.length} asignaciones confirmadas\n\n` +
+      `${totalAsignado} personas de ${invitadoEnProceso.nombre}\n` +
+      (cantidadRestante > 0 ? `⚠️ Quedan ${cantidadRestante} personas por asignar` : "✓ Todas las personas asignadas") +
+      `\n\n⚠️ Recuerda hacer clic en "Guardar asignaciones" para guardar en el backend`,
+      "success"
+    );
+    
+    // Limpiar estados
+    setAsignacionesParciales([]);
+    setInvitadoEnProceso(null);
+  };
+  
+  // 🆕 Cancelar asignaciones parciales acumuladas
+  const cancelarAsignacionesParciales = () => {
+    setAsignacionesParciales([]);
+    setInvitadoEnProceso(null);
+    mostrarNotificacion("Asignaciones parciales descartadas", "info");
+  };
+  
+  // 🆕 Remover una asignación específica del panel
+  const removerAsignacionParcial = (index) => {
+    const asignacionRemovida = asignacionesParciales[index];
+    const nuevasAsignaciones = asignacionesParciales.filter((_, i) => i !== index);
+    
+    setAsignacionesParciales(nuevasAsignaciones);
+    
+    // Si no quedan asignaciones, limpiar invitadoEnProceso
+    if (nuevasAsignaciones.length === 0) {
+      setInvitadoEnProceso(null);
+    } else if (invitadoEnProceso) {
+      // Recalcular cantidad restante
+      const yaAsignado = nuevasAsignaciones
+        .filter(a => a.invitado.id === invitadoEnProceso.id)
+        .reduce((sum, a) => sum + a.cantidadAsignar, 0);
+      
+      setInvitadoEnProceso(prev => ({
+        ...prev,
+        cantidadRestante: prev.cantidadOriginal - yaAsignado
+      }));
+    }
+  };
+  
   // Guardar asignaciones en el backend
   const guardarAsignaciones = async () => {
     if (!eventoActual?.id) {
@@ -644,7 +1035,7 @@ export default function DistribuccionMonitor({
         (el.type === "mesa" || el.type === "mesaRectangular")
     );
     if (!mesa) {
-      alert(`Mesa ${numeroMesa} no encontrada`);
+      mostrarNotificacion(`Mesa ${numeroMesa} no encontrada`, "error");
       return;
     }
     setMesaSeleccionadaModal(mesa);
@@ -833,6 +1224,17 @@ export default function DistribuccionMonitor({
             onDoubleClick={() => openMesaModal(element.numero)}
             readOnly={false}
           />
+          
+          {/* 🆕 Selector de capacidad en la esquina superior derecha */}
+          <div className="absolute -top-2 -right-2 z-20">
+            <SelectorCapacidadMesa
+              mesa={element}
+              eventoId={eventoActual?.id}
+              onCapacidadCambiada={handleCapacidadCambiada}
+              configuracion={configuracionCapacidad}
+            />
+          </div>
+          
           {/* Overlay para mesas bloqueadas */}
           {estaBloqueada && (
             <div 
@@ -1096,6 +1498,80 @@ export default function DistribuccionMonitor({
         <div className="flex flex-col xl:flex-row gap-6 mt-6">
           {/* Lista de Invitados */}
           <div className="w-full xl:w-80 flex-shrink-0 space-y-4">
+            
+            {/* 🆕 Panel de asignaciones parciales acumuladas */}
+            {asignacionesParciales.length > 0 && invitadoEnProceso && (
+              <div className="bg-blue-50 dark:bg-blue-900/10 border-2 border-blue-300 dark:border-blue-700 rounded-lg px-4 py-3">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                    <Clock2 className="w-5 h-5" />
+                    <span className="font-semibold text-sm">
+                      Asignaciones Parciales
+                    </span>
+                  </div>
+                  <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                    {asignacionesParciales.reduce((total, a) => total + a.cantidadAsignar, 0)}/{invitadoEnProceso.cantidadOriginal}
+                  </div>
+                </div>
+
+                <div className="mb-2 px-3 py-2 bg-blue-100 dark:bg-blue-800/30 rounded">
+                  <p className="text-xs font-medium text-blue-900 dark:text-blue-100 truncate">
+                    {invitadoEnProceso.nombre}
+                  </p>
+                </div>
+                
+                {/* Lista de asignaciones */}
+                <div className="space-y-1.5 max-h-32 overflow-y-auto mb-3">
+                  {asignacionesParciales.map((asignacion, index) => (
+                    <div key={index} className="flex items-center justify-between bg-white dark:bg-gray-800 rounded px-2 py-1.5">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          Mesa {asignacion.numeroMesa}
+                        </span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                          {asignacion.cantidadAsignar} {asignacion.cantidadAsignar === 1 ? 'pers.' : 'pers.'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => removerAsignacionParcial(index)}
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                        title="Remover esta asignación"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Estado de boletos restantes */}
+                {invitadoEnProceso.cantidadRestante > 0 && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded px-2 py-1.5 mb-3">
+                    <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                      ⚠️ Quedan <strong>{invitadoEnProceso.cantidadRestante}</strong> por asignar
+                    </p>
+                  </div>
+                )}
+
+                {/* Botones de acción */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={confirmarAsignacionesParciales}
+                    className="bg-green-600 text-white px-4 py-1.5 rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center gap-2 flex-1 text-xs"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Confirmar
+                  </Button>
+                  <Button
+                    onClick={cancelarAsignacionesParciales}
+                    className="bg-red-600 text-white px-4 py-1.5 rounded-lg hover:bg-red-700 transition-colors font-semibold flex items-center gap-1.5 text-xs"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Descartar
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* 🔴 Panel de Invitados SIN SELECCIÓN (Principal) */}
             <div className="bg-fondoVs dark:bg-[#1a1a1a] py-6 px-3 rounded-lg shadow-sm border-2 border-orange-200 dark:border-orange-800">
               <div className="flex items-center justify-between mb-4">
@@ -1119,6 +1595,19 @@ export default function DistribuccionMonitor({
                       const esNoPresentado = turno.estado === 'NO_PRESENTADO';
                       const esEnCurso = turno.estado === 'EN_CURSO';
                       
+                      // Verificar si este invitado está en proceso de asignación parcial
+                      const enProcesoAsignacion = invitadoEnProceso && invitadoEnProceso.id === turno.invitado_id;
+                      
+                      // Si está en proceso y ya no tiene personas restantes, no lo mostramos temporalmente
+                      if (enProcesoAsignacion && invitadoEnProceso.cantidadRestante === 0) {
+                        return null;
+                      }
+
+                      // Calcular cantidad a mostrar (restante si está en proceso, original si no)
+                      const cantidadMostrar = enProcesoAsignacion 
+                        ? invitadoEnProceso.cantidadRestante 
+                        : turno.cantidad_boletos;
+                      
                       return (
                         <li 
                           key={turno.invitado_id}
@@ -1137,7 +1626,9 @@ export default function DistribuccionMonitor({
                           }}
                           onDragEnd={() => setActiveInvitado(null)}
                           className={`p-3 border rounded-lg cursor-move hover:shadow-md transition-all ${
-                            esNoPresentado 
+                            enProcesoAsignacion
+                              ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400 ring-2 ring-blue-300'
+                              : esNoPresentado 
                               ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 hover:border-red-400'
                               : esEnCurso
                               ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 hover:border-blue-400'
@@ -1146,7 +1637,9 @@ export default function DistribuccionMonitor({
                         >
                           <div className="flex items-start gap-2">
                             <div className={`w-2 h-2 mt-1.5 rounded-full ${
-                              esNoPresentado 
+                              enProcesoAsignacion
+                                ? 'bg-blue-500 animate-pulse'
+                                : esNoPresentado 
                                 ? 'bg-red-500'
                                 : esEnCurso 
                                 ? 'bg-blue-500 animate-pulse' 
@@ -1159,7 +1652,17 @@ export default function DistribuccionMonitor({
                                     {turno.invitado_nombre || `Invitado #${turno.invitado_numero}`}
                                   </p>
                                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                                    {turno.cantidad_boletos} {turno.cantidad_boletos === 1 ? 'persona' : 'personas'} • Turno #{turno.turno_numero}
+                                    {enProcesoAsignacion && (
+                                      <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                                        {cantidadMostrar} restante{cantidadMostrar !== 1 ? 's' : ''} de {turno.cantidad_boletos} •{' '}
+                                      </span>
+                                    )}
+                                    {!enProcesoAsignacion && (
+                                      <span>
+                                        {cantidadMostrar} {cantidadMostrar === 1 ? 'persona' : 'personas'} •{' '}
+                                      </span>
+                                    )}
+                                    Turno #{turno.turno_numero}
                                   </p>
                                 </div>
                                 {esNoPresentado && (
@@ -1256,51 +1759,14 @@ export default function DistribuccionMonitor({
                 )}
               </div>
             </div>
-
-            {/* Panel de Invitados sin Asignar */}
-            {/* <div className="bg-fondoVs dark:bg-[#1a1a1a] py-6 px-3 rounded-lg shadow-sm">
-              <p className="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-300 flex items-center justify-between gap-2">
-                Invitados sin Asignar
-                <span className="text-sm text-gray-500 font-normal">
-                  ({totalPersonasSinAsignar} personas)
-                </span>
-              </p>
-
-              <div className="max-h-[32rem] overflow-y-auto">
-                {invitadosSinAsignar.length > 0 ? (
-                  <ul className="space-y-3">
-                    {invitadosSinAsignar.map((invitado) => (
-                      <li key={invitado.id}>
-                        <InvitadoDraggable invitado={invitado} />
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-4xl mb-2">🎉</div>
-                    <p className="font-medium">
-                      ¡Todos los invitados asignados!
-                    </p>
-                    <p className="text-sm">Perfecta distribución</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 p-3 bg-white dark:bg-black border border-gray-200 rounded-lg">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  Arrastra los invitados a las mesas del plano para asignar
-                  lugares.
-                </p>
-              </div>
-            </div> */}
           </div>
 
           {/* Plano del Salón */}
           <div className="flex-1 min-w-0">
-            <div className=" overflow-hiddenrounded-md">
+            <div className="overflow-hidden rounded-md">
               <div className="p-4 border-b rounded-t-lg border-gray-100 flex justify-between items-center bg-fondoVs dark:bg-[#1a1a1a]">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                  Plano del Salón - "Jardín Romántico"
+                  Plano del Salón{salon?.nombre ? ` - "${salon.nombre}"` : ''}
                 </h3>
                 <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-1">
                   <p className="text-blue-800 dark:text-blue-300 text-sm font-medium">
@@ -1470,6 +1936,46 @@ export default function DistribuccionMonitor({
                   </div>
                 </div>
               </div>
+
+              {/* Panel de Cuotas/Capacidades - Después de estadísticas (Desplegable) */}
+              <div className="mt-4">
+                <div 
+                  key={`panel-capacidades-${configuracionCapacidad.mesas_aumentadas}`}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+                >
+                  {/* Header clickeable */}
+                  <button
+                    onClick={() => setPanelCapacidadesAbierto(!panelCapacidadesAbierto)}
+                    className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-700 dark:text-gray-200">
+                        Configuración de Capacidades
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        ({calcularMesasAumentadas()}/{configuracionCapacidad.mesas_pueden_aumentar} mesas aumentadas)
+                      </span>
+                    </div>
+                    {panelCapacidadesAbierto ? (
+                      <ChevronUp className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                    )}
+                  </button>
+                  
+                  {/* Contenido desplegable */}
+                  {panelCapacidadesAbierto && (
+                    <div className="border-t border-gray-200 dark:border-gray-700">
+                      <PanelCuotasCapacidades
+                        elementos={allElements}
+                        onConfiguracionActualizada={() => {}}
+                        modoEdicion={false}
+                        configuracionInicial={configuracionCapacidad}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1484,6 +1990,7 @@ export default function DistribuccionMonitor({
           }}
           invitado={pendingAsignacion?.invitado}
           mesaNumero={pendingAsignacion?.numeroMesa}
+          cantidadPersonasEspecifica={pendingAsignacion?.cantidadAsignar}
           restricciones={restricciones}
           setRestricciones={setRestricciones}
           otra={otra}
@@ -1778,6 +2285,34 @@ export default function DistribuccionMonitor({
           </div>
         </div>
       )}
+
+      {/* 🎨 Diálogos personalizados */}
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        onClose={handleConfirmClose}
+        onConfirm={confirmState.resolver}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+      />
+
+      <PromptDialog
+        isOpen={promptState.isOpen}
+        onClose={handlePromptClose}
+        onSubmit={handlePromptSubmit}
+        title={promptState.title}
+        message={promptState.message}
+        placeholder={promptState.placeholder}
+        defaultValue={promptState.defaultValue}
+        inputType={promptState.inputType}
+        min={promptState.min}
+        max={promptState.max}
+        confirmText={promptState.confirmText}
+        cancelText={promptState.cancelText}
+        validation={promptState.validation}
+      />
     </div>
   );
 }

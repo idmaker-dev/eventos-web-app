@@ -183,14 +183,27 @@ export default function Asignacion() {
         // Modo monitor: solo visualización
         console.log("📺 Modo monitor");
         const result = await cargarLayout();
+        console.log("Resultado: ", result);
+        
         if (result && result.success) {
+          console.log("📋 Layout cargado para monitor:", result.data?.layout);
           elementosCargados = result.data?.layout?.elementos || [];
           console.log("📋 Elementos cargados para monitor:", elementosCargados.length);
+          
+          // 🆕 Layout completo con distribucion_capacidades para monitor
+          const layoutCompleto = {
+            elementos: elementosCargados,
+            distribucion_capacidades: result.data?.layout?.distribucion_capacidades || null,
+            configuracion_lugar_base_nombre: result.data?.layout?.configuracion_lugar_base_nombre
+          };
+          
           setAllElements(elementosCargados);
           setNombreSalon(result.data?.layout?.configuracion_lugar_base_nombre || "");
           setContadores(calcularContadoresDesdeElementos(elementosCargados));
           setLayoutGuardado(true);
-          setLayoutFinal(result.data?.layout);
+          setLayoutFinal(layoutCompleto); // 🆕 Layout con metadata
+          
+          console.log("📥 Layout completo para monitor:", layoutCompleto);
         } else {
           showError("No se pudo cargar el layout del evento");
           return;
@@ -210,12 +223,21 @@ export default function Asignacion() {
           if (result && result.success) {
             elementosCargados = result.data?.layout?.elementos || [];
             console.log("📋 Elementos cargados tras asignación:", elementosCargados.length, elementosCargados);
+            
+            // 🆕 Layout con distribucion_capacidades de la configuración base
+            const layoutCompleto = {
+              elementos: elementosCargados,
+              distribucion_capacidades: result.data?.layout?.distribucion_capacidades || null
+            };
+            
             setAllElements(elementosCargados);
             setNombreSalon(result.data?.layout?.configuracion_lugar_base_nombre || "");
             setContadores(calcularContadoresDesdeElementos(elementosCargados));
             setLayoutGuardado(false);
-            setLayoutFinal(null);
+            setLayoutFinal(layoutCompleto); // 🆕 Layout con metadata
             setInvitados(getInvitadosIniciales());
+            
+            console.log("📥 Layout tras asignación:", layoutCompleto);
           } else {
             showError("No se pudo cargar el layout asignado");
             return;
@@ -236,12 +258,20 @@ export default function Asignacion() {
           console.log("📦 Estructura completa del layout:", result.data?.layout);
           console.log("🎨 Elementos individuales:", elementosCargados);
           
+          // 🆕 Cargar layout completo con distribucion_capacidades
+          const layoutCompleto = {
+            elementos: elementosCargados,
+            distribucion_capacidades: result.data?.layout?.distribucion_capacidades || null
+          };
+          
           setAllElements(elementosCargados);
           setContadores(calcularContadoresDesdeElementos(elementosCargados));
           setNombreSalon(result.data?.layout?.configuracion_lugar_base_nombre || "");
           setLayoutGuardado(false);
-          setLayoutFinal(null);
+          setLayoutFinal(layoutCompleto); // 🆕 Pasar layout con metadata
           setInvitados(getInvitadosIniciales());
+          
+          console.log("📥 Layout completo para personalizar:", layoutCompleto);
         } else {
           console.error("❌ Error al cargar layout:", result);
           showError("No se pudo cargar el layout para personalizar");
@@ -316,9 +346,10 @@ export default function Asignacion() {
         <DistribuccionMonitor
           allElements={allElements}
           setAllElements={setAllElements}
-          salon={layoutFinal}
+          salon={{ nombre: nombreSalon }}
           invitados={invitados}
           setInvitados={setInvitados}
+          layoutFinal={layoutFinal}
         />
       ) : (
         <DistribuccionEditor

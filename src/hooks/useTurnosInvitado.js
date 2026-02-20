@@ -40,6 +40,9 @@ export default function useTurnosInvitado(eventoId, invitadoId, options = {}) {
 
   // Estado del invitado (viene de obtenerMiTurno)
   const [invitado, setInvitado] = useState(null);
+  
+  // Configuración de turnos (tipos de menú, restricciones, etc.)
+  const [configuracionTurnos, setConfiguracionTurnos] = useState(null);
 
   // Estados de carga y errores
   const [loading, setLoading] = useState(true);
@@ -177,6 +180,27 @@ export default function useTurnosInvitado(eventoId, invitadoId, options = {}) {
   }, [eventoId, invitadoId]);
 
   /**
+   * Cargar configuración de turnos del evento
+   */
+  const cargarConfiguracion = useCallback(async () => {
+    if (!eventoId) return;
+
+    try {
+      const response = await turnosService.obtenerConfiguracion(eventoId);
+      console.log('📋 [useTurnosInvitado] Configuración recibida:', response);
+
+      if (response.success && response.data) {
+        console.log('📋 [useTurnosInvitado] tipos_menu:', response.data.tipos_menu);
+        setConfiguracionTurnos(response.data);
+      } else {
+        console.log('📋 [useTurnosInvitado] No hay configuración disponible');
+      }
+    } catch (err) {
+      console.error("Error al cargar configuración de turnos:", err);
+    }
+  }, [eventoId]);
+
+  /**
    * Cargar selección actual del invitado
    */
   const cargarSeleccion = useCallback(async () => {
@@ -264,12 +288,14 @@ export default function useTurnosInvitado(eventoId, invitadoId, options = {}) {
       verificarAccesoActual(),
       cargarSeleccion(),
       cargarEstadoOcupacion(),
+      cargarConfiguracion(),
     ]);
   }, [
     cargarTurno,
     verificarAccesoActual,
     cargarSeleccion,
     cargarEstadoOcupacion,
+    cargarConfiguracion,
   ]);
 
   // Efecto: Carga inicial
@@ -338,6 +364,7 @@ export default function useTurnosInvitado(eventoId, invitadoId, options = {}) {
     tiempoRestante, // En segundos
     seleccion,
     estadoOcupacion,
+    configuracionTurnos, // Configuración de turnos (tipos_menu, restricciones, etc.)
 
     // Estados
     loading,

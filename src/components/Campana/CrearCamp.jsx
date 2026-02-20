@@ -94,9 +94,9 @@ export default function CrearCamp({
       <div className="fixed inset-0 bg-casal/20 backdrop-blur-sm" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel className="w-full max-w-2xl bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl border-2 border-Acapulco max-h-[90vh] overflow-y-auto">
-          <div className="flex">
-            <div className="bg-casal min-h-full rounded-l-2xl w-32 flex-shrink-0">
-              <img src={TextF} alt="Crear Automatización" className="p-6" />
+          <div className="flex-col md:flex-row flex">
+            <div className="bg-casal md:min-h-full md:rounded-l-2xl w-full md:w-32 flex-shrink-0">
+              <img src={TextF} alt="Crear Automatización" className="p-6 mx-auto w-36 md:w-72" />
             </div>
             <div className="p-6 w-full">
               <div>
