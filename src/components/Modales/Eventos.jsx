@@ -7,7 +7,8 @@ import {
   Input,
   Select,
 } from "@headlessui/react";
-import { ChevronDown, CircleX } from "lucide-react";
+import { ChevronDown, CircleX, CircleHelp } from "lucide-react";
+import { Tooltip } from "../ui/Tooltip";
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
 import Confirmacion from "../../assets/recursos/confirmacionAsientos.svg";
@@ -29,7 +30,8 @@ export default function Eventos({ open, onClose }) {
     nombreEvento: "",
     lugar_id: "",
     fechaHora: "",
-    cantidadAsistentes: "",
+    cantidadMaximaAsistentes: "",
+    cantidadMinimaAsistentes: "",
     responsable: "",
     costo: "",
     fechas: [],
@@ -103,7 +105,8 @@ export default function Eventos({ open, onClose }) {
       nombreEvento: "",
       lugar_id: "",
       fechaHora: "",
-      cantidadAsistentes: "",
+      cantidadMaximaAsistentes: "",
+      cantidadMinimaAsistentes: "",
       responsable: "",
       costo: "",
       fechas: [],
@@ -155,7 +158,7 @@ export default function Eventos({ open, onClose }) {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="mb-3">
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
                           Nombre de la escuela o institución
@@ -174,8 +177,11 @@ export default function Eventos({ open, onClose }) {
                         />
                       </div>
                       <div className="mb-3">
-                        <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
+                        <label className="flex items-center gap-2 text-sm font-semibold text-[#246370] dark:text-gray-300">
                           Licenciatura o especialidad
+                          <Tooltip content="Si hay más de uno, sepárelos con comas.">
+                            <CircleHelp size={16} className="cursor-help" />
+                          </Tooltip>
                         </label>
                         <Input
                           value={formData.licenciatura}
@@ -247,7 +253,7 @@ export default function Eventos({ open, onClose }) {
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="mb-3">
+                      {/* <div className="mb-3">
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
                           Fecha y hora del evento
                         </label>
@@ -258,17 +264,40 @@ export default function Eventos({ open, onClose }) {
                           }
                           placeholder="Seleccionar fecha y hora del evento"
                         />
-                      </div>
+                      </div> */}
                       <div className="mb-3">
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
-                          Cantidad estimada de asistentes
+                          Cantidad de asistentes maximo permitido
                         </label>
                         <Input
                           type="number"
-                          value={formData.cantidadAsistentes}
+                          value={formData.cantidadMaximaAsistentes}
                           onChange={(e) =>
                             handleInputChange(
-                              "cantidadAsistentes",
+                              "cantidadMaximaAsistentes",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Ejemplo: 150, 300, 500..."
+                          min="1"
+                          max="10000"
+                          className={clsx(
+                            "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                            "placeholder:italic",
+                            "focus:not-data-focus:outline-none data-focus:outline-2 data-focus:-outline-offset-2 data-focus:outline-white/25"
+                          )}
+                        />
+                      </div>
+                      <div className="mb-3">
+                        <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
+                          Cantidad minima de asistentes
+                        </label>
+                        <Input
+                          type="number"
+                          value={formData.cantidadMinimaAsistentes}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "cantidadMinimaAsistentes",
                               e.target.value
                             )
                           }
@@ -286,6 +315,18 @@ export default function Eventos({ open, onClose }) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="mb-3">
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
+                          Fecha y hora del evento
+                        </label>
+                        <DateTimePicker
+                          value={formData.fechaHora}
+                          onChange={(value) =>
+                            handleInputChange("fechaHora", value)
+                          }
+                          placeholder="Seleccionar fecha y hora del evento"
+                        />
+                      </div>
+                      <div className="mb-3">
+                        <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
                           Responsable o coordinador del evento
                         </label>
                         <Input
@@ -301,6 +342,8 @@ export default function Eventos({ open, onClose }) {
                           )}
                         />
                       </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="mb-3">
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
                           Precio
@@ -318,8 +361,6 @@ export default function Eventos({ open, onClose }) {
                           )}
                         />
                       </div>
-                    </div>
-                    <div className="mb-3">
                       <div className="px-4 py-2 border-2 rounded-2xl bg-white dark:bg-[#23272f] border-[#bcd6e4]">
                         <label className="flex items-center gap-3 cursor-pointer">
                           <input

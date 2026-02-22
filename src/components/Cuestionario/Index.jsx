@@ -6,9 +6,9 @@ import IconCuestionario from "../../assets/recursos/IconoCuestionario.svg";
 import confirmacionWhatsapp from "../../assets/recursos/ConfirmacionWhastapp.svg";
 import SolicitudCodigo from "../../assets/recursos/solicitudCodigo.svg";
 import CuestionarioCreado from "../../assets/recursos/CUESTIONARIO_CREADO.svg";
-import { Button, Field, Input, Label } from "@headlessui/react";
+import { Button, Field, Input, Label, Select } from "@headlessui/react";
 import clsx from "clsx";
-import { RotateCcw, AlertCircle } from "lucide-react";
+import { RotateCcw, AlertCircle, ChevronDown } from "lucide-react";
 import { useCuestionario } from "../../hooks/useCuestionario";
 import eventService from "../../services/eventService";
 import { whatsappService, codigoVerificacionService } from "../../services";
@@ -60,6 +60,7 @@ export default function Cuestionario() {
 
   const [event, setEvent] = useState(null);
   const [code, setCode] = useState("");
+  const [licenciaturas, setLicenciaturas] = useState([]);
   // const [restricciones, setRestricciones] = useState({
   //   vegetariano: 0,
   //   vegano: 0,
@@ -69,6 +70,10 @@ export default function Cuestionario() {
   // const [otra, setOtra] = useState("");
   const [pasoActual, setPasoActual] = useState(0);
   const [nombre, setNombre] = useState("");
+  const [apellidoPaterno, setApellidoPaterno] = useState("");
+  const [apellidoMaterno, setApellidoMaterno] = useState("");
+  const [licenciatura, setLicenciatura] = useState("");
+  const [correo, setCorreo] = useState("");
   const [carrera, setCarrera] = useState("");
   const [escuela, setEscuela] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -77,6 +82,7 @@ export default function Cuestionario() {
   const [nombreTutor, setNombreTutor] = useState("");
   const [apellidoPaternoTutor, setApellidoPaternoTutor] = useState("");
   const [apellidoMaternoTutor, setApellidoMaternoTutor] = useState("");
+  const [fechaNacimientoTutor, setFechaNacimientoTutor] = useState("");
   const [correoTutor, setCorreoTutor] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [fechaNacimiento, setFechaNacimiento] = useState("");
@@ -105,6 +111,7 @@ export default function Cuestionario() {
       eventService.getEventCuestionario(eventId).then((res) => {
         if (res.success) {
           setEvent(res.event);
+          setLicenciaturas(res.event?.licenciatura?.split(",").map((l) => l.trim()));
           console.log(res.event);
         }
       });
@@ -203,12 +210,14 @@ export default function Cuestionario() {
     try {
       const response = await codigoVerificacionService.verificarCodigo(
         telefono,
-        code
+        code,
       );
 
       if (response.success) {
         setCodigoVerificado(true);
-        showSuccess("Teléfono verificado correctamente. Ahora puedes enviar el formulario.");
+        showSuccess(
+          "Teléfono verificado correctamente. Ahora puedes enviar el formulario.",
+        );
       }
     } catch (error) {
       console.error("Error al verificar código:", error);
@@ -217,14 +226,14 @@ export default function Cuestionario() {
       if (error.message.includes("máximo de intentos")) {
         setIntentosRestantes(0);
         showError(
-          "Has alcanzado el máximo de intentos. Solicita un nuevo código."
+          "Has alcanzado el máximo de intentos. Solicita un nuevo código.",
         );
       } else if (error.message.includes("expirado")) {
         showError("El código ha expirado. Solicita un nuevo código.");
       } else if (error.message.includes("incorrecto")) {
         setIntentosRestantes((prev) => Math.max(0, prev - 1));
         showError(
-          `Código incorrecto. Te quedan ${intentosRestantes - 1} intentos.`
+          `Código incorrecto. Te quedan ${intentosRestantes - 1} intentos.`,
         );
       } else {
         showError(error.message);
@@ -255,6 +264,23 @@ export default function Cuestionario() {
     // Validar campos básicos
     if (!nombre.trim())
       nuevosErrores.nombre = "El nombre completo es obligatorio";
+
+    if (!apellidoPaterno.trim())
+      nuevosErrores.apellidoPaterno = "El apellido paterno es obligatorio";
+
+    if (!apellidoMaterno.trim())
+      nuevosErrores.apellidoMaterno = "El apellido materno es obligatorio";
+
+    if (!correo.trim())
+      nuevosErrores.correo = "El correo electrónico es obligatorio";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+      nuevosErrores.correo = "El correo electrónico no es válido";
+    }
+
+    if (licenciaturas.length > 1 && !licenciatura.trim()) {
+      nuevosErrores.licenciatura = "La licenciatura es obligatoria";
+    }
+
     // if (!carrera.trim()) nuevosErrores.carrera = "La carrera es obligatoria";
     // if (!escuela.trim())
     //   nuevosErrores.escuela = "La escuela o institución es obligatoria";
@@ -267,7 +293,7 @@ export default function Cuestionario() {
     // Validar teléfono y código
     if (!telefono.trim())
       nuevosErrores.telefono = "El número de teléfono es obligatorio";
-    
+
     if (!codigoVerificado)
       nuevosErrores.codigoVerificado = "Debes verificar tu número de teléfono";
 
@@ -288,6 +314,18 @@ export default function Cuestionario() {
         nuevosErrores.correoTutor = "El correo del tutor es obligatorio";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoTutor)) {
         nuevosErrores.correoTutor = "El correo electrónico no es válido";
+      }
+
+      // Validar fecha de nacimiento del tutor
+      if (!fechaNacimientoTutor) {
+        nuevosErrores.fechaNacimientoTutor =
+          "La fecha de nacimiento del tutor es obligatoria";
+      } else {
+        const edad = calcularEdad(fechaNacimientoTutor);
+        if (edad < 18) {
+          nuevosErrores.fechaNacimientoTutor =
+            "El tutor debe ser mayor de edad";
+        }
       }
     }
 
@@ -320,7 +358,11 @@ export default function Cuestionario() {
       id_evento: eventId,
       numero: telefono,
       nombre_completo: nombre,
-      licenciatura: carrera,
+      apellido_paterno: apellidoPaterno,
+      apellido_materno: apellidoMaterno,
+      licenciatura: licenciatura,
+      correo: correo,
+      // licenciatura: carrera,
       instituto: escuela,
       cantidad_boletos: parseInt(boletos) || 0,
       // contacto_emergencias: contactoEmergencia,
@@ -329,6 +371,7 @@ export default function Cuestionario() {
         nombre: nombreTutor,
         apellidoPaterno: apellidoPaternoTutor,
         apellidoMaterno: apellidoMaternoTutor,
+        fecha_nacimiento: fechaNacimientoTutor,
         correo: correoTutor,
         numero_contacto: contactoEmergencia,
       },
@@ -358,13 +401,13 @@ export default function Cuestionario() {
         } catch (whatsappError) {
           console.error(
             "Error al enviar confirmación por WhatsApp:",
-            whatsappError
+            whatsappError,
           );
           // No mostramos error al usuario ya que el registro fue exitoso
         }
 
         showSuccess("¡Registro completado exitosamente!");
-        
+
         // Redirigir a la página de firma de contrato
         setTimeout(() => {
           navigate(`/firma-contrato/${res.invitado.id}`);
@@ -409,8 +452,9 @@ export default function Cuestionario() {
                   className="w-20 h-auto mx-auto"
                 />
                 <h1 className="text-3xl font-semibold mt-4 text-center text-dark-sienna mb-6 text-casal">
-                  {`Cuestionario de Registro ${event?.instituto || "Instituto Villa Rica"
-                    }`}
+                  {`Cuestionario de Registro ${
+                    event?.instituto || "Instituto Villa Rica"
+                  }`}
                 </h1>
                 <h1 className="text-xl font-semibold mt-4 text-center text-gray-800 mb-6 text-grey-800">
                   {event?.nombre_evento ||
@@ -441,80 +485,205 @@ export default function Cuestionario() {
                 </div>
                 <div className="w-full mx-auto mt-6">
                   <Field>
-                    <div className="mb-3">
-                      <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
-                        Nombre completo
-                      </Label>
-                      <Input
-                        type="text"
-                        value={nombre}
-                        onChange={(e) => {
-                          setNombre(e.target.value);
-                          limpiarError("nombre");
-                        }}
-                        className={clsx(
-                          "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
-                          "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
-                          errores.nombre ? "border-red-500" : ""
-                        )}
-                        placeholder="Tu Respuesta"
-                      />
-                      {errores.nombre && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errores.nombre}
-                        </p>
-                      )}
-                    </div>
-                    <div className="mb-3">
-                      <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
-                        Fecha de nacimiento
-                      </Label>
-                      <Input
-                        type="date"
-                        value={fechaNacimiento}
-                        onChange={(e) => {
-                          setFechaNacimiento(e.target.value);
-                          limpiarError("fechaNacimiento");
-                        }}
-                        className={clsx(
-                          "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
-                          errores.fechaNacimiento ? "border-red-500" : ""
-                        )}
-                      />
-                      {errores.fechaNacimiento && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errores.fechaNacimiento}
-                        </p>
-                      )}
-
-                      {/* Checkbox para menor de edad */}
-                      {fechaNacimiento && !esMayorDeEdad && (
-                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                          <label className="flex items-start gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={aceptaResponsabilidadTutor}
-                              onChange={(e) => {
-                                setAceptaResponsabilidadTutor(e.target.checked);
-                                limpiarError("aceptaResponsabilidadTutor");
-                              }}
-                              className="mt-1 w-4 h-4 text-casal border-gray-300 rounded focus:ring-casal"
-                            />
-                            <span className="text-sm text-gray-700">
-                              Confirmo que un tutor legal se hará responsable
-                            </span>
-                          </label>
-                          {errores.aceptaResponsabilidadTutor && (
-                            <p className="text-red-500 text-sm mt-1 ml-6">
-                              {errores.aceptaResponsabilidadTutor}
-                            </p>
+                    <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                      Datos del graduado
+                    </Label>
+                    <div className="p-4 border-2 rounded-2xl bg-white/30 border-[#bcd6e4] grid grid-cols-1 lg:grid-cols-6 gap-2">
+                      <div className="mb-3 lg:col-span-2">
+                        <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                          Nombre (s)
+                        </Label>
+                        <Input
+                          type="text"
+                          value={nombre}
+                          onChange={(e) => {
+                            setNombre(e.target.value);
+                            limpiarError("nombre");
+                          }}
+                          className={clsx(
+                            "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                            "placeholder:italic",
+                            "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                            errores.nombre ? "border-red-500" : "",
                           )}
+                          placeholder="Tu Respuesta"
+                        />
+                        {errores.nombre && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errores.nombre}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="mb-3 lg:col-span-2">
+                        <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                          Apellido paterno
+                        </Label>
+                        <Input
+                          type="text"
+                          value={apellidoPaterno}
+                          onChange={(e) => {
+                            setApellidoPaterno(e.target.value);
+                            limpiarError("apellidoPaterno");
+                          }}
+                          className={clsx(
+                            "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                            "placeholder:italic",
+                            "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                            errores.nombre ? "border-red-500" : "",
+                          )}
+                          placeholder="Tu Respuesta"
+                        />
+                        {errores.nombre && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errores.nombre}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="mb-3 lg:col-span-2">
+                        <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                          Apellido materno
+                        </Label>
+                        <Input
+                          type="text"
+                          value={apellidoMaterno}
+                          onChange={(e) => {
+                            setApellidoMaterno(e.target.value);
+                            limpiarError("apellidoMaterno");
+                          }}
+                          className={clsx(
+                            "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                            "placeholder:italic",
+                            "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                            errores.apellidoMaterno ? "border-red-500" : "",
+                          )}
+                          placeholder="Tu Respuesta"
+                        />
+                        {errores.nombre && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errores.nombre}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="mb-3 lg:col-span-6">
+                        <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                          Fecha de nacimiento
+                        </Label>
+                        <Input
+                          type="date"
+                          value={fechaNacimiento}
+                          onChange={(e) => {
+                            setFechaNacimiento(e.target.value);
+                            limpiarError("fechaNacimiento");
+                          }}
+                          className={clsx(
+                            "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                            "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                            errores.fechaNacimiento ? "border-red-500" : "",
+                          )}
+                        />
+                        {errores.fechaNacimiento && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errores.fechaNacimiento}
+                          </p>
+                        )}
+
+                        {/* Checkbox para menor de edad */}
+                        {fechaNacimiento && !esMayorDeEdad && (
+                          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <label className="flex items-start gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={aceptaResponsabilidadTutor}
+                                onChange={(e) => {
+                                  setAceptaResponsabilidadTutor(
+                                    e.target.checked,
+                                  );
+                                  limpiarError("aceptaResponsabilidadTutor");
+                                }}
+                                className="mt-1 w-4 h-4 text-casal border-gray-300 rounded focus:ring-casal"
+                              />
+                              <span className="text-sm text-gray-700">
+                                Confirmo que un tutor legal se hará responsable
+                              </span>
+                            </label>
+                            {errores.aceptaResponsabilidadTutor && (
+                              <p className="text-red-500 text-sm mt-1 ml-6">
+                                {errores.aceptaResponsabilidadTutor}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mb-3 lg:col-span-6">
+                        <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                          Correo electrónico personal (No institucional)
+                        </Label>
+                        <Input
+                          type="email"
+                          value={correo}
+                          onChange={(e) => {
+                            setCorreo(e.target.value);
+                            limpiarError("correo");
+                          }}
+                          className={clsx(
+                            "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                            "placeholder:italic",
+                            "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                            errores.correo ? "border-red-500" : "",
+                          )}
+                          placeholder="correo@ejemplo.com"
+                        />
+                        {errores.correo && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errores.correo}
+                          </p>
+                        )}
+                      </div>
+
+                      {licenciaturas.length > 1 && (
+                        <div className="mb-3 lg:col-span-6">
+                          <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
+                            Licenciatura o especialidad
+                          </label>
+                          <div className="">
+                            <Select
+                              value={licenciatura}
+                              onChange={(e) => setLicenciatura(e.target.value)}
+                              // disabled={isLoadingLugares}
+                              className={clsx(
+                                "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                                "placeholder:italic",
+                                "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                                errores.licenciatura ? "border-red-500" : "",
+                              )}
+                            >
+                              <option value="">
+                                {"Seleccionar licenciatura"}
+                              </option>
+                              {licenciaturas.map((licenciatura) => (
+                                <option key={licenciatura} value={licenciatura}>
+                                  {licenciatura}
+                                </option>
+                              ))}
+                            </Select>
+                            <ChevronDown
+                              className="group pointer-events-none absolute top-2.5 right-2.5 size-4 fill-white/60"
+                              aria-hidden="true"
+                            />
+                            {errores.licenciatura && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {errores.licenciatura}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       )}
-                    </div>
-                    {/* <div className="mb-3">
+
+                      {/* <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
                         Carrera o estudios o realizados
                       </Label>
@@ -564,35 +733,36 @@ export default function Cuestionario() {
                         </p>
                       )}
                     </div> */}
-                    <div className="mb-3">
-                      <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
-                        Cantidad de boletos requeridos
-                      </Label>
-                      <Input
-                        type="number"
-                        value={boletos}
-                        onChange={(e) => {
-                          setBoletos(e.target.value);
-                          limpiarError("boletos");
-                        }}
-                        min={1}
-                        max={8}
-                        className={clsx(
-                          "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
-                          "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
-                          errores.boletos ? "border-red-500" : ""
+                      <div className="mb-3 lg:col-span-6">
+                        <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                          Número aproximado de boletos a solicitar con graduado
+                          incluido
+                        </Label>
+                        <Input
+                          type="number"
+                          value={boletos}
+                          onChange={(e) => {
+                            setBoletos(e.target.value);
+                            limpiarError("boletos");
+                          }}
+                          min={1}
+                          max={8}
+                          className={clsx(
+                            "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                            "placeholder:italic",
+                            "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                            errores.boletos ? "border-red-500" : "",
+                          )}
+                          placeholder="Tu Respuesta"
+                        />
+                        {errores.boletos && (
+                          <p className="text-red-500 text-sm mt-1">
+                            {errores.boletos}
+                          </p>
                         )}
-                        placeholder="Tu Respuesta"
-                      />
-                      {errores.boletos && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errores.boletos}
-                        </p>
-                      )}
-                    </div>
-                    {/* RESTRICCIONES ALIMENTICIAS - COMENTADO TEMPORALMENTE */}
-                    {/* <div className="mb-3">
+                      </div>
+                      {/* RESTRICCIONES ALIMENTICIAS - COMENTADO TEMPORALMENTE */}
+                      {/* <div className="mb-3">
                       <Label className="text-sm/6">
                         <span className="text-casal font-semibold dark:text-towerGray">
                           Restricciones alimenticias
@@ -654,7 +824,7 @@ export default function Cuestionario() {
                         />
                       </div>
                     </div> */}
-                    {/* <div className="mb-3">
+                      {/* <div className="mb-3">
                       <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
                         Contacto de emergencia
                       </Label>
@@ -677,15 +847,17 @@ export default function Cuestionario() {
                         <p className="text-red-500 text-sm mt-1">{errores.contactoEmergencia}</p>
                       )}
                     </div> */}
+                    </div>
+
                     {tutorRequerido && (
-                      <div className="mb-3">
+                      <div className="mb-3 mt-5">
                         <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
                           Datos del tutor o responsable
                         </Label>
                         <div className="p-4 border-2 rounded-2xl bg-white/30 border-[#bcd6e4] grid grid-cols-1 lg:grid-cols-3 gap-2">
                           <div className="mb-3">
                             <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
-                              Nombre completo
+                              Nombre (s)
                             </Label>
                             <Input
                               type="text"
@@ -698,7 +870,7 @@ export default function Cuestionario() {
                                 "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6  text-gray-700",
                                 "placeholder:italic",
                                 "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
-                                errores.nombreTutor ? "border-red-500" : ""
+                                errores.nombreTutor ? "border-red-500" : "",
                               )}
                               placeholder="Nombre(s) de la persona responsable"
                             />
@@ -725,7 +897,7 @@ export default function Cuestionario() {
                                 "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
                                 errores.apellidoPaternoTutor
                                   ? "border-red-500"
-                                  : ""
+                                  : "",
                               )}
                               placeholder="Apellido paterno de la persona responsable"
                             />
@@ -752,7 +924,7 @@ export default function Cuestionario() {
                                 "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
                                 errores.apellidoMaternoTutor
                                   ? "border-red-500"
-                                  : ""
+                                  : "",
                               )}
                               placeholder="Apellido materno de la persona responsable"
                             />
@@ -762,7 +934,7 @@ export default function Cuestionario() {
                               </p>
                             )}
                           </div>
-                          <div className="mb-3 lg:col-span-3">
+                          <div className="mb-3 lg:col-span-6">
                             <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
                               Correo electrónico del tutor
                             </Label>
@@ -777,7 +949,7 @@ export default function Cuestionario() {
                                 "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6  text-gray-700",
                                 "placeholder:italic",
                                 "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
-                                errores.correoTutor ? "border-red-500" : ""
+                                errores.correoTutor ? "border-red-500" : "",
                               )}
                               placeholder="correo@ejemplo.com"
                             />
@@ -787,9 +959,34 @@ export default function Cuestionario() {
                               </p>
                             )}
                           </div>
+                          <div className="mb-3 lg:col-span-6">
+                            <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
+                              Fecha de nacimiento del tutor
+                            </Label>
+                            <Input
+                              type="date"
+                              value={fechaNacimientoTutor}
+                              onChange={(e) => {
+                                setFechaNacimientoTutor(e.target.value);
+                                limpiarError("fechaNacimientoTutor");
+                              }}
+                              className={clsx(
+                                "mt-2 block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
+                                "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
+                                errores.fechaNacimientoTutor
+                                  ? "border-red-500"
+                                  : "",
+                              )}
+                            />
+                            {errores.fechaNacimientoTutor && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {errores.fechaNacimientoTutor}
+                              </p>
+                            )}
+                          </div>
                           <div className="mb-3 lg:col-span-3">
                             <Label className="text-sm/6 font-semibold text-casal dark:text-gray-200">
-                              Numero de contacto
+                              Teléfono
                             </Label>
                             <Input
                               type="text"
@@ -804,7 +1001,7 @@ export default function Cuestionario() {
                                 "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
                                 errores.contactoEmergencia
                                   ? "border-red-500"
-                                  : ""
+                                  : "",
                               )}
                               placeholder="Tu Respuesta"
                             />
@@ -818,7 +1015,7 @@ export default function Cuestionario() {
                       </div>
                     )}
 
-                    <div className="mb-3">
+                    <div className="mb-3 mt-4">
                       <div className="p-4 border-2 rounded-2xl bg-white border-[#bcd6e4]">
                         <label className="flex items-start gap-3 cursor-pointer">
                           <input
@@ -877,7 +1074,7 @@ export default function Cuestionario() {
                               "placeholder:italic",
                               "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
                               "disabled:bg-gray-100 disabled:cursor-not-allowed",
-                              errores.telefono ? "border-red-500" : ""
+                              errores.telefono ? "border-red-500" : "",
                             )}
                             placeholder="+52 (55) 1234 5678"
                           />
@@ -935,7 +1132,7 @@ export default function Cuestionario() {
                               className={clsx(
                                 "block w-full rounded-3xl border-2 bg-white px-3 py-1.5 text-sm/6 text-gray-700 text-center font-medium",
                                 "placeholder:italic",
-                                "focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                "focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent",
                               )}
                               placeholder="123456"
                             />
@@ -1047,7 +1244,7 @@ export default function Cuestionario() {
                         className={clsx(
                           "mt-2 block w-full lg:w-3/4 mx-auto rounded-3xl border-2 bg-white px-4 py-2 text-lg font-semibold dark:text-white text-gray-700",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
                         )}
                         placeholder="+52 (55) 1234 5678"
                       />
@@ -1096,7 +1293,7 @@ export default function Cuestionario() {
                         className={clsx(
                           "mt-2 block w-full lg:w-3/4 mx-auto rounded-3xl border-2 text-center bg-white px-4 py-2 text-xl font-semibold dark:text-white text-casal",
                           "placeholder:italic",
-                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent"
+                          "focus:outline-none focus:ring-2 focus:ring-towerGray focus:border-transparent",
                         )}
                         placeholder="123456"
                       />

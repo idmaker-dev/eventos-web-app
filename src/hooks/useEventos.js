@@ -150,7 +150,8 @@ export const useEventos = () => {
           nombreEvento: datosEvento.nombreEvento,
           lugar_id: datosEvento.lugar_id,
           fechaHora: datosEvento.fechaHora,
-          cantidadAsistentes: parseInt(datosEvento.cantidadAsistentes) || 0,
+          cantidadMaximaAsistentes: parseInt(datosEvento.cantidadMaximaAsistentes) || 0,
+          cantidadMinimaAsistentes: parseInt(datosEvento.cantidadMinimaAsistentes) || 0,
           responsable: datosEvento.responsable,
           // Agregar datos adicionales
           usuarioId: user?.id,
