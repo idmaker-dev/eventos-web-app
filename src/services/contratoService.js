@@ -5,6 +5,35 @@ import httpService from "./httpService";
  */
 class ContratoService {
   /**
+   * Envía el contrato para firma usando DocuSign
+   * @param {string} invitadoId - ID del invitado
+   * @param {string} modo - Modo de firma: "embedded" o "email"
+   * @returns {Promise<Object>} URL de firma (embedded) o confirmación (email)
+   */
+  async enviarContrato(invitadoId, modo = "embedded") {
+    try {
+      const response = await httpService.post(
+        "/invitadosAlumnos/enviar-contrato",
+        {
+          invitado_id: invitadoId,
+          modo: modo,
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data,
+        message: response.message || "Contrato enviado exitosamente",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || "Error al enviar el contrato",
+      };
+    }
+  }
+
+  /**
    * Completa el registro del invitado en Toku después de firmar el contrato
    * @param {string} invitadoId - ID del invitado
    * @param {string} envelopeId - ID del contrato en DocuSign (opcional)
