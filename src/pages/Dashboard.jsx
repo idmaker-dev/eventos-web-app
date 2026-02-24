@@ -61,7 +61,7 @@ export default function Dashboard() {
         cargarEventos();
       }
     },
-    [cargarEstadisticas, cargarEventos]
+    [cargarEstadisticas, cargarEventos],
   );
 
   // Usar el hook de SignalR para dashboard
@@ -187,6 +187,16 @@ export default function Dashboard() {
       capacidadMaxima > 0
         ? Math.round((asientosAsignadosStatic / capacidadMaxima) * 100)
         : 0;
+    
+    const invitadosRegistrados = dashboardStats?.boletos?.invitados_registrados || 0;
+
+    const invitadosSinFirmar = dashboardStats?.boletos?.invitados_sin_firmar || 0;
+    const invitadosFirmados = dashboardStats?.boletos?.invitados_con_firma || 0;
+    const invitadoConPago = dashboardStats?.boletos?.invitados_con_pago || 0;
+
+    const porcentajeInvitadosFirmados = invitadosRegistrados > 0 ? Math.round((invitadosFirmados / invitadosRegistrados) * 100) : 0;
+    const porcentajeInvitadosSinFirmar = invitadosRegistrados > 0 ? Math.round((invitadosSinFirmar / invitadosRegistrados) * 100) : 0;
+    const porcentajeInvitadoConPago = invitadosFirmados > 0 ? Math.round((invitadoConPago / invitadosFirmados) * 100) : 0;
 
     // Formatear dinero
     const formatMoney = (amount) => {
@@ -199,17 +209,26 @@ export default function Dashboard() {
 
     return (
       <>
-        <Metrica
+        {/* <Metrica
           valor={Math.round(porcentajePagos)}
           titulo="% de pagos completados"
           subtitulo={`${deudasPagadas} / ${totalDeudas} pagos`}
           subtitulo2={`${formatMoney(montoPagado)} / ${formatMoney(
-            montoTotal
+            montoTotal,
           )}`}
           gradienteId="gradPagos"
           color1="#0d3b66"
           color2="#2a9d8f"
+        /> */}
+        <Metrica
+          valor={Math.round(porcentajeInvitadoConPago)}
+          titulo="Invitados pagados (%)"
+          subtitulo={`${invitadoConPago} / ${invitadosFirmados} invitados`}
+          gradienteId="gradPagos"
+          color1="#0d3b66"
+          color2="#2a9d8f"
         />
+
         <Metrica
           valor={Math.round(porcentajeAsientos)}
           titulo="Asientos asignados"
@@ -222,6 +241,24 @@ export default function Dashboard() {
           valor={Math.round(porcentajeBoletos)}
           titulo="Boletos emitidos"
           subtitulo={`${boletosEmitidos} / ${capacidadMaxima} invitados`}
+          gradienteId="gradBoletos"
+          color1="#2a9d8f"
+          color2="#0d3b66"
+        />
+
+        <Metrica
+          valor={Math.round(porcentajeInvitadosSinFirmar)}
+          titulo="Invitados registrados"
+          subtitulo={`${invitadosSinFirmar} / ${invitadosRegistrados} invitados`}
+          gradienteId="gradBoletos"
+          color1="#2a9d8f"
+          color2="#0d3b66"
+        />
+
+        <Metrica
+          valor={Math.round(porcentajeInvitadosFirmados)}
+          titulo="Invitados con contrato firmado"
+          subtitulo={`${invitadosFirmados} / ${invitadosRegistrados} invitados`}
           gradienteId="gradBoletos"
           color1="#2a9d8f"
           color2="#0d3b66"
@@ -244,7 +281,7 @@ export default function Dashboard() {
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 📊 Dashboard actualizado automáticamente:{" "}
                 {new Date(
-                  signalRUltimaActualizacion || ultimaActualizacion
+                  signalRUltimaActualizacion || ultimaActualizacion,
                 ).toLocaleString()}
               </p>
             </div>
@@ -367,7 +404,7 @@ export default function Dashboard() {
 
                       // Verificar si es una fecha de pago (amarillo)
                       const esFechaPago = eventoActual?.fechas?.some((fecha) =>
-                        esMismoDia(fechaActual, fecha)
+                        esMismoDia(fechaActual, fecha),
                       );
 
                       // Determinar la clase CSS

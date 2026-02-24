@@ -17,6 +17,7 @@ export default function Pagos({ darkMode }) {
   const [deudas, setDeudas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterFirma, setFilterFirma] = useState("todos"); // "todos", "firmado", "no_firmado"
   const { eventoActual } = useSelectedEvent();
   const { showSuccess, showError } = useNotifications();
 
@@ -126,10 +127,20 @@ export default function Pagos({ darkMode }) {
     }
   };
 
-  // Filtrar deudas por búsqueda
-  const deudasFiltradas = deudas.filter((deuda) =>
-    deuda.asistente.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar deudas por búsqueda y firma de contrato
+  const deudasFiltradas = deudas.filter((deuda) => {
+    const matchesSearch = deuda.asistente.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Lógica de filtro de firma
+    let matchesFirma = true;
+    if (filterFirma === "firmado") {
+      matchesFirma = deuda.asistente.contrato_firmado === "Si";
+    } else if (filterFirma === "no_firmado") {
+      matchesFirma = deuda.asistente.contrato_firmado === "No";
+    }
+    
+    return matchesSearch && matchesFirma;
+  });
 
   const getEstado = (estado) => {
     if (estado === "Pendiente")
@@ -199,6 +210,19 @@ export default function Pagos({ darkMode }) {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          <div className="filtro-firma-wrapper">
+            <select 
+              className="filtro-firma"
+              value={filterFirma}
+              onChange={(e) => setFilterFirma(e.target.value)}
+            >
+              <option value="todos">Todos los contratos</option>
+              <option value="firmado">Contratos firmados</option>
+              <option value="no_firmado">Sin firmar</option>
+            </select>
+          </div>
+
           <button 
             className="btn-csv"
             onClick={() => setModalExportarOpen(true)}
@@ -212,6 +236,7 @@ export default function Pagos({ darkMode }) {
         <div className="pagos-encabezados dark:text-gray-200">
           <div>Asistente</div>
           <div>Progreso</div>
+          <div>Firma de contrato</div>
           <div>Total pagado</div>
           <div>Estado</div>
           <div>Acción</div>
@@ -246,6 +271,10 @@ export default function Pagos({ darkMode }) {
                       }}
                     ></div>
                   </div>
+                </div>
+
+                <div className="col flex items-center" data-label="Firma de contrato">
+                  {deuda.asistente.contrato_firmado}
                 </div>
 
                 <div className="col flex items-center" data-label="Total pagado">
