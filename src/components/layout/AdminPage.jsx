@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
   ChevronDown,
@@ -10,6 +10,7 @@ import {
   Menu,
   FileText,
   Link,
+  FileSignature,
 } from "lucide-react";
 import Eventos from "../Modales/Eventos";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
@@ -34,6 +35,7 @@ export default function AdminPage() {
   const { logout } = useAuth();
   const [showCuestionario, setShowCuestionario] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const desktopSelectorRef = useRef(null);
   const mobileSelectorRef = useRef(null);
@@ -52,6 +54,14 @@ export default function AdminPage() {
       .catch(() => {
         showError("Error al copiar el enlace");
       });
+  };
+
+  const handleConfiguracionContrato = () => {
+    if (!eventoActual?.id) {
+      showError("Selecciona un evento primero");
+      return;
+    }
+    navigate(`/admin/eventos/${eventoActual.id}/configuracion-contrato`);
   };
 
   // useEffect(() => {
@@ -296,6 +306,13 @@ export default function AdminPage() {
                 className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
               >
                 <CalendarPlus2 size={18} />
+              </button>
+              <button
+                onClick={handleConfiguracionContrato}
+                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                title="Configurar Contrato"
+              >
+                <FileSignature size={18} />
               </button>
               <button
                 className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
