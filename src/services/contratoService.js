@@ -26,9 +26,10 @@ class ContratoService {
         message: response.message || "Contrato enviado exitosamente",
       };
     } catch (error) {
+      console.log('🔍 Error capturado en contratoService:', error);
       return {
         success: false,
-        error: error.userMessage || "Error al enviar el contrato",
+        error: error.userMessage || error.message || "Error al enviar el contrato",
       };
     }
   }

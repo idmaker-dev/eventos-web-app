@@ -143,18 +143,31 @@ export default function Pagos({ darkMode }) {
   });
 
   const getEstado = (estado) => {
+    // Manejar estados de invitados sin deuda
+    if (estado === "Sin contrato" || estado === "Pendiente de firma" || estado === "Cuestionario pendiente") {
+      return (
+        <span className="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+          <span className="text-gray-800 dark:text-gray-200 font-medium">{estado}</span>
+        </span>
+      );
+    }
+    
+    // Estados de deudas existentes
     if (estado === "Pendiente")
       return (
         <span className="flex items-center gap-2">
           <img src={EstadoPendiente} alt="Estado Pendiente" className="w-4 h-4" /> <span className="text-gray-800 dark:text-gray-200 font-medium">Pendiente</span>
-          {/* <AlertCircle size={16} /> Pendiente */}
         </span>
       );
     if (estado === "Aprobado")
       return (
         <span className="flex items-center gap-2">
           <img src={EstadoAprobado} alt="Estado Aprobado" className="w-4 h-4" />
-          {/* <CheckCircle size={16} />*/} <span className="text-gray-800 dark:text-gray-200 font-medium">Aprobado</span> 
+          <span className="text-gray-800 dark:text-gray-200 font-medium">Aprobado</span> 
         </span>
       );
     if (estado === "Parcial")
@@ -162,10 +175,15 @@ export default function Pagos({ darkMode }) {
         <span className="flex items-center gap-2">
           <img src={EstadoParcial} alt="Estado Parcial" className="w-4 h-4" />
           <span className="text-gray-800 dark:text-gray-200 font-medium">Parcial</span>
-          {/* 
-          <XCircle size={16} /> Parcial */}
         </span>
       );
+    
+    // Estado por defecto
+    return (
+      <span className="flex items-center gap-2">
+        <span className="text-gray-800 dark:text-gray-200 font-medium">{estado}</span>
+      </span>
+    );
   };
 
   const getBarraColor = (progreso) => {
@@ -292,8 +310,10 @@ export default function Pagos({ darkMode }) {
                       abrirModal(deuda);
                     }}
                     className="btn-accion btn-historial"
+                    disabled={!deuda.deuda_id}
+                    title={!deuda.deuda_id ? "Este invitado aún no tiene facturas (contrato no firmado)" : "Ver facturas"}
                   >
-                    Ver facturas
+                    {deuda.deuda_id ? "Ver facturas" : "Sin facturas"}
                   </button>
                 </div>
               </div>

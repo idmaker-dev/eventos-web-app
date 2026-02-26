@@ -215,7 +215,8 @@ class HttpService {
       normalized.userMessage =
         "Error del servidor. Intenta nuevamente más tarde.";
     } else {
-      normalized.userMessage = normalized.data?.message || normalized.message;
+      // Priorizar el campo 'error' del backend que contiene mensajes específicos
+      normalized.userMessage = normalized.data?.error || normalized.data?.message || normalized.message;
     }
 
     return normalized;

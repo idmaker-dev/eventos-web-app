@@ -395,16 +395,16 @@ export default function Cuestionario() {
         setCustomerId(res.invitado.id || "");
 
         // Enviar confirmación de registro exitoso por WhatsApp
-        try {
-          await whatsappService.confirmarRegistro(telefono);
-          console.log("Mensaje de confirmación enviado por WhatsApp");
-        } catch (whatsappError) {
-          console.error(
-            "Error al enviar confirmación por WhatsApp:",
-            whatsappError,
-          );
-          // No mostramos error al usuario ya que el registro fue exitoso
-        }
+        // try {
+        //   await whatsappService.confirmarRegistro(telefono);
+        //   console.log("Mensaje de confirmación enviado por WhatsApp");
+        // } catch (whatsappError) {
+        //   console.error(
+        //     "Error al enviar confirmación por WhatsApp:",
+        //     whatsappError,
+        //   );
+        //   // No mostramos error al usuario ya que el registro fue exitoso
+        // }
 
         showSuccess("¡Registro completado exitosamente!");
 

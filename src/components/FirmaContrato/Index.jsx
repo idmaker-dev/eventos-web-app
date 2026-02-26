@@ -27,6 +27,7 @@ export default function FirmaContrato() {
   const [isFirmando, setIsFirmando] = useState(false);
   const [contratoFirmado, setContratoFirmado] = useState(false);
   const [error, setError] = useState(null);
+  const [contratoEnPreparacion, setContratoEnPreparacion] = useState(false);
 
   // Estados de DocuSign
   const [modoFirma, setModoFirma] = useState("embedded");
@@ -192,8 +193,17 @@ export default function FirmaContrato() {
         }
       } else {
         console.error("❌ Error del servicio:", result.error);
-        setError(result.error || "Error al enviar el contrato");
-        showError(result.error || "Error al enviar el contrato");
+        console.log("🔍 Tipo de error:", typeof result.error, "Contenido:", result.error);
+        
+        // Detectar si el contrato está en preparación
+        if (result.error && result.error.includes("CONTRATO_EN_PREPARACION")) {
+          console.log("⏳ Contrato en preparación detectado");
+          setContratoEnPreparacion(true);
+          setError(null); // Limpiar error genérico
+        } else {
+          setError(result.error || "Error al enviar el contrato");
+          showError(result.error || "Error al enviar el contrato");
+        }
       }
     } catch (err) {
       console.error("❌ Excepción al enviar contrato:", err);
@@ -440,6 +450,51 @@ export default function FirmaContrato() {
     );
   }
 
+  // Contrato en preparación (cuando el admin aún no configura el contrato)
+  if (contratoEnPreparacion) {
+    return (
+      <div className="bg-porcelain min-h-screen flex flex-col items-center justify-center p-6">
+        <img src={logo} alt="Logo" className="w-36 h-auto mb-8" />
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+          <div className="relative mb-6">
+            <FileText className="w-16 h-16 text-blue-500 mx-auto" />
+            <div className="absolute top-0 right-1/2 transform translate-x-12">
+              <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Contrato en Preparación
+          </h2>
+          <p className="text-gray-600 mb-6">
+            El organizador del evento está configurando tu contrato.
+            Por favor, vuelve a intentar en unos momentos.
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-800 text-left">
+              <strong>¿Qué significa esto?</strong><br />
+              El administrador del evento necesita configurar algunos detalles del contrato antes de que puedas firmarlo.
+              Esta configuración se realiza por única vez y no tomará mucho tiempo.
+            </p>
+          </div>
+          <Button
+            onClick={() => {
+              setContratoEnPreparacion(false);
+              setContratoYaCargado(false);
+              setError(null);
+            }}
+            className="w-full bg-casal text-white px-6 py-3 rounded-lg hover:bg-casal/80 font-semibold mb-3"
+          >
+            <FileText className="w-5 h-5 mr-2 inline" />
+            Reintentar
+          </Button>
+          <p className="text-xs text-gray-500">
+            Si el problema persiste, contacta al organizador del evento
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Interfaz principal
   return (
     <div className="bg-porcelain min-h-screen flex flex-col items-center justify-center p-6">
@@ -526,7 +581,7 @@ export default function FirmaContrato() {
                 )}
               </div>
               <p className="text-xs text-blue-800 text-center">
-                💡 <strong>Nota:</strong> Después de firmar, {conectado ? 'serás notificado instantáneamente' : 'la página se actualizará automáticamente'}. 
+                💡 <strong>Nota:</strong> Después de firmar, {conectado ? 'serás notificado instantáneamente. Si la página no se actualiza, espera un momento.' : 'la página se actualizará automáticamente, si la página no se actualiza en 1-2 minutos, intenta recargar.'} 
                 {!conectado && ' Si ves un mensaje de error, no te preocupes - tu firma está siendo procesada. Espera un momento, si la pagina no se actualiza en 1-2 minutos, intenta recargar.'} 
               </p>
             </div>

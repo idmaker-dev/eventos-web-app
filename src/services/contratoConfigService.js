@@ -66,6 +66,20 @@ const contratoConfigService = {
       throw error;
     }
   },
+
+  /**
+   * Obtiene el catálogo de campos disponibles de Planoria
+   * @returns {Promise<Object>}
+   */
+  async obtenerCatalogoCampos() {
+    try {
+      const response = await httpService.get('/eventos/configuracion-contrato/catalogo-campos');
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener catálogo de campos:', error);
+      throw error;
+    }
+  },
 };
 
 export default contratoConfigService;
