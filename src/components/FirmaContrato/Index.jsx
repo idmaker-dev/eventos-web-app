@@ -36,6 +36,7 @@ export default function FirmaContrato() {
   const [mostrarIframe, setMostrarIframe] = useState(false);
   const [contratoYaCargado, setContratoYaCargado] = useState(false);
   const [iframeRef, setIframeRef] = useState(null);
+  const [firmaEnProceso, setFirmaEnProceso] = useState(false); // Para mostrar "Procesando..."
 
   // ==========================================
   // CONECTAR A SIGNALR AL INICIAR COMPONENTE
@@ -57,7 +58,7 @@ export default function FirmaContrato() {
   // LISTENER DE SIGNALR - NOTIFICACIÓN EN TIEMPO REAL
   // ==========================================
   useEffect(() => {
-    if (!connection || !conectado || !mostrarIframe || contratoFirmado) {
+    if (!connection || !conectado || contratoFirmado) {
       if (!connection) {
         console.log("⏳ [FirmaContrato] SignalR connection no disponible aún");
       } else if (!conectado) {
@@ -76,14 +77,24 @@ export default function FirmaContrato() {
       // Verificar que sea para este invitado
       if (data.invitadoId === invitadoId) {
         console.log("✅ [FirmaContrato] Contrato confirmado para este invitado");
-        setContratoFirmado(true);
-        setMostrarIframe(false);
-        showSuccess("¡Contrato firmado exitosamente!");
+        console.log("📊 Estado de registro:", data.estadoRegistro);
         
-        // Redirigir después de un breve delay
-        setTimeout(() => {
-          navigate(`/PortalPagos/${invitadoId}`);
-        }, 2000);
+        // Verificar que el proceso esté completamente terminado (estado ACTIVO)
+        // Si solo está CONTRATO_FIRMADO, significa que Toku aún no se completó
+        if (data.estadoRegistro === "ACTIVO") {
+          console.log("✅ [FirmaContrato] Proceso completo - Toku activado");
+          setFirmaEnProceso(false); // Ocultar mensaje de "Procesando..."
+          setContratoFirmado(true); // Mostrar mensaje de éxito
+          showSuccess("¡Contrato firmado exitosamente! Redirigiendo...");
+          
+          // Redirigir después de un breve delay
+          setTimeout(() => {
+            navigate(`/PortalPagos/${invitadoId}`);
+          }, 2000);
+        } else {
+          console.log("⏳ [FirmaContrato] Contrato firmado pero esperando activación de Toku...");
+          // Continuar mostrando "Procesando..." hasta que el polling detecte estado ACTIVO
+        }
       } else {
         console.log("ℹ️ [FirmaContrato] Notificación es para otro invitado, ignorando");
       }
@@ -98,26 +109,24 @@ export default function FirmaContrato() {
       console.log("🔇 [FirmaContrato] Eliminando listener SignalR de contrato firmado");
       connection.off("contratoFirmado", handleContratoFirmado);
     };
-  }, [connection, conectado, mostrarIframe, contratoFirmado, invitadoId, navigate, showSuccess]);
+  }, [connection, conectado, contratoFirmado, invitadoId, navigate, showSuccess]);
 
   // Detectar si DocuSign redirigió con status=completed
   useEffect(() => {
     const status = searchParams.get('status');
     if (status === 'completed') {
-      console.log("✅ DocuSign returnUrl detectado - Firma completada");
-      setContratoFirmado(true);
+      console.log("✅ DocuSign returnUrl detectado - Mostrando pantalla de procesamiento");
       setMostrarIframe(false);
-      showSuccess("¡Contrato firmado exitosamente!");
+      setFirmaEnProceso(true); // Mostrar pantalla de "Procesando tu firma..."
+      showSuccess("¡Contrato firmado! Procesando...");
       
       // Limpiar el query parameter de la URL
       window.history.replaceState({}, '', `/firma-contrato/${invitadoId}`);
       
-      // Redirigir al portal de pagos
-      setTimeout(() => {
-        navigate(`/PortalPagos/${invitadoId}`);
-      }, 2000);
+      // NO redirigir todavía - esperar a que SignalR notifique o el polling detecte el cambio
+      // La redirección se hará cuando contratoFirmado cambie a true
     }
-  }, [searchParams, invitadoId, navigate, showSuccess]);
+  }, [searchParams, invitadoId, showSuccess]);
 
   // Cargar información del invitado al montar
   useEffect(() => {
@@ -135,15 +144,13 @@ export default function FirmaContrato() {
             showSuccess("Tu registro ya está completo");
             navigate(`/PortalPagos/${invitadoId}`);
           } else if (response.data.estado_registro === "CONTRATO_FIRMADO") {
-            console.log("✅ Contrato ya firmado - Preparando redirección");
-            setContratoFirmado(true);
+            console.log("✅ Contrato ya firmado - Mostrando pantalla de procesamiento");
             // Limpiar cualquier URL de firma anterior para evitar problemas de carga
             setSigningUrl(null);
             setMostrarIframe(false);
-            // Redirigir automáticamente al portal de pagos después de 2 segundos
-            setTimeout(() => {
-              navigate(`/PortalPagos/${invitadoId}`);
-            }, 2000);
+            setFirmaEnProceso(true); // Mostrar pantalla de "Procesando tu firma..."
+            // NO redirigir todavía - esperar a que SignalR notifique o el polling detecte
+            // que el backend completó el proceso de Toku y cambió el estado a ACTIVO
           }
         } else {
           setError(response.error || "No se pudo cargar la información del invitado");
@@ -245,15 +252,17 @@ export default function FirmaContrato() {
       
       console.log("📋 Tipo de evento:", data.event);
       
-      if (data.event === "signing_complete") {
-        console.log("✅ Firma completada en DocuSign (postMessage)");
-        setContratoFirmado(true);
+      // Detectar eventos de finalización - DocuSign puede enviar diferentes nombres
+      if (data.event === "signing_complete" || data.event === "ttl_expired") {
+        console.log("✅ Firma completada en DocuSign (postMessage):", data.event);
+        // Ocultar iframe INMEDIATAMENTE para evitar mostrar error de redirect
         setMostrarIframe(false);
-        showSuccess("¡Contrato firmado exitosamente!");
-
-        setTimeout(() => {
-          navigate(`/PortalPagos/${invitadoId}`);
-        }, 2000);
+        setFirmaEnProceso(true); // Mostrar mensaje de "Procesando..."
+        showSuccess("¡Contrato firmado! Procesando...");
+        
+        // El estado contratoFirmado se actualizará cuando llegue la notificación de SignalR
+        // o cuando el polling detecte el cambio de estado en el backend
+        // Esto garantiza que el proceso de Toku se complete antes de continuar
       } else if (data.event === "cancel") {
         console.log("⚠️ Usuario canceló la firma");
         setMostrarIframe(false);
@@ -274,11 +283,47 @@ export default function FirmaContrato() {
     }
   };
 
+  // Handler para detectar cuando el iframe intenta navegar (esto causaría el error)
+  const handleIframeError = () => {
+    console.log("⚠️ Error en iframe detectado - ocultando iframe");
+    if (mostrarIframe) {
+      setMostrarIframe(false);
+      setFirmaEnProceso(true);
+      showSuccess("¡Contrato firmado! Procesando...");
+    }
+  };
+
   // Escuchar eventos de DocuSign
   useEffect(() => {
     if (mostrarIframe) {
       console.log("🎧 Iniciando escucha de eventos de DocuSign");
       window.addEventListener("message", handleDocuSignEvent);
+      
+      // Monitor agresivo: verificar el iframe cada 500ms para detectar navegación
+      const monitorInterval = setInterval(() => {
+        if (iframeRef && mostrarIframe) {
+          try {
+            // Intentar acceder al iframe - si falla con cross-origin después de estar accesible,
+            // significa que está navegando
+            const iframeDoc = iframeRef.contentDocument || iframeRef.contentWindow.document;
+            
+            // Si podemos acceder y la URL ha cambiado al returnUrl, ocultar
+            if (iframeDoc && iframeDoc.location) {
+              const url = iframeDoc.location.href;
+              if (url.includes('status=completed') || url.includes('firma-contrato')) {
+                console.log("🔍 Detectada navegación en iframe a URL de retorno");
+                setMostrarIframe(false);
+                setFirmaEnProceso(true);
+                showSuccess("¡Contrato firmado! Procesando...");
+                clearInterval(monitorInterval);
+              }
+            }
+          } catch (err) {
+            // Error de cross-origin es esperado mientras está en DocuSign
+            // Silenciosamente ignoramos
+          }
+        }
+      }, 500);
       
       // Timeout de seguridad: si después de 10 minutos no hay respuesta, mostrar error
       const timeout = setTimeout(() => {
@@ -293,15 +338,16 @@ export default function FirmaContrato() {
       return () => {
         console.log("🔇 Deteniendo escucha de eventos de DocuSign");
         window.removeEventListener("message", handleDocuSignEvent);
+        clearInterval(monitorInterval);
         clearTimeout(timeout);
       };
     }
-  }, [mostrarIframe, contratoFirmado]);
+  }, [mostrarIframe, contratoFirmado, iframeRef]);
 
-  // Polling del estado del invitado mientras se muestra el iframe
+  // Polling del estado del invitado mientras se muestra el iframe O mientras está procesando
   // SOLO COMO FALLBACK - SignalR es el mecanismo principal
   useEffect(() => {
-    if (!mostrarIframe || contratoFirmado) {
+    if ((!mostrarIframe && !firmaEnProceso) || contratoFirmado) {
       return;
     }
 
@@ -314,17 +360,21 @@ export default function FirmaContrato() {
         if (response.success && response.data) {
           const estadoActual = response.data.estado_registro;
           
-          // Si el webhook ya completó el proceso
-          if (estadoActual === "ACTIVO" || estadoActual === "CONTRATO_FIRMADO") {
-            console.log("✅ [FALLBACK] Firma detectada por polling - Estado:", estadoActual);
+          // IMPORTANTE: Solo redirigir cuando el estado sea ACTIVO
+          // CONTRATO_FIRMADO significa que DocuSign notificó pero Toku aún no se ha completado
+          if (estadoActual === "ACTIVO") {
+            console.log("✅ [FALLBACK] Proceso completado detectado por polling - Estado:", estadoActual);
+            setFirmaEnProceso(false);
             setContratoFirmado(true);
             setMostrarIframe(false);
-            showSuccess("¡Contrato firmado exitosamente!");
+            showSuccess("¡Contrato firmado exitosamente! Redirigiendo...");
             
             // Redirigir después de un breve delay
             setTimeout(() => {
               navigate(`/PortalPagos/${invitadoId}`);
             }, 2000);
+          } else if (estadoActual === "CONTRATO_FIRMADO") {
+            console.log("⏳ [FALLBACK] Contrato firmado, esperando activación de Toku...");
           }
         }
       } catch (error) {
@@ -332,16 +382,15 @@ export default function FirmaContrato() {
       }
     };
 
-    // Verificar cada 10 segundos (reducido de 3 para no saturar)
-    // SignalR notificará en tiempo real, esto solo es backup
-    // const intervalId = setInterval(verificarEstado, 10000);
+    // Verificar cada 5 segundos cuando está en proceso
+    const intervalId = setInterval(verificarEstado, 5000);
     
     // Limpieza al desmontar o cuando cambie el estado
     return () => {
       console.log("🛑 Deteniendo polling de fallback");
-      // clearInterval(intervalId);
+      clearInterval(intervalId);
     };
-  }, [mostrarIframe, contratoFirmado, invitadoId, navigate, showSuccess]);
+  }, [mostrarIframe, firmaEnProceso, contratoFirmado, invitadoId, navigate, showSuccess]);
 
   // Detectar errores del iframe (indicaría que se completó la firma)
   useEffect(() => {
@@ -450,6 +499,48 @@ export default function FirmaContrato() {
     );
   }
 
+  // Firma en proceso (después de hacer clic en "Aceptar y Finalizar")
+  if (firmaEnProceso) {
+    return (
+      <div className="bg-porcelain min-h-screen flex flex-col items-center justify-center p-6">
+        <img src={logo} alt="Logo" className="w-36 h-auto mb-8" />
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+          <div className="relative mb-6">
+            <CheckCircle className="w-16 h-16 text-blue-500 mx-auto" />
+            <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1">
+              <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            Procesando tu firma...
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Tu firma fue recibida exitosamente. Estamos:
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li className="flex items-start">
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></div>
+                <span>Validando tu contrato firmado</span>
+              </li>
+              <li className="flex items-start">
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></div>
+                <span>Configurando tu cuenta de pagos</span>
+              </li>
+              <li className="flex items-start">
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 mr-2 flex-shrink-0"></div>
+                <span>Preparando tus facturas del evento</span>
+              </li>
+            </ul>
+          </div>
+          <p className="text-xs text-gray-500">
+            Esto puede tomar unos segundos. No cierres esta ventana.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Contrato en preparación (cuando el admin aún no configura el contrato)
   if (contratoEnPreparacion) {
     return (
@@ -550,6 +641,24 @@ export default function FirmaContrato() {
           </p>
         </div>
 
+        {/* Mensaje instructivo sobre el botón Finalizar */}
+        <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-amber-800">
+                <strong>Importante:</strong> Al hacer clic en el botón <strong>"Finalizar"</strong> dentro del documento, 
+                estás aceptando los términos y condiciones del contrato del evento. Asegúrate de haber leído 
+                todo el documento antes de continuar.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Visualización del contrato - DocuSign Iframe */}
         {mostrarIframe && signingUrl ? (
           <div className="mb-6">
@@ -561,11 +670,10 @@ export default function FirmaContrato() {
                 title="Firma de Contrato DocuSign"
                 frameBorder="0"
                 allow="camera; microphone"
+                onError={handleIframeError}
               />
             </div>
-            <p className="text-sm text-gray-600 mt-2 text-center">
-              Completa la firma en el documento mostrado arriba
-            </p>
+            
             <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center justify-center gap-2 mb-2">
                 {conectado ? (

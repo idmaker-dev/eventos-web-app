@@ -107,8 +107,15 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
               </p>
               
               {/* Información básica del invitado */}
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 max-w-md mx-auto">
-                <div className="grid grid-cols-2 gap-4 text-left">
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 max-w-2xl mx-auto">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                  Información del Invitado
+                </h4>
+                <div className="grid grid-cols-2 gap-4 text-left mb-4">
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Nombre completo</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{deuda.asistente.nombre_completo}</p>
+                  </div>
                   <div>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
                     <p className="font-medium text-gray-900 dark:text-white truncate">{deuda.asistente.email}</p>
@@ -117,14 +124,39 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
                     <p className="text-xs text-gray-500 dark:text-gray-400">Teléfono</p>
                     <p className="font-medium text-gray-900 dark:text-white">{deuda.asistente.telefono}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Boletos</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{deuda.asistente.cantidad_boletos}</p>
+                  {deuda.asistente.instituto && deuda.asistente.instituto !== "N/A" && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Instituto</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{deuda.asistente.instituto}</p>
+                    </div>
+                  )}
+                  {deuda.asistente.licenciatura && deuda.asistente.licenciatura !== "N/A" && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Licenciatura</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{deuda.asistente.licenciatura}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Información Financiera Estimada
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-left">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Cantidad de boletos</p>
+                      <p className="text-lg font-bold text-casal dark:text-Acapulco">{deuda.asistente.cantidad_boletos}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Monto total esperado</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        ${(deuda.financiero.monto_total || 0).toLocaleString("es-MX")}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Monto esperado</p>
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      ${deuda.financiero.monto_total.toLocaleString("es-MX")}
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-xs text-blue-700 dark:text-blue-400">
+                      💡 El plan de pagos se generará automáticamente al firmar el contrato
                     </p>
                   </div>
                 </div>
@@ -163,19 +195,19 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Total</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  ${deuda.financiero.monto_total.toLocaleString("es-MX")}
+                  ${(deuda.financiero.monto_total || 0).toLocaleString("es-MX")}
                 </p>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Pagado</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  ${deuda.financiero.monto_pagado.toLocaleString("es-MX")}
+                  ${(deuda.financiero.monto_pagado || 0).toLocaleString("es-MX")}
                 </p>
               </div>
               <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Pendiente</p>
                 <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  ${deuda.financiero.monto_pendiente.toLocaleString("es-MX")}
+                  ${(deuda.financiero.monto_pendiente || 0).toLocaleString("es-MX")}
                 </p>
               </div>
             </div>
@@ -260,17 +292,17 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
                             <div>
                               <p className="text-xs text-gray-500 dark:text-gray-400">Montos</p>
                               <p className="font-medium text-gray-900 dark:text-white">
-                                ${factura.monto_total.toLocaleString("es-MX")}
+                                ${(factura.monto_total || 0).toLocaleString("es-MX")}
                               </p>
                               <p className="text-xs">
                                 <span className="text-green-600 dark:text-green-400">
-                                  Pagado: ${factura.monto_pagado.toLocaleString("es-MX")}
+                                  Pagado: ${(factura.monto_pagado || 0).toLocaleString("es-MX")}
                                 </span>
-                                {factura.monto_pendiente > 0 && (
+                                {(factura.monto_pendiente || 0) > 0 && (
                                   <>
                                     {" | "}
                                     <span className="text-red-600 dark:text-red-400">
-                                      Pendiente: ${factura.monto_pendiente.toLocaleString("es-MX")}
+                                      Pendiente: ${(factura.monto_pendiente || 0).toLocaleString("es-MX")}
                                     </span>
                                   </>
                                 )}
@@ -309,7 +341,14 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
               </>
             ) : (
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                <p>Registrado el: {new Date(deuda.fechas.creacion).toLocaleDateString('es-MX')}</p>
+                <p>
+                  <span className="font-medium">Registrado el:</span>{" "}
+                  {deuda.fechas?.creacion ? new Date(deuda.fechas.creacion).toLocaleDateString('es-MX', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  }) : 'N/A'}
+                </p>
               </div>
             )}
             <button
