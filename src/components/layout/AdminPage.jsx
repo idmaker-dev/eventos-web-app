@@ -267,7 +267,7 @@ export default function AdminPage() {
                 </button>
 
                 {isOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl z-10 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl z-10 max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
                     {eventos && eventos.length > 0 ? (
                       eventos.map((option, index) => {
                         const label = getLabel(option, index);
@@ -393,7 +393,7 @@ export default function AdminPage() {
             </button>
 
             {isOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 mx-3 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl z-10 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+              <div className="absolute top-full left-0 right-0 mt-2 mx-3 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-600 rounded-xl shadow-xl z-10 max-h-96 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
                 {eventos && eventos.length > 0 ? (
                   eventos.map((option, index) => {
                     const label = getLabel(option, index);

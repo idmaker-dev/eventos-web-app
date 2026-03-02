@@ -1123,6 +1123,12 @@ export default function Cuestionario() {
                         <p className="text-gray-600 text-xs mt-1 mb-2">
                           Introduce el código que te enviamos por WhatsApp
                         </p>
+                        <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 rounded">
+                          <p className="text-xs text-blue-800">
+                            <strong>💡 Tip:</strong> Agrega el número que te envió el código a tus contactos. 
+                            Por ese medio recibirás actualizaciones importantes sobre tu registro y el evento.
+                          </p>
+                        </div>
                         <div className="flex gap-2 items-start">
                           <div className="flex-1">
                             <Input
