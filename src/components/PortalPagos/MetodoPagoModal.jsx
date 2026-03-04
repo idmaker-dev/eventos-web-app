@@ -14,14 +14,16 @@ export default function MetodoPagoModal({ isOpen, onClose, invitadoId, selectedI
           total: total
         }
       });
-    } else if (metodo === 'tarjeta') {
+    } 
+    // Comentado temporalmente hasta que se configure la opción de pago con tarjeta
+    /* else if (metodo === 'tarjeta') {
       navigate(`/pago-tarjeta/${invitadoId}`, {
         state: {
           selectedIds: Array.from(selectedIds),
           total: total
         }
       });
-    }
+    } */
     onClose();
   };
 
@@ -86,8 +88,8 @@ export default function MetodoPagoModal({ isOpen, onClose, invitadoId, selectedI
                     </div>
                   </button>
 
-                  {/* Opción Tarjeta */}
-                  <button
+                  {/* Opción Tarjeta - Comentado temporalmente hasta que se configure */}
+                  {/* <button
                     onClick={() => handleMetodoSeleccionado('tarjeta')}
                     className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-casal hover:bg-casal/5 transition-all group"
                   >
@@ -102,7 +104,7 @@ export default function MetodoPagoModal({ isOpen, onClose, invitadoId, selectedI
                         Paga de forma segura con tu tarjeta
                       </p>
                     </div>
-                  </button>
+                  </button> */}
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-gray-200">

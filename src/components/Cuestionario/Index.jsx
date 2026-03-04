@@ -6,9 +6,9 @@ import IconCuestionario from "../../assets/recursos/IconoCuestionario.svg";
 import confirmacionWhatsapp from "../../assets/recursos/ConfirmacionWhastapp.svg";
 import SolicitudCodigo from "../../assets/recursos/solicitudCodigo.svg";
 import CuestionarioCreado from "../../assets/recursos/CUESTIONARIO_CREADO.svg";
-import { Button, Field, Input, Label, Select } from "@headlessui/react";
+import { Button, Field, Input, Label, Select, Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import clsx from "clsx";
-import { RotateCcw, AlertCircle, ChevronDown } from "lucide-react";
+import { RotateCcw, AlertCircle, ChevronDown, X } from "lucide-react";
 import { useCuestionario } from "../../hooks/useCuestionario";
 import eventService from "../../services/eventService";
 import { whatsappService, codigoVerificacionService } from "../../services";
@@ -36,7 +36,7 @@ const formatearFecha = (fechaString) => {
 
 // Función para formatear hora
 const formatearHora = (fechaString) => {
-  if (!fechaString) return "17:00 hrs";
+  if (!fechaString) return "17:00";
 
   try {
     const fecha = new Date(fechaString);
@@ -46,7 +46,7 @@ const formatearHora = (fechaString) => {
       timeZone: "America/Mexico_City",
     };
 
-    return fecha.toLocaleTimeString("es-MX", opciones) + " hrs";
+    return fecha.toLocaleTimeString("es-MX", opciones);
   } catch (error) {
     return fechaString; // Retorna la fecha original si hay error
   }
@@ -90,6 +90,8 @@ export default function Cuestionario() {
   const [aceptaResponsabilidadTutor, setAceptaResponsabilidadTutor] =
     useState(false);
   const [aceptaTerminos, setAceptaTerminos] = useState(false);
+  const [mostrarModalPrivacidad, setMostrarModalPrivacidad] = useState(false);
+  const [haLeidoPrivacidad, setHaLeidoPrivacidad] = useState(false);
 
   const tutorRequerido = event?.requiere_tutor;
   // Estados para errores de validación
@@ -244,6 +246,33 @@ export default function Cuestionario() {
     } finally {
       setIsVerificandoCodigo(false);
     }
+  };
+
+  // Función para detectar cuando el usuario ha scrolleado hasta el final del aviso de privacidad
+  const handleScrollPrivacidad = (e) => {
+    const elemento = e.target;
+    const scrollTop = elemento.scrollTop;
+    const scrollHeight = elemento.scrollHeight;
+    const clientHeight = elemento.clientHeight;
+    
+    // Detectar si está a menos de 50px del final (tolerancia)
+    if (scrollHeight - scrollTop - clientHeight < 50) {
+      setHaLeidoPrivacidad(true);
+    }
+  };
+
+  // Función para abrir el modal y resetear el estado de lectura si es necesario
+  const handleAbrirModalPrivacidad = () => {
+    // Solo resetear si el usuario aún no ha aceptado los términos
+    if (!aceptaTerminos) {
+      setHaLeidoPrivacidad(false);
+    }
+    setMostrarModalPrivacidad(true);
+  };
+
+  // Función para cerrar el modal
+  const handleCerrarModalPrivacidad = () => {
+    setMostrarModalPrivacidad(false);
   };
 
   // Función para limpiar error de un campo específico
@@ -1017,32 +1046,21 @@ export default function Cuestionario() {
 
                     <div className="mb-3 mt-4">
                       <div className="p-4 border-2 rounded-2xl bg-white border-[#bcd6e4]">
-                        <label className="flex items-start gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={aceptaTerminos}
-                            onChange={(e) => {
-                              setAceptaTerminos(e.target.checked);
-                              limpiarError("aceptaTerminos");
-                            }}
-                            className="mt-1 w-5 h-5 text-casal border-gray-300 rounded focus:ring-casal"
-                          />
-                          <span className="text-sm text-gray-700">
-                            Acepto los{" "}
-                            <button
-                              type="button"
-                              className="text-casal underline font-semibold hover:text-Acapulco"
-                              onClick={() => {
-                                // Aquí puedes abrir un modal o redirigir a la página de términos
-                                console.log("Abrir términos y condiciones");
-                              }}
-                            >
-                              términos y condiciones
-                            </button>
-                          </span>
-                        </label>
+                        <p className="text-sm text-gray-700">
+                          Para continuar, debes leer y aceptar el{" "}
+                          <button
+                            type="button"
+                            className="text-casal underline font-semibold hover:text-Acapulco"
+                            onClick={handleAbrirModalPrivacidad}
+                          >
+                            Aviso de Privacidad
+                          </button>
+                          {aceptaTerminos && (
+                            <span className="ml-2 text-green-600 font-semibold">✓ Aceptado</span>
+                          )}
+                        </p>
                         {errores.aceptaTerminos && (
-                          <p className="text-red-500 text-sm mt-2 ml-8">
+                          <p className="text-red-500 text-sm mt-2">
                             {errores.aceptaTerminos}
                           </p>
                         )}
@@ -1204,7 +1222,7 @@ export default function Cuestionario() {
                     <div className="my-5 flex justify-center">
                       <Button
                         onClick={handleEnviarFormulario}
-                        disabled={!codigoVerificado || isEnviandoFormulario}
+                        disabled={!codigoVerificado || isEnviandoFormulario || !aceptaTerminos}
                         className="bg-casal text-xl text-white w-[70%] mx-auto py-2 font-semibold rounded-3xl hover:bg-Acapulco transition disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isEnviandoFormulario ? (
@@ -1417,6 +1435,278 @@ export default function Cuestionario() {
             </p>
           </div>
         </div>
+
+        {/* Modal de Aviso de Privacidad */}
+        <Dialog
+          open={mostrarModalPrivacidad}
+          onClose={handleCerrarModalPrivacidad}
+          className="relative z-50"
+        >
+          <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+          
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <DialogPanel className="mx-auto max-w-4xl max-h-[90vh] w-full rounded-2xl bg-white p-6 shadow-xl overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <DialogTitle className="text-2xl font-bold text-casal">
+                  Aviso de Privacidad
+                </DialogTitle>
+                <button
+                  onClick={handleCerrarModalPrivacidad}
+                  className="text-gray-400 hover:text-gray-600 transition"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Indicador de que debe scrollear hasta el final */}
+              {!haLeidoPrivacidad && (
+                <div className="mb-3 bg-amber-50 border-l-4 border-amber-400 p-3 rounded">
+                  <p className="text-sm text-amber-800 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>Por favor, desplázate hasta el final del documento para poder aceptar los términos</span>
+                  </p>
+                </div>
+              )}
+              
+              <div 
+                className="overflow-y-auto flex-1 prose prose-sm max-w-none"
+                onScroll={handleScrollPrivacidad}
+              >
+                <div className="space-y-4 text-gray-700">
+                  <p className="text-center font-semibold">
+                    GRADUACIONES Y EVENTOS.<br />
+                    MATIZ PRODUCCIONES,<br />
+                    PLATAFORMAS DIGITALES.
+                  </p>
+                  
+                  <p className="text-right text-sm">
+                    <strong>Fecha de actualización:</strong> febrero de 2026.
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">1. IDENTIDAD Y DOMICILIO DEL RESPONSABLE.</h3>
+                  <p>
+                    Operadora de Eventos Matiz México, S.A. de C.V. (en lo sucesivo, "Matiz"), con domicilio en J. Enrique Pestalozzi 1204, interior 506, Col. Del Valle Centro, Alcaldía Benito Juárez, C.P. 03100, Ciudad de México, es responsable del tratamiento de sus datos personales conforme a lo dispuesto en la Ley Federal de Protección de Datos Personales en Posesión de los Particulares, su Reglamento y demás normativa aplicable.
+                  </p>
+                  <p>
+                    Para el equipo de Matiz, es de gran importancia la privacidad, protección y uso lícito de los datos personales de cada uno de nuestros clientes, proveedores, aliados comerciales y cualquier otra persona relacionada con nuestras actividades (cualquiera de ellos, el "Titular"). Por lo tanto, en cumplimiento de lo dispuesto por la Ley Federal de Protección de Datos Personales en Posesión de los Particulares, su Reglamento y los Lineamientos del Aviso de Privacidad (en lo sucesivo "Marco Legal Aplicable"), ponemos a disposición suya y del público general el presente Aviso de Privacidad Integral (en lo sucesivo el "Aviso de Privacidad").
+                  </p>
+
+                  <h4 className="font-semibold text-casal mt-4">Plataformas Digitales:</h4>
+                  <p>
+                    El presente Aviso de Privacidad resulta aplicable a las actividades comerciales de Matiz en general, así como a la información y datos personales del Titular que sean recabados a través de cualquiera de las plataformas digitales y herramientas tecnológicas utilizadas por Matiz, incluyendo aquélla conocida como "Planoria" (disponible en www.planoria.com.mx) y "Brindoo" (disponible en www.brindoo.com).
+                  </p>
+                  <p>
+                    Los datos e información del Titular que sean recabados a través de dichas plataformas digitales estarán sujetos a las reglas establecidas en el presente Aviso de Privacidad.
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">2. DATOS PERSONALES QUE RECABAMOS.</h3>
+                  <p>
+                    Para la adecuada atención de nuestras relaciones comerciales con usted, hacemos de su conocimiento que el equipo Matiz podrá recabar las siguientes categorías de datos:
+                  </p>
+                  
+                  <h4 className="font-semibold text-casal mt-4">a) Datos de identificación y contacto.</h4>
+                  <p>
+                    Nombre completo, nacionalidad, domicilio, RFC, CURP, teléfono fijo o móvil, correo electrónico, datos profesionales o académicos, empresa y cargo.
+                  </p>
+
+                  <h4 className="font-semibold text-casal mt-4">b) Datos financieros.</h4>
+                  <p>
+                    Por regla general, Matiz no recabará sus datos financieros o patrimoniales. No obstante, aquellas operaciones que requieran que Matiz realice pagos o devoluciones en favor del Titular, será necesario recabar la información bancaria necesaria. En este caso, el Titular voluntariamente podrá compartir con Matiz información relativa a su cuenta bancaria, CLABE, institución bancaria y titular de la cuenta, exclusivamente cuando sea necesario para pagos o cobros.
+                  </p>
+
+                  <h4 className="font-semibold text-casal mt-4">c) Datos personales sensibles.</h4>
+                  <p>
+                    En ninguna circunstancia Matiz recabará del Titular cualquier tipo de dato o información considerada como sensible por el Marco Legal Aplicable. No obstante, si de manera excepcional llegaré a ser necesario Matiz requerirá al Titular que otorgue su consentimiento expreso y por escrito para tal efecto; indicando claramente la finalidad, justificación y reglas aplicables al tratamiento de sus datos sensibles.
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">3. FINALIDADES DEL TRATAMIENTO.</h3>
+                  
+                  <h4 className="font-semibold text-casal mt-4">a) Finalidades primarias (necesarias).</h4>
+                  <p>
+                    La finalidad primaria que justifica la necesidad de obtener los datos personales del Titular se relaciona con: (i) la prestación de servicios relacionados con la industria del entretenimiento, incluyendo graduaciones, bodas, convenciones y otros eventos sociales o corporativos; y (ii) la realización de las actividades comerciales de Matiz.
+                  </p>
+                  <p>Por lo tanto, en consideración de dichas finalidades primarias, sus datos personales serán utilizados para:</p>
+                  <ul className="list-disc pl-6">
+                    <li>Identificarle y contactarle.</li>
+                    <li>Permitir la adecuada realización de las actividades que el Titular encomiende a Matiz.</li>
+                    <li>Elaborar y administrar contratos.</li>
+                    <li>Verificar identidad y, en su caso, facultades de representación.</li>
+                    <li>Gestionar pagos, facturación y cobranza.</li>
+                    <li>Proveer los servicios contratados.</li>
+                    <li>Gestionar acceso a eventos o instalaciones.</li>
+                    <li>Atender dudas, aclaraciones o quejas.</li>
+                    <li>Cumplir obligaciones legales y contractuales.</li>
+                  </ul>
+                  <p>
+                    Si el Titular no desea que sus datos sean tratados para estas finalidades necesarias, no será posible establecer o continuar la relación jurídica con Matiz.
+                  </p>
+
+                  <h4 className="font-semibold text-casal mt-4">b) Finalidades secundarias (no necesarias).</h4>
+                  <p>Adicionalmente, podremos utilizar sus datos para:</p>
+                  <ul className="list-disc pl-6">
+                    <li>Enviar información sobre eventos, cursos, promociones o servicios.</li>
+                    <li>Realizar invitaciones.</li>
+                    <li>Actividades de mercadotecnia, publicidad y propaganda.</li>
+                    <li>Evaluar la calidad de nuestros servicios.</li>
+                    <li>Compartirlos para fines estadísticos y mercadológicos con las personas con las que mantenemos una relación comercial</li>
+                  </ul>
+                  <p>
+                    Usted puede negarse al tratamiento de sus datos para estas finalidades secundarias enviando su solicitud por correo electrónico a: <a href="mailto:legal@matizmx.com" className="text-casal underline">legal@matizmx.com</a>
+                  </p>
+                  <p>
+                    La negativa o rechazo de estas finalidades secundarias no afectará la prestación de los servicios contratados.
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">4. TRANSFERENCIAS DE DATOS PERSONALES.</h3>
+                  <p>Matiz podrá transferir sus datos sin requerir su consentimiento en los siguientes casos:</p>
+                  <ul className="list-disc pl-6">
+                    <li>A autoridades competentes cuando sea legalmente exigido.</li>
+                    <li>A empresas del mismo grupo corporativo que operen bajo las mismas políticas de protección de datos.</li>
+                    <li>A proveedores que actúen como encargados del tratamiento para cumplir las finalidades descritas (por ejemplo, servicios contables, plataformas de pago, logística de eventos).</li>
+                    <li>A empresas con las cuales Matiz tenga alianzas comerciales para la promoción de eventos, productos o servicios.</li>
+                    <li>A los cesionarios o causahabientes de las relaciones contractuales de Matiz.</li>
+                  </ul>
+                  <p>
+                    En caso de realizar transferencias que requieran su consentimiento conforme a la ley, se lo solicitaremos previamente.
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">5. DERECHOS ARCO.</h3>
+                  <p>
+                    En términos de lo establecido en el Marco Legal Aplicable, en todo momento el Titular tiene derecho a:
+                  </p>
+                  <ul className="list-disc pl-6">
+                    <li>Acceder a sus datos personales.</li>
+                    <li>Rectificarlos si son inexactos o incompletos.</li>
+                    <li>Cancelarlos cuando considere que no se requieren.</li>
+                    <li>Oponerse a su tratamiento para fines específicos.</li>
+                  </ul>
+                  <p>
+                    Para ejercer sus derechos ARCO, el Titular deberá enviar una solicitud al correo: <a href="mailto:legal@matizmx.com" className="text-casal underline">legal@matizmx.com</a>, indicando:
+                  </p>
+                  <ul className="list-disc pl-6">
+                    <li>Nombre completo.</li>
+                    <li>Medio para comunicar la respuesta.</li>
+                    <li>Descripción clara del derecho que desea ejercer.</li>
+                    <li>Documento que acredite su identidad o representación.</li>
+                  </ul>
+                  <p>
+                    Matiz dará respuesta en un plazo máximo de 20 días hábiles y, de resultar procedente, hará efectiva la determinación dentro de los 15 días hábiles siguientes, conforme a lo establecido en el Marco Legal Aplicable.
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">6. REVOCACIÓN DEL CONSENTIMIENTO.</h3>
+                  <p>
+                    En cualquier momento, el Titular puede revocar el consentimiento o autorización relacionada con sus datos personales que previamente haya otorgado a Matiz. Para tal efecto, será necesario enviar una solicitud al correo electrónico: <a href="mailto:legal@matizmx.com" className="text-casal underline">legal@matizmx.com</a>
+                  </p>
+                  <p>
+                    La revocación no tendrá efectos retroactivos y puede no proceder cuando exista una disposición legal que obligue a Matiz a conservar los datos.
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">7. OPCIONES PARA LIMITAR EL USO O DIVULGACIÓN.</h3>
+                  <p>Adicionalmente, en todo momento el Titular tendrá derecho de:</p>
+                  <ul className="list-disc pl-6">
+                    <li>Solicitar su inclusión en nuestra lista interna de exclusión para fines promocionales.</li>
+                    <li>Solicitar por escrito que sus datos no sean tratados para finalidades secundarias.</li>
+                    <li>Inscribirse en el Registro Público para Evitar Publicidad (PROFECO), cuando aplique.</li>
+                  </ul>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">8. USO DE TECNOLOGÍAS DE RASTREO EN SITIOS WEB.</h3>
+                  <p>
+                    Tanto el sitio web de Matiz, como los sitios web de las plataformas digitales de apoyo utilizadas por Matiz (Brindoo y Planoria) pueden utilizar cookies, web beacons u otras tecnologías digitales para:
+                  </p>
+                  <ul className="list-disc pl-6">
+                    <li>Mejorar la experiencia del usuario.</li>
+                    <li>Analizar navegación.</li>
+                    <li>Generar estadísticas de uso.</li>
+                  </ul>
+                  <p>
+                    Los datos recabados pueden incluir tipo de navegador, sistema operativo, páginas visitadas y dirección IP. Usted puede deshabilitar estas tecnologías desde la configuración de su navegador. Adicionalmente, el Titular puede abstenerse de utilizar los sitios web antes mencionados, estando facultado para solicitar al equipo de Matiz asistencia personalizada, soluciones y alternativas.
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">9. CONSERVACIÓN Y SEGURIDAD DE LOS DATOS.</h3>
+                  <p>
+                    Por regla general, los datos personales del Titular serán conservados durante el tiempo necesario para cumplir las finalidades descritas y las obligaciones legales aplicables. No obstante, el Titular podrá ejercer los derechos conferidos por el Marco Legal Aplicable, relativos a la conservación de sus datos personales.
+                  </p>
+                  <p>
+                    Los sistemas de almacenamiento (físico y digital) utilizados por Matiz, incluyendo aquéllos correspondientes a las plataformas digitales de apoyo que utiliza para realizar sus actividades (Brindoo y Planoria) cuentan con medidas de seguridad administrativas, técnicas, físicas y digitales razonablemente suficientes para proteger la información del Titular contra daño, pérdida, alteración o acceso no autorizado.
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">10. DATOS DE MENORES DE EDAD.</h3>
+                  <p>
+                    Por regla general, Matiz no recaba datos personales de menores de edad o personas sujetas a incapacidad legal. No obstante, en caso de que Matiz sea contratada para la realización de alguna graduación o evento social que involucre menores o incapaces, resultando absolutamente necesario recabar sus datos personales; Matiz deberá de obtener el consentimiento de quien ejerza la patria potestad o tutela. En caso de identificar que se han recabado datos personales de cualquier menor o incapaz sin contar con el consentimiento de sus padres o tutores, Matiz buscará remediar la situación irregular y, de no ser posible, se procederá de inmediato a su eliminación.
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">11. MODIFICACIONES AL AVISO.</h3>
+                  <p>
+                    En cualquier momento, Matiz podrá actualizar o modificar el presente Aviso de Privacidad, unilateralmente y según considere necesario o conveniente. La versión más reciente del Aviso de Privacidad estará disponible en el sitio web de Matiz (www.matizmx.com), así como en el sitio web de las plataformas digitales de apoyo utilizadas por Matiz (www.planoria.com.mx y www.brindoo.com).
+                  </p>
+                  <p>
+                    El Titular podrá solicitar a Matiz el envío de versiones anteriores del Aviso de Privacidad, enviando requerimiento detallado a la dirección de correo: <a href="mailto:legal@matizmx.com" className="text-casal underline">legal@matizmx.com</a>
+                  </p>
+
+                  <h3 className="text-lg font-bold text-casal mt-6">12. CONSENTIMIENTO.</h3>
+                  
+                  <h4 className="font-semibold text-casal mt-4">a) Consentimiento tácito.</h4>
+                  <p>
+                    Cuando el Marco Legal Aplicable lo permita, se presumirá que el Titular conoce y acepta el contenido del presente instrumento, consintiendo que Matiz recabe, conserve, trate y transmita sus datos personales en términos de lo establecido en este Aviso de Privacidad. De manera enunciativa, resultará aplicable esta presunción cuando:
+                  </p>
+                  <ul className="list-disc pl-6">
+                    <li>El Titular envíe o proporcione voluntariamente sus datos personales a Matiz, a través de cualquier medio.</li>
+                    <li>El Titular acceda, navegue y/o utilice el sitio web o las plataformas digitales contempladas en el presente Aviso de Privacidad (www.matizmx.com, www.brindoo.com, www.planoria.com.mx).</li>
+                  </ul>
+
+                  <h4 className="font-semibold text-casal mt-4">b) Consentimiento expreso.</h4>
+                  <p>
+                    Cuando el Marco Legal Aplicable así lo requiera, Matiz deberá de solicitar al Titular el otorgamiento de su consentimiento expreso y por escrito a los términos del presente Aviso de Privacidad.
+                  </p>
+                </div>
+              </div>
+
+              {/* Checkbox de aceptación dentro del modal */}
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={aceptaTerminos}
+                    disabled={!haLeidoPrivacidad}
+                    onChange={(e) => {
+                      setAceptaTerminos(e.target.checked);
+                      limpiarError("aceptaTerminos");
+                    }}
+                    className={clsx(
+                      "mt-1 w-5 h-5 text-casal border-gray-300 rounded focus:ring-casal",
+                      !haLeidoPrivacidad && "opacity-50 cursor-not-allowed"
+                    )}
+                  />
+                  <span className="text-sm text-gray-700 font-semibold">
+                    He leído y acepto el Aviso de Privacidad
+                  </span>
+                </label>
+                {!haLeidoPrivacidad && (
+                  <p className="text-amber-600 text-xs mt-2 ml-8 flex items-start gap-1">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>Debes desplazarte hasta el final del documento para poder aceptar</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end gap-3">
+                <Button
+                  onClick={handleCerrarModalPrivacidad}
+                  disabled={!aceptaTerminos}
+                  className={clsx(
+                    "px-6 py-2 rounded-3xl transition font-semibold",
+                    aceptaTerminos
+                      ? "bg-casal text-white hover:bg-Acapulco cursor-pointer"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  )}
+                >
+                  {aceptaTerminos ? "Aceptar y Continuar" : "Debes aceptar para continuar"}
+                </Button>
+              </div>
+            </DialogPanel>
+          </div>
+        </Dialog>
+
       </div>
     </div>
   );

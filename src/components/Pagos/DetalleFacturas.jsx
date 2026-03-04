@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Dialog } from "@headlessui/react";
-import { X, Calendar, DollarSign, FileText, CheckCircle2, Clock, AlertTriangle, Copy, Link, Ticket, Plus } from "lucide-react";
+import { X, Calendar, DollarSign, FileText, CheckCircle2, Clock, AlertTriangle, Link, Ticket, Plus } from "lucide-react";
 import EnvConfig from "../../utils/config";
 import { useNotifications } from "../../contexts/NotificationContext";
 import ModalAumentarBoletos from "./ModalAumentarBoletos";
@@ -72,9 +72,9 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
 
       {/* Container */}
       <div className="fixed inset-0 flex items-center justify-center p-4">
-        <Dialog.Panel className="mx-auto max-w-4xl w-full bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl">
+        <Dialog.Panel className="mx-auto max-w-4xl w-full max-h-[90vh] bg-white dark:bg-[#1e1e1e] rounded-2xl shadow-2xl flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div>
               <Dialog.Title className="text-2xl font-bold text-gray-900 dark:text-white">
                 Detalle de Facturas
@@ -91,6 +91,8 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
             </button>
           </div>
 
+          {/* Contenido con scroll */}
+          <div className="flex-1 overflow-y-auto">
           {/* Resumen Financiero o Mensaje Sin Deuda */}
           {sinDeuda ? (
             // Vista para invitados sin deuda (no han firmado contrato)
@@ -238,7 +240,7 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
           </div>
 
           {/* Lista de Facturas */}
-          <div className="p-6 max-h-[400px] overflow-y-auto">
+          <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Facturas ({deuda.facturas.length})
             </h3>
@@ -317,9 +319,12 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
               ))}
             </div>
           </div>
+            </>
+          )}
+          </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0">
             {!sinDeuda ? (
               <>
                 <div className="flex items-center gap-4">
@@ -358,8 +363,6 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
               Cerrar
             </button>
           </div>
-            </>
-          )}
         </Dialog.Panel>
       </div>
 
