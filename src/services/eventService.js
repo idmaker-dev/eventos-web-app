@@ -91,7 +91,7 @@ class EventService {
    */
   async updateEvent(eventId, eventData) {
     try {
-      const response = await httpService.put(`/eventos/${eventId}`, eventData);
+      const response = await httpService.put(`/eventos/actualizar/${eventId}`, eventData);
 
       return {
         success: true,

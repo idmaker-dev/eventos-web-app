@@ -216,7 +216,23 @@ export const useEventos = () => {
           console.log("🔄 Actualizando evento:", eventoId, datosEvento);
         }
 
-        const result = await eventService.updateEvent(eventoId, datosEvento);
+        // Preparar datos para actualizar (mismo formato que creación)
+        const eventoParaActualizar = {
+          instituto: datosEvento.instituto,
+          licenciatura: datosEvento.licenciatura,
+          nombreEvento: datosEvento.nombreEvento,
+          lugar_id: datosEvento.lugar_id,
+          fechaHora: datosEvento.fechaHora,
+          cantidadMaximaAsistentes: parseInt(datosEvento.cantidadMaximaAsistentes) || 0,
+          cantidadMinimaAsistentes: parseInt(datosEvento.cantidadMinimaAsistentes) || 0,
+          responsable: datosEvento.responsable,
+          costo: parseFloat(datosEvento.costo) || 0,
+          fechas: datosEvento.fechas || [],
+          requiere_tutor: datosEvento.requiere_tutor || false,
+          estado: datosEvento.estado || "activo",
+        };
+
+        const result = await eventService.updateEvent(eventoId, eventoParaActualizar);
 
         if (result.success) {
           // Actualizar lista de eventos
