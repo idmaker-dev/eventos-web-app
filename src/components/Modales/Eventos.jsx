@@ -39,6 +39,7 @@ export default function Eventos({ open, onClose, eventToEdit = null }) {
   });
 
   const isEditMode = !!eventToEdit;
+  const hasGuests = isEditMode && (eventToEdit.invitados > 0);
 
   // Hook de eventos desde el contexto
   const { 
@@ -416,11 +417,13 @@ export default function Eventos({ open, onClose, eventToEdit = null }) {
                           onChange={(e) =>
                             handleInputChange("costo", e.target.value)
                           }
+                          disabled={hasGuests}
                           placeholder="Ejemplo: Gratuito, $500 por persona, etc."
                           className={clsx(
                             "mt-2 block w-full rounded-lg border border-2 bg-white/5 px-3 py-1.5 text-sm/6 dark:text-white text-gray-700",
                             "placeholder:italic",
-                            "focus:not-data-focus:outline-none data-focus:outline-2 data-focus:-outline-offset-2 data-focus:outline-white/25"
+                            "focus:not-data-focus:outline-none data-focus:outline-2 data-focus:-outline-offset-2 data-focus:outline-white/25",
+                            hasGuests && "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800"
                           )}
                         />
                       </div>
@@ -450,12 +453,12 @@ export default function Eventos({ open, onClose, eventToEdit = null }) {
                       </label>
                       <div className="flex gap-6">
                         {/* Calendario visual para seleccionar varias fechas */}
-                        <div className="">
+                        <div className={clsx(hasGuests && "opacity-50 pointer-events-none")}>
                           <DayPicker
                             mode="multiple"
                             locale={es}
                             selected={selectedDates}
-                            onSelect={setSelectedDates}
+                            onSelect={!hasGuests ? setSelectedDates : undefined}
                             className="my-2 border h-auto rounded-lg p-2 mt-2 bg-white dark:bg-[#23272f] text-[#246370] dark:text-[#bcd6e4] [&_.rdp-nav_button]:text-[#246370] [&_.rdp-nav_button:hover]:bg-[#e0f7fa] [&_.rdp-nav_button:hover]:text-[#2a9d8f]"
                             modifiersClassNames={{
                               selected: "my-selected",

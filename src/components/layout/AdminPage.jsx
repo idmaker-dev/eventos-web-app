@@ -76,13 +76,8 @@ export default function AdminPage() {
 
     try {
       // Recargar el evento para verificar invitados actualizados
-      const eventoRefrescado = await cargarEvento(eventoActual.id);
-      
-      if (eventoRefrescado?.invitados === 0 || !eventoRefrescado?.invitados) {
-        setEditModalOpen(true);
-      } else {
-        showError("No se puede editar el evento porque ya tiene invitados registrados.");
-      }
+      await cargarEvento(eventoActual.id);
+      setEditModalOpen(true);
     } catch (error) {
       showError("Error al verificar el estado del evento.");
     }
@@ -350,15 +345,13 @@ export default function AdminPage() {
               >
                 <Link size={18} />
               </button>
-              {(eventoActual?.invitados === 0 || !eventoActual?.invitados) && (
-                <button
-                  onClick={handleEditClick}
-                  className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
-                  title="Editar Evento"
-                >
-                  <Pencil size={18} />
-                </button>
-              )}
+              <button
+                onClick={handleEditClick}
+                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+                title="Editar Evento"
+              >
+                <Pencil size={18} />
+              </button>
             </div>
 
             {/* Botones de acción */}
@@ -474,15 +467,13 @@ export default function AdminPage() {
             >
               <Link size={18} />
             </button>
-            {(eventoActual?.invitados === 0 || !eventoActual?.invitados) && (
-              <button
-                onClick={handleEditClick}
-                className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
-                title="Editar Evento"
-              >
-                <Pencil size={18} />
-              </button>
-            )}
+            <button
+              onClick={handleEditClick}
+              className="bg-[#216b6b] text-white p-2.5 rounded-full hover:bg-[#1a5a61] transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105"
+              title="Editar Evento"
+            >
+              <Pencil size={18} />
+            </button>
           </div>
         </div>
 
