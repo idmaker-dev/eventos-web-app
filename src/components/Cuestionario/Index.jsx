@@ -1094,7 +1094,7 @@ export default function Cuestionario() {
                               "disabled:bg-gray-100 disabled:cursor-not-allowed",
                               errores.telefono ? "border-red-500" : "",
                             )}
-                            placeholder="10 digitos sin espacios ni guiones"
+                            placeholder="10 dígitos sin espacios ni guiones"
                           />
                           {errores.telefono && (
                             <p className="text-red-500 text-sm mt-1">
