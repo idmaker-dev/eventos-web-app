@@ -159,6 +159,12 @@ export default function Cuestionario() {
       return;
     }
 
+    // Validar que sean exactamente 10 dígitos
+    if (!/^\d{10}$/.test(telefono.trim())) {
+      showError("El número de teléfono debe tener exactamente 10 dígitos sin espacios ni caracteres especiales");
+      return;
+    }
+
     setIsGenerandoCodigo(true);
     try {
       const response = await whatsappService.generarCodigo(telefono.trim());
@@ -320,8 +326,11 @@ export default function Cuestionario() {
       nuevosErrores.fechaNacimiento = "La fecha de nacimiento es obligatoria";
 
     // Validar teléfono y código
-    if (!telefono.trim())
+    if (!telefono.trim()) {
       nuevosErrores.telefono = "El número de teléfono es obligatorio";
+    } else if (!/^\d{10}$/.test(telefono.trim())) {
+      nuevosErrores.telefono = "El número debe tener exactamente 10 dígitos sin espacios ni caracteres especiales";
+    }
 
     if (!codigoVerificado)
       nuevosErrores.codigoVerificado = "Debes verificar tu número de teléfono";
@@ -1077,7 +1086,9 @@ export default function Cuestionario() {
                             type="text"
                             value={telefono}
                             onChange={(e) => {
-                              setTelefono(e.target.value);
+                              // Solo permitir dígitos y máximo 10 caracteres
+                              const valor = e.target.value.replace(/\D/g, '').slice(0, 10);
+                              setTelefono(valor);
                               limpiarError("telefono");
                               // Reset estados si cambia el teléfono
                               if (codigoVerificado) {
@@ -1094,7 +1105,8 @@ export default function Cuestionario() {
                               "disabled:bg-gray-100 disabled:cursor-not-allowed",
                               errores.telefono ? "border-red-500" : "",
                             )}
-                            placeholder="10 dígitos sin espacios ni guiones"
+                            placeholder="Ejemplo: 5512345678"
+                            maxLength="10"
                           />
                           {errores.telefono && (
                             <p className="text-red-500 text-sm mt-1">
