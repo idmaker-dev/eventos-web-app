@@ -38,12 +38,31 @@ export default function Pagos({ darkMode }) {
     
     if (resultado.success) {
       console.log('✅ [cargarDeudas] Deudas recibidas:', resultado.data.deudas?.length || 0);
-      console.log('✅ [cargarDeudas] Datos:', resultado.data.deudas);
-      const deudasNuevas = resultado.data.deudas || [];
-      setDeudas(deudasNuevas);
+      
+      const deudasRecibidas = resultado.data.deudas || [];
+      
+      // Deduplicar deudas basándose en una clave única (invitado_id + deuda_id)
+      // Esto previene duplicados si la API devuelve el mismo registro varias veces
+      const deudasDeduplicadas = [];
+      const keysVistas = new Set();
+      
+      deudasRecibidas.forEach(deuda => {
+        // Generar una clave única para identificar este registro específico
+        const uniqueKey = `${deuda.invitado_id}-${deuda.deuda_id || 'no-deuda'}`;
+        
+        if (!keysVistas.has(uniqueKey)) {
+          keysVistas.add(uniqueKey);
+          deudasDeduplicadas.push(deuda);
+        } else {
+          console.warn(`⚠️ [cargarDeudas] Duplicado detectado y omitido: ${uniqueKey}`);
+        }
+      });
+
+      console.log('✅ [cargarDeudas] Deudas después de deduplicar:', deudasDeduplicadas.length);
+      setDeudas(deudasDeduplicadas);
       setLoading(false);
       console.log('🔄 [cargarDeudas] Carga completada');
-      return deudasNuevas;
+      return deudasDeduplicadas;
     } else {
       console.error("❌ [cargarDeudas] Error al cargar deudas:", resultado.error);
       setLoading(false);
@@ -127,20 +146,25 @@ export default function Pagos({ darkMode }) {
     }
   };
 
-  // Filtrar deudas por búsqueda y firma de contrato
-  const deudasFiltradas = deudas.filter((deuda) => {
-    const matchesSearch = deuda.asistente.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Lógica de filtro de firma
-    let matchesFirma = true;
-    if (filterFirma === "firmado") {
-      matchesFirma = deuda.asistente.contrato_firmado === "Si";
-    } else if (filterFirma === "no_firmado") {
-      matchesFirma = deuda.asistente.contrato_firmado === "No";
-    }
-    
-    return matchesSearch && matchesFirma;
-  });
+  // Filtrar deudas por búsqueda y firma de contrato con useMemo para mayor estabilidad
+  const deudasFiltradas = React.useMemo(() => {
+    console.log('🔍 [Pagos] Ejecutando filtrado...');
+    return deudas.filter((deuda) => {
+      const matchesSearch = (deuda.asistente?.nombre_completo || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      
+      // Lógica de filtro de firma
+      let matchesFirma = true;
+      if (filterFirma === "firmado") {
+        matchesFirma = deuda.asistente?.contrato_firmado === "Si";
+      } else if (filterFirma === "no_firmado") {
+        matchesFirma = deuda.asistente?.contrato_firmado === "No";
+      }
+      
+      return matchesSearch && matchesFirma;
+    });
+  }, [deudas, searchTerm, filterFirma]);
 
   const getEstado = (estado) => {
     // Manejar estados de invitados sin deuda
@@ -269,9 +293,12 @@ export default function Pagos({ darkMode }) {
         ) : (
           deudasFiltradas.map((deuda) => {
             const porcentaje = deuda.progreso.porcentaje;
+            // Usar una clave única que incluya invitado_id y deuda_id para evitar conflictos de keys
+            const rowKey = `row-${deuda.invitado_id}-${deuda.deuda_id || 'pend'}`;
+            
             return (
               <div 
-                key={deuda.deuda_id} 
+                key={rowKey} 
                 className="pagos-fila rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                 onClick={() => abrirModal(deuda)}
               >

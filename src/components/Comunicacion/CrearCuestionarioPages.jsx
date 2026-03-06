@@ -524,7 +524,7 @@ export default function CrearCuestionarioPages({ onClose }) {
             Ocultar ? "md:col-span-3 rounded-l-xl " : "md:col-span-2"
           )}
         >
-          <div className="absolute top-0 left-0 flex space-x-2 z-10">
+          {/* <div className="absolute top-0 left-0 flex space-x-2 z-10">
             <Button
               onClick={() => setOcultar(!Ocultar)}
               className={clsx(
@@ -547,7 +547,7 @@ export default function CrearCuestionarioPages({ onClose }) {
                 </span>
               )}
             </Button>
-          </div>
+          </div> */}
           <div className="flex-col lg:flex-row lg:space-x-4 lg:space-y-0 space-y-4 flex">
             {/* estos son los detalles del cuestionario pero con los botones se puede hacer para modal celular y laptop */}
             <div className="flex justify-center gap-3 mb-4 lg:hidden">

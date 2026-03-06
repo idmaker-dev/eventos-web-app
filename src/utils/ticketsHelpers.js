@@ -566,7 +566,7 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
             : "Al corriente",
       totalBoletos: informacionBoletos.cantidad_asignada || 0,
       totalPagado: formatearMonto(informacionPago.progreso?.monto_pagado || 0),
-      formaPago: informacionPago.detalle_transacciones.at(-1)?.tipo || "Tarjeta vinculada - Toku",
+      formaPago: informacionPago.detalle_transacciones?.at(-1)?.tipo || "Tarjeta vinculada - Toku",
       fechaDePago: informacionPago.ultima_actualizacion
         ? formatearFecha(informacionPago.ultima_actualizacion)
         : "N/A",
