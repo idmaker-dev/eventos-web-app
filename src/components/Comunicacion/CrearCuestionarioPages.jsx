@@ -9,9 +9,12 @@ import {
 import clsx from "clsx";
 import React, { useState, useEffect } from "react";
 import FormularioCuestionario from "./FormularioCuestionario";
+import PreviewContrato from "./PreviewContrato";
 import {
   LaptopIcon,
   Smartphone,
+  FileText,
+  ClipboardList,
   Plus,
   Minus,
   ChevronRight,
@@ -59,6 +62,7 @@ export default function CrearCuestionarioPages({ onClose }) {
 
   const [otra, setOtra] = useState("");
   const [modoVista, setModoVista] = useState("laptop"); // "laptop" o "telefono"
+  const [vistaPrevia, setVistaPrevia] = useState("cuestionario"); // "cuestionario" o "contrato"
   const [modalOpen, setModalOpen] = useState(false);
   const [Ocultar, setOcultar] = useState(true);
 
@@ -550,50 +554,107 @@ export default function CrearCuestionarioPages({ onClose }) {
           </div> */}
           <div className="flex-col lg:flex-row lg:space-x-4 lg:space-y-0 space-y-4 flex">
             {/* estos son los detalles del cuestionario pero con los botones se puede hacer para modal celular y laptop */}
-            <div className="flex justify-center gap-3 mb-4 lg:hidden">
-              <div className="relative group">
-                <Button
-                  onClick={() => setModoVista("telefono")}
+            <div className="flex flex-col gap-3 mb-4 lg:hidden">
+              {/* Toggle Cuestionario/Contrato Móvil */}
+              <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-lg w-full shadow-inner">
+                <button
+                  onClick={() => setVistaPrevia("cuestionario")}
                   className={clsx(
-                    "text-white px-3 py-1 rounded",
-                    "focus:outline-none transition",
-                    modoVista === "laptop" ? "bg-Acapulco" : "bg-casal"
+                    "flex-1 flex justify-center items-center gap-2 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
+                    vistaPrevia === "cuestionario"
+                      ? "bg-white dark:bg-gray-600 text-casal shadow"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
                   )}
                 >
-                  <LaptopIcon className="w-6 h-6" />
-                </Button>
-                <span className="absolute left-1/2 -translate-x-1/2 -bottom-8 z-10 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition">
-                  Vista laptop
-                </span>
+                  <ClipboardList className="w-4 h-4" />
+                  Formulario
+                </button>
+                <button
+                  onClick={() => setVistaPrevia("contrato")}
+                  className={clsx(
+                    "flex-1 flex justify-center items-center gap-2 py-1.5 px-3 rounded-md text-xs sm:text-sm font-medium transition-all duration-200",
+                    vistaPrevia === "contrato"
+                      ? "bg-white dark:bg-gray-600 text-casal shadow"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                  )}
+                >
+                  <FileText className="w-4 h-4" />
+                  Contrato
+                </button>
               </div>
-              <div className="relative group">
-                <Button
-                  onClick={() => setModoVista("telefono")}
-                  className={clsx(
-                    "text-white px-3 py-1 rounded",
-                    "focus:outline-none transition",
-                    modoVista === "telefono" ? "bg-Acapulco" : "bg-casal"
-                  )}
-                >
-                  <Smartphone className="w-6 h-6" />
-                </Button>
-                <span className="absolute left-1/2 -translate-x-1/2 -bottom-8 z-10 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition">
-                  Vista teléfono
-                </span>
+
+              <div className="flex justify-center gap-3">
+                <div className="relative group">
+                  <Button
+                    onClick={() => setModoVista("laptop")}
+                    className={clsx(
+                      "text-white px-3 py-1 rounded focus:outline-none transition group-hover:shadow-[0_0_10px_2px_rgba(255,255,255,0.4)]",
+                      modoVista === "laptop" ? "bg-casal" : "bg-towerGray/70 hover:bg-towerGray"
+                    )}
+                  >
+                    <LaptopIcon className="w-6 h-6" />
+                  </Button>
+                  <span className="absolute left-1/2 -translate-x-1/2 -bottom-8 z-10 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition">
+                    Ver en Laptop
+                  </span>
+                </div>
+                <div className="relative group">
+                  <Button
+                    onClick={() => setModoVista("telefono")}
+                    className={clsx(
+                      "text-white px-3 py-1 rounded focus:outline-none transition group-hover:shadow-[0_0_10px_2px_rgba(255,255,255,0.4)]",
+                      modoVista === "telefono" ? "bg-casal" : "bg-towerGray/70 hover:bg-towerGray"
+                    )}
+                  >
+                    <Smartphone className="w-6 h-6" />
+                  </Button>
+                  <span className="absolute left-1/2 -translate-x-1/2 -bottom-8 z-10 whitespace-nowrap rounded bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition">
+                    Ver en Teléfono
+                  </span>
+                </div>
               </div>
               <div className="">
                 <Button
                   onClick={handleCopyLink}
-                  className="bg-casal  w-full text-white px-4 py-1 rounded hover:bg-Acapulco transition"
+                  className="bg-casal w-full text-white px-4 py-1 rounded hover:bg-Acapulco transition"
                 >
-                  Enlace de cuestionario
+                  Enlace de evento
                 </Button>
               </div>
             </div>
-            <div className="w-full ">
+            
+            <div className="w-full flex flex-col pt-4 lg:pt-0">
+              {/* Toggle Cuestionario/Contrato Escritorio */}
+              <div className="hidden lg:flex w-fit mx-auto bg-gray-200 dark:bg-[#1a1a1a] p-1 rounded-lg mb-4 shadow-inner">
+                <button
+                  onClick={() => setVistaPrevia("cuestionario")}
+                  className={clsx(
+                    "flex justify-center items-center gap-2 py-1.5 px-6 rounded-md text-sm font-medium transition-all duration-200 border border-transparent",
+                    vistaPrevia === "cuestionario"
+                      ? "bg-white dark:bg-[#2f2f2f] text-casal shadow-sm dark:border-gray-700"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  )}
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  Vista de Formulario
+                </button>
+                <button
+                  onClick={() => setVistaPrevia("contrato")}
+                  className={clsx(
+                    "flex justify-center items-center gap-2 py-1.5 px-6 rounded-md text-sm font-medium transition-all duration-200 border border-transparent",
+                    vistaPrevia === "contrato"
+                      ? "bg-white dark:bg-[#2f2f2f] text-casal shadow-sm dark:border-gray-700"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  )}
+                >
+                  <FileText className="w-4 h-4" />
+                  Vista de Contrato
+                </button>
+              </div>
+
               <div
                 className={clsx(
-                  "flex justify-center items-start transition-all duration-300 mx-auto me-2"
+                  "flex justify-center items-start transition-all duration-300 mx-auto w-full"
                 )}
               >
                 <DeviceFrameset
@@ -605,17 +666,24 @@ export default function CrearCuestionarioPages({ onClose }) {
                 >
                   <div
                     className={clsx(
-                      "h-full overflow-y-auto ",
+                      "h-full overflow-y-auto bg-gray-50",
                       modoVista === "telefono"
-                        ? "max-h-[800px]"
-                        : "max-h-[600px]"
+                        ? "max-h-[800px] rounded-br-3xl rounded-bl-3xl"
+                        : "max-h-[600px] rounded"
                     )}
                   >
-                    <FormularioCuestionario
-                      modoVista={modoVista}
-                      eventoData={eventoActual}
-                      formData={formData}
-                    />
+                    {vistaPrevia === "cuestionario" ? (
+                      <FormularioCuestionario
+                        modoVista={modoVista}
+                        eventoData={eventoActual}
+                        formData={formData}
+                      />
+                    ) : (
+                      <PreviewContrato 
+                        eventoData={eventoActual} 
+                        modoVista={modoVista} 
+                      />
+                    )}
                   </div>
                 </DeviceFrameset>
               </div>

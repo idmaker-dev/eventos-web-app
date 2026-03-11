@@ -80,6 +80,20 @@ const contratoConfigService = {
       throw error;
     }
   },
+  /**
+   * Obtiene la previsualización del contrato en Base64
+   * @param {string} eventoId - ID del evento
+   * @returns {Promise<Object>}
+   */
+  async previewContrato(eventoId) {
+    try {
+      const response = await httpService.get(`/eventos/${eventoId}/preview-contrato`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener previsualización de contrato:', error);
+      throw error;
+    }
+  },
 };
 
 export default contratoConfigService;

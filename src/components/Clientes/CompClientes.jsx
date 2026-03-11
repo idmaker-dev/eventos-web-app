@@ -45,7 +45,17 @@ export default function CompClientes() {
   const { conectado: signalRConectado } = useSignalRConnection();
 
   // Hook para cargar tickets desde el API
-  const { tickets, loading, error, cargarTickets, estadisticas } = useTickets();
+  const { tickets, loading, error, cargarTickets, estadisticas, cerrarTicket } = useTickets();
+
+  const handleCerrarTicket = async () => {
+    if (ticketSeleccionadoSimple?.id) {
+      const response = await cerrarTicket(ticketSeleccionadoSimple.id);
+      if (response?.success) {
+        handleVolverALista();
+        cargarTickets();
+      }
+    }
+  };
 
   // Log para verificar conexión de SignalR
   useEffect(() => {
@@ -349,6 +359,7 @@ export default function CompClientes() {
                   chatData={chatData}
                   ticket={ticketSeleccionadoSimple?.ticket}
                   telefono={ticketSeleccionadoSimple?.telefono}
+                  onCerrarTicket={handleCerrarTicket}
                 />
               </>
             ) : null}
@@ -478,6 +489,7 @@ export default function CompClientes() {
                   chatData={chatData}
                   ticket={ticketSeleccionadoSimple?.ticket}
                   telefono={ticketSeleccionadoSimple?.telefono}
+                  onCerrarTicket={handleCerrarTicket}
                 />
               </div>
             ) : null}

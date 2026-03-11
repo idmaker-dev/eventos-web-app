@@ -29,7 +29,7 @@ function useIsMobile() {
   return isMobile;
 }
 
-export default function ChatModal({ open, onClose, chatData = [], ticket, telefono }) {
+export default function ChatModal({ open, onClose, chatData = [], ticket, telefono, onCerrarTicket }) {
   const [minimized, setMinimized] = useState(false);
   const [mensajes, setMensajes] = useState(chatData);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
@@ -76,9 +76,13 @@ export default function ChatModal({ open, onClose, chatData = [], ticket, telefo
     setShowMenu(false);
   };
 
-  const confirmarCierreTicket = () => {
+  const confirmarCierreTicket = async () => {
     console.log("Cerrando ticket:", ticket);
-    alert("Ticket cerrado correctamente");
+    if (onCerrarTicket) {
+      await onCerrarTicket();
+    } else {
+      alert("Ticket cerrado correctamente");
+    }
     setShowConfirm(false);
     onClose();
   };
