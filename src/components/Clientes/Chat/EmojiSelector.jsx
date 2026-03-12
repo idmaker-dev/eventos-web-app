@@ -505,7 +505,7 @@ const EmojiPicker = ({ isOpen, onClose, onEmojiSelect, onStickerSelect, onGifSel
 };
 
 // Componente principal
-export default function EmojiSelector({ onEmojiSelect, inputRef }) {
+export default function EmojiSelector({ onEmojiSelect, inputRef, disabled }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiRef = useRef(null);
 
@@ -556,13 +556,16 @@ export default function EmojiSelector({ onEmojiSelect, inputRef }) {
       />
 
       <Button
-        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+        onClick={() => !disabled && setShowEmojiPicker(!showEmojiPicker)}
+        disabled={disabled}
         className={`px-3 py-2 rounded-lg transition-all duration-200 flex items-center justify-center ${
-          showEmojiPicker
-            ? "bg-casal text-white scale-110"
-            : "text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          disabled
+            ? "text-gray-400 bg-gray-100 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600"
+            : showEmojiPicker
+              ? "bg-casal text-white scale-110"
+              : "text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
         }`}
-        title="Emojis, Stickers y GIFs"
+        title={disabled ? "No disponible (Ticket cerrado)" : "Emojis, Stickers y GIFs"}
       >
         <Smile className="w-4 h-4" />
       </Button>

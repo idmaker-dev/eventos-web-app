@@ -2,7 +2,7 @@ import { Button, Input } from "@headlessui/react";
 import clsx from "clsx";
 import { Minus, Plus, Search, X, RefreshCw } from "lucide-react";
 import { Tooltip } from "../ui/Tooltip.jsx";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import ListaTickets from "./Detalles/ListaClientes.jsx";
 import Destalles from "./Detalles/Destalles.jsx";
 import ChatModal from "./Chat/ChatModal.jsx";
@@ -57,6 +57,22 @@ export default function CompClientes() {
     }
   };
 
+  const handleMensajeEnviado = useCallback((nuevoMsg) => {
+    setTicketSeleccionado((prev) => {
+      if (!prev) return prev;
+      
+      // Evitar duplicados por ID (mensajes temporales o reales)
+      const chat = prev.chat || [];
+      const yaExiste = chat.some((m) => m.id === nuevoMsg.id);
+      if (yaExiste) return prev;
+
+      return {
+        ...prev,
+        chat: [...chat, nuevoMsg],
+      };
+    });
+  }, []);
+
   // Log para verificar conexión de SignalR
   useEffect(() => {
     console.log("📡 [CompClientes] Estado de SignalR:", signalRConectado);
@@ -109,16 +125,8 @@ export default function CompClientes() {
           from: data.from, // Mantener para compatibilidad con ChatModal
         };
 
-        // Agregar el mensaje al ticket seleccionado
-        setTicketSeleccionado((prevTicket) => {
-          if (!prevTicket) return prevTicket;
-
-          return {
-            ...prevTicket,
-            chat: [...(prevTicket.chat || []), nuevoMensaje],
-          };
-        });
-
+        // Agregar el mensaje al ticket seleccionado usando la función común
+        handleMensajeEnviado(nuevoMensaje);
         console.log("✅ Mensaje agregado al chat:", nuevoMensaje);
       } else {
         console.log("ℹ️ El mensaje no pertenece al ticket actual");
@@ -193,21 +201,27 @@ export default function CompClientes() {
         ticketCompleto.historialSecuencial = historialAcciones;
       }
 
-      setTicketSeleccionado(ticketCompleto);
-    } else if (ticketDetail && !loadingClient) {
-      // Si solo tenemos el detalle del ticket, usar eso
-      console.log("⚠️ [CompClientes] Solo con ticketDetail (sin clientInfo)");
-      const ticketCompleto = transformarTicketCompletoParaUI(
-        ticketDetail,
-        null
-      );
+      setTicketSeleccionado((prev) => {
+        // Si ya teníamos el ticket seleccionado, preservamos los mensajes locales
+        // (mensajes que enviamos o recibimos en tiempo real que aún no están en el API)
+        if (prev && prev.id === ticketCompleto.id) {
+          const chatIds = new Set(ticketCompleto.chat.map((m) => m.id));
+          const mensajesLocales = (prev.chat || []).filter(
+            (m) => !chatIds.has(m.id)
+          );
 
-      // Sobrescribir historialSecuencial con el específico si existe
-      if (historialAcciones.length > 0) {
-        ticketCompleto.historialSecuencial = historialAcciones;
-      }
+          if (mensajesLocales.length > 0) {
+            // console.log(
+            //   `➕ [CompClientes] Preservando ${mensajesLocales.length} mensajes locales`
+            // );
+            ticketCompleto.chat = [...ticketCompleto.chat, ...mensajesLocales];
+            // Opcional: ordenar por timestamp si los mensajes tienen fecha
+            // ticketCompleto.chat.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+          }
+        }
 
-      setTicketSeleccionado(ticketCompleto);
+        return ticketCompleto;
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketDetail, clientInfo, loadingClient, historialAcciones]);
@@ -359,7 +373,9 @@ export default function CompClientes() {
                   chatData={chatData}
                   ticket={ticketSeleccionadoSimple?.ticket}
                   telefono={ticketSeleccionadoSimple?.telefono}
+                  estatus={ticketSeleccionadoSimple?.estatus}
                   onCerrarTicket={handleCerrarTicket}
+                  onMensajeEnviado={handleMensajeEnviado}
                 />
               </>
             ) : null}
@@ -489,7 +505,9 @@ export default function CompClientes() {
                   chatData={chatData}
                   ticket={ticketSeleccionadoSimple?.ticket}
                   telefono={ticketSeleccionadoSimple?.telefono}
+                  estatus={ticketSeleccionadoSimple?.estatus}
                   onCerrarTicket={handleCerrarTicket}
+                  onMensajeEnviado={handleMensajeEnviado}
                 />
               </div>
             ) : null}

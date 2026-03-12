@@ -29,7 +29,7 @@ function useIsMobile() {
   return isMobile;
 }
 
-export default function ChatModal({ open, onClose, chatData = [], ticket, telefono, onCerrarTicket }) {
+export default function ChatModal({ open, onClose, chatData = [], ticket, telefono, estatus, onCerrarTicket, onMensajeEnviado }) {
   const [minimized, setMinimized] = useState(false);
   const [mensajes, setMensajes] = useState(chatData);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
@@ -42,6 +42,8 @@ export default function ChatModal({ open, onClose, chatData = [], ticket, telefo
   const menuRef = useRef(null);
   const inputRef = useRef(null);
   const isMobile = useIsMobile();
+
+  const isClosed = estatus?.toLowerCase() === "cerrado";
 
   // Scroll automático al último mensaje
   const scrollToBottom = () => {
@@ -152,6 +154,11 @@ export default function ChatModal({ open, onClose, chatData = [], ticket, telefo
       }
 
       console.log("✅ Mensaje enviado exitosamente al bot:", resultado);
+      
+      // Notificar al padre para que persista el mensaje en el estado global
+      if (onMensajeEnviado) {
+        onMensajeEnviado(mensajeSoporte);
+      }
 
       // TODO: Si hay archivos adjuntos, implementar lógica para subirlos
       if (archivosParaEnviar.length > 0) {
@@ -262,6 +269,7 @@ export default function ChatModal({ open, onClose, chatData = [], ticket, telefo
               <Tooltip content={`No. Ticket ${ticket || "N/A"}`} position="bottom">
                 <p className="text-sm font-medium truncate">
                   No. Ticket {ticket || "N/A"}
+                  {isClosed && <span className="ml-2 text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full border border-red-200">CERRADO</span>}
                 </p>
               </Tooltip>
             </div>
@@ -284,39 +292,41 @@ export default function ChatModal({ open, onClose, chatData = [], ticket, telefo
           </div>
 
           {/* Menú desplegable */}
-          <div className="absolute top-12 right-0 z-10">
-            <div
-              className="flex justify-end py-1 bg-white/80 dark:bg-white/10 shadow-xl rounded-bl-lg relative"
-              ref={menuRef}
-            >
-              <Tooltip content="Más opciones" position="left">
-                <Button
-                  className="mx-1 text-casal text-base p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-400"
-                 
-                  onClick={() => setShowMenu(!showMenu)}
-                >
-                  <Ellipsis className="w-5 h-5" />
-                </Button>
-              </Tooltip>
+          {!isClosed && (
+            <div className="absolute top-12 right-0 z-10">
+              <div
+                className="flex justify-end py-1 bg-white/80 dark:bg-white/10 shadow-xl rounded-bl-lg relative"
+                ref={menuRef}
+              >
+                <Tooltip content="Más opciones" position="left">
+                  <Button
+                    className="mx-1 text-casal text-base p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-400"
+                  
+                    onClick={() => setShowMenu(!showMenu)}
+                  >
+                    <Ellipsis className="w-5 h-5" />
+                  </Button>
+                </Tooltip>
 
-              {showMenu && (
-                <div className="absolute top-10 right-4 bg-fondoVs dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl py-2 min-w-[140px] z-50">
-                  <Button
-                    onClick={handleCerrarTicket}
-                    className="w-full px-4 py-2 text-left text-sm font-semibold text-casal dark:text-Acapulco hover:bg-casalds-50 dark:hover:bg-casalds-50/20 flex items-center gap-2"
-                  >
-                    Cerrar ticket
-                  </Button>
-                  <Button
-                    onClick={handleTicketPendiente}
-                    className="w-full px-4 py-2 text-left text-sm font-semibold text-casal dark:text-Acapulco hover:bg-casalds-50 dark:hover:bg-casalds-50/20 flex items-center gap-2"
-                  >
-                    Dejar pendiente
-                  </Button>
-                </div>
-              )}
+                {showMenu && (
+                  <div className="absolute top-10 right-4 bg-fondoVs dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl py-2 min-w-[140px] z-50">
+                    <Button
+                      onClick={handleCerrarTicket}
+                      className="w-full px-4 py-2 text-left text-sm font-semibold text-casal dark:text-Acapulco hover:bg-casalds-50 dark:hover:bg-casalds-50/20 flex items-center gap-2"
+                    >
+                      Cerrar ticket
+                    </Button>
+                    <Button
+                      onClick={handleTicketPendiente}
+                      className="w-full px-4 py-2 text-left text-sm font-semibold text-casal dark:text-Acapulco hover:bg-casalds-50 dark:hover:bg-casalds-50/20 flex items-center gap-2"
+                    >
+                      Dejar pendiente
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Mensajes */}
           <div className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-900">
@@ -414,35 +424,45 @@ export default function ChatModal({ open, onClose, chatData = [], ticket, telefo
               onPreview={handlePreviewFile}
             />
             
-            <div className="flex gap-1">
+            <div className="flex gap-1 relative">
+              {isClosed && (
+                <div className="absolute inset-0 bg-white/60 dark:bg-black/60 z-20 flex items-center justify-center rounded-lg backdrop-blur-[1px]">
+                  <span className="text-sm font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    🔒 Ticket cerrado
+                  </span>
+                </div>
+              )}
               <EmojiSelector
                 onEmojiSelect={handleEmojiSelect}
                 inputRef={inputRef}
+                disabled={isClosed}
               />
               
               <Input
                 ref={inputRef}
                 type="text"
-                placeholder="Escribe tu mensaje para WhatsApp..."
+                placeholder={isClosed ? "No se pueden enviar mensajes a un ticket cerrado" : "Escribe tu mensaje para WhatsApp..."}
                 value={nuevoMensaje}
                 onChange={(e) => setNuevoMensaje(e.target.value)}
                 onKeyPress={handleKeyPress}
-                className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-casal focus:border-transparent"
+                disabled={isClosed}
+                className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-casal focus:border-transparent disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-gray-900"
               />
               <FileUploader
                 onFileSelect={handleFileSelect}
                 onAttachmentMenuToggle={setShowAttachmentMenu}
                 showAttachmentMenu={showAttachmentMenu}
+                disabled={isClosed}
               />
               <Button
                 onClick={enviarMensajeWhatsApp}
-                disabled={nuevoMensaje.trim() === "" && attachedFiles.length === 0}
+                disabled={isClosed || (nuevoMensaje.trim() === "" && attachedFiles.length === 0)}
                 className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                  nuevoMensaje.trim() === "" && attachedFiles.length === 0
+                  isClosed || (nuevoMensaje.trim() === "" && attachedFiles.length === 0)
                     ? "bg-gray-300 dark:bg-gray-800 text-gray-500 cursor-not-allowed"
                     : "bg-casal text-white hover:bg-casalds-600"
                 }`}
-                title="Enviar a WhatsApp"
+                title={isClosed ? "Ticket cerrado" : "Enviar a WhatsApp"}
               >
                 <Send className="w-4 h-4" />
               </Button>
