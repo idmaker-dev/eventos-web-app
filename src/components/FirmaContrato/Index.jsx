@@ -5,9 +5,11 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@headlessui/react";
 import { CheckCircle, FileText, Loader2, AlertCircle } from "lucide-react";
 import contratoService from "../../services/contratoService";
+import contratoInternoService from "../../services/contratoInternoService";
 import guestService from "../../services/guestService";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { useSignalR } from "../../contexts/SignalRContext";
+import ModalFirmaContrato from "./ModalFirmaContrato";
 import logo from "../../assets/LOGOPLANORIA1.png";
 
 /**
@@ -29,6 +31,9 @@ export default function FirmaContrato() {
   const [error, setError] = useState(null);
   const [contratoEnPreparacion, setContratoEnPreparacion] = useState(false);
 
+  // Estados de tipo de contrato
+  const [tipoContrato, setTipoContrato] = useState(null); // "DOCUSIGN" | "INTERNO" | "SIN_FIRMA_DIGITAL"
+
   // Estados de DocuSign
   const [modoFirma, setModoFirma] = useState("embedded");
   const [signingUrl, setSigningUrl] = useState(null);
@@ -37,6 +42,12 @@ export default function FirmaContrato() {
   const [contratoYaCargado, setContratoYaCargado] = useState(false);
   const [iframeRef, setIframeRef] = useState(null);
   const [firmaEnProceso, setFirmaEnProceso] = useState(false); // Para mostrar "Procesando..."
+
+  // Estados de contrato INTERNO (HTML + Canvas)
+  const [contratoHTML, setContratoHTML] = useState(null);
+  const [modoFirmaInterno, setModoFirmaInterno] = useState(null); // "SOLO_ACEPTAR" | "FIRMA_DIGITAL"
+  const [mostrarModalContrato, setMostrarModalContrato] = useState(false);
+  const [firmaCanvas, setFirmaCanvas] = useState(null);
 
   // ==========================================
   // CONECTAR A SIGNALR AL INICIAR COMPONENTE
@@ -143,15 +154,32 @@ export default function FirmaContrato() {
           if (response.data.estado_registro === "ACTIVO") {
             showSuccess("Tu registro ya está completo");
             navigate(`/PortalPagos/${invitadoId}`);
+            return;
           } else if (response.data.estado_registro === "CONTRATO_FIRMADO") {
-            console.log("✅ Contrato ya firmado - Mostrando pantalla de procesamiento");
-            // Limpiar cualquier URL de firma anterior para evitar problemas de carga
-            setSigningUrl(null);
-            setMostrarIframe(false);
-            setFirmaEnProceso(true); // Mostrar pantalla de "Procesando tu firma..."
-            // NO redirigir todavía - esperar a que SignalR notifique o el polling detecte
-            // que el backend completó el proceso de Toku y cambió el estado a ACTIVO
+            // Si el contrato ya fue firmado, verificar si es SIN_FIRMA_DIGITAL
+            // En ese caso, redirigir directamente a PortalPagos
+            const esSinFirmaDigital = response.data.contrato_docusign_envelope_id === "N/A - SIN_FIRMA_DIGITAL";
+            
+            if (esSinFirmaDigital) {
+              console.log("✅ Evento SIN_FIRMA_DIGITAL - Redirigiendo a PortalPagos");
+              setTipoContrato("SIN_FIRMA_DIGITAL");
+              showSuccess("Registro completado. Redirigiendo a tu portal de pagos...");
+              setTimeout(() => {
+                navigate(`/PortalPagos/${invitadoId}`);
+              }, 1500);
+              return;
+            } else {
+              // DocuSign o firma interna ya completada - esperar a que cambie a ACTIVO
+              console.log("✅ Contrato ya firmado - Mostrando pantalla de procesamiento");
+              setSigningUrl(null);
+              setMostrarIframe(false);
+              setFirmaEnProceso(true);
+              return;
+            }
           }
+
+          // Determinar tipo de contrato para invitados PENDIENTE_FIRMA_CONTRATO
+          await detectarTipoContrato(response.data);
         } else {
           setError(response.error || "No se pudo cargar la información del invitado");
         }
@@ -165,6 +193,111 @@ export default function FirmaContrato() {
 
     cargarInvitado();
   }, [invitadoId, navigate, showSuccess]);
+
+  /**
+   * Detectar tipo de contrato del evento y cargar preview si es INTERNO
+   */
+  const detectarTipoContrato = async (invitadoData) => {
+    try {
+      console.log("🔍 Detectando tipo de contrato para evento:", invitadoData.id_evento);
+
+      // Intentar cargar preview de contrato INTERNO
+      try {
+        const previewResponse = await contratoInternoService.obtenerPreview(invitadoData.id);
+        
+        if (previewResponse.success) {
+          console.log("✅ Contrato INTERNO detectado");
+          setTipoContrato("INTERNO");
+          setContratoHTML(previewResponse.data.html_procesado);
+          setModoFirmaInterno(previewResponse.data.modo_firma);
+          return;
+        }
+      } catch (previewError) {
+        // Si falla, probablemente no es INTERNO
+        console.log("ℹ️ No es contrato INTERNO, probando DocuSign...");
+      }
+
+      // Si no es INTERNO, asumir que es DocuSign
+      console.log("✅ Contrato DOCUSIGN detectado");
+      setTipoContrato("DOCUSIGN");
+    } catch (error) {
+      console.error("Error al detectar tipo de contrato:", error);
+      setTipoContrato("DOCUSIGN"); // Fallback a DocuSign
+    }
+  };
+
+  /**
+   * Aceptar contrato INTERNO (sin firma digital)
+   */
+  const handleAceptarContratoInterno = async () => {
+    try {
+      setIsFirmando(true);
+      
+      // Obtener evidencia técnica
+      const ipAddress = await contratoInternoService.obtenerIP();
+      const userAgent = navigator.userAgent;
+      const geolocalizacion = await contratoInternoService.obtenerGeolocalizacion();
+
+      console.log("📝 Aceptando contrato INTERNO...");
+      const response = await contratoInternoService.aceptarOFirmar({
+        invitadoId,
+        ipAddress,
+        userAgent,
+        geolocalizacion,
+      });
+
+      if (response.success) {
+        console.log("✅ Contrato aceptado exitosamente");
+        setMostrarModalContrato(false);
+        setFirmaEnProceso(true);
+        showSuccess("¡Contrato aceptado! Procesando...");
+      } else {
+        showError(response.error || "Error al aceptar el contrato");
+      }
+    } catch (error) {
+      console.error("Error al aceptar contrato:", error);
+      showError("Error al procesar el contrato. Intenta nuevamente.");
+    } finally {
+      setIsFirmando(false);
+    }
+  };
+
+  /**
+   * Firmar contrato INTERNO (con firma digital en canvas)
+   */
+  const handleFirmarContratoInterno = async (firmaBase64) => {
+    try {
+      setIsFirmando(true);
+      
+      // Obtener evidencia técnica
+      const ipAddress = await contratoInternoService.obtenerIP();
+      const userAgent = navigator.userAgent;
+      const geolocalizacion = await contratoInternoService.obtenerGeolocalizacion();
+
+      console.log("📝 Firmando contrato INTERNO...");
+      const response = await contratoInternoService.aceptarOFirmar({
+        invitadoId,
+        firmaBase64,
+        ipAddress,
+        userAgent,
+        geolocalizacion,
+      });
+
+      if (response.success) {
+        console.log("✅ Contrato firmado exitosamente");
+        setMostrarModalContrato(false);
+        setFirmaEnProceso(true);
+        showSuccess("¡Contrato firmado! Procesando...");
+      } else {
+        showError(response.error || "Error al firmar el contrato");
+      }
+    } catch (error) {
+      console.error("Error al firmar contrato:", error);
+      showError("Error al procesar el contrato. Intenta nuevamente.");
+    } finally {
+      setIsFirmando(false);
+    }
+  };
 
   /**
    * Envía el contrato a DocuSign
@@ -731,58 +864,84 @@ export default function FirmaContrato() {
         {/* Selector de modo y botón (solo si no se muestra iframe) */}
         {!mostrarIframe && (
           <div className="flex flex-col space-y-3">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Método de firma:
-              </label>
-              <div className="flex gap-4">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="modoFirma"
-                    value="embedded"
-                    checked={modoFirma === "embedded"}
-                    onChange={(e) => setModoFirma(e.target.value)}
-                    className="mr-2"
-                    disabled={isFirmando}
-                  />
-                  <span className="text-sm text-gray-700">
-                    Firmar aquí (Recomendado)
-                  </span>
-                </label>
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    name="modoFirma"
-                    value="email"
-                    checked={modoFirma === "email"}
-                    onChange={(e) => setModoFirma(e.target.value)}
-                    className="mr-2"
-                    disabled={isFirmando}
-                  />
-                  <span className="text-sm text-gray-700">
-                    Recibir por correo
-                  </span>
-                </label>
-              </div>
-            </div>
+            {/* DOCUSIGN: Selector de modo de firma */}
+            {tipoContrato === "DOCUSIGN" && (
+              <>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Método de firma:
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="modoFirma"
+                        value="embedded"
+                        checked={modoFirma === "embedded"}
+                        onChange={(e) => setModoFirma(e.target.value)}
+                        className="mr-2"
+                        disabled={isFirmando}
+                      />
+                      <span className="text-sm text-gray-700">
+                        Firmar aquí (Recomendado)
+                      </span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="modoFirma"
+                        value="email"
+                        checked={modoFirma === "email"}
+                        onChange={(e) => setModoFirma(e.target.value)}
+                        className="mr-2"
+                        disabled={isFirmando}
+                      />
+                      <span className="text-sm text-gray-700">
+                        Recibir por correo
+                      </span>
+                    </label>
+                  </div>
+                </div>
 
-            {/* Botón solo se muestra si el modo es email o si hay error */}
-            {(modoFirma === "email" || (error && modoFirma === "embedded")) && (
+                {/* Botón DocuSign */}
+                {(modoFirma === "email" || (error && modoFirma === "embedded")) && (
+                  <Button
+                    onClick={handleFirmarContrato}
+                    disabled={isFirmando}
+                    className="w-full bg-casal text-white px-6 py-3 rounded-lg hover:bg-casal/80 disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center"
+                  >
+                    {isFirmando ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        {modoFirma === "email" ? "Enviando contrato..." : "Preparando contrato..."}
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-5 h-5 mr-2" />
+                        {modoFirma === "email" ? "Enviar Contrato por Email" : "Cargar Contrato"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* INTERNO: Botón para abrir modal de firma */}
+            {tipoContrato === "INTERNO" && (
               <Button
-                onClick={handleFirmarContrato}
-                disabled={isFirmando}
-                className="w-full bg-casal text-white px-6 py-3 rounded-lg hover:bg-casal/80 disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center"
+                onClick={() => setMostrarModalContrato(true)}
+                disabled={isFirmando || !contratoHTML}
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center transition-all shadow-lg"
               >
                 {isFirmando ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    {modoFirma === "email" ? "Enviando contrato..." : "Preparando contrato..."}
+                    Procesando...
                   </>
                 ) : (
                   <>
                     <FileText className="w-5 h-5 mr-2" />
-                    {modoFirma === "email" ? "Enviar Contrato por Email" : "Cargar Contrato"}
+                    {modoFirmaInterno === "FIRMA_DIGITAL" ? "Firmar Contrato" : "Ver y Aceptar Contrato"}
                   </>
                 )}
               </Button>
@@ -794,6 +953,21 @@ export default function FirmaContrato() {
           </div>
         )}
       </div>
+
+      {/* Modal de Firma INTERNO */}
+      {tipoContrato === "INTERNO" && contratoHTML && (
+        <ModalFirmaContrato
+          isOpen={mostrarModalContrato}
+          onClose={() => setMostrarModalContrato(false)}
+          contratoHTML={contratoHTML}
+          contratoCSS=""
+          modoFirma={modoFirmaInterno}
+          plantillaNombre="Contrato de Participación"
+          onAceptar={handleAceptarContratoInterno}
+          onFirmar={handleFirmarContratoInterno}
+          isSubmitting={isFirmando}
+        />
+      )}
 
       {/* Footer */}
       <div className="mt-8 text-center text-sm text-gray-500">

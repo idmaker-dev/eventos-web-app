@@ -446,9 +446,11 @@ export default function Cuestionario() {
 
         showSuccess("¡Registro completado exitosamente!");
 
-        // Redirigir a la página de firma de contrato
+        // Redirigir según el next_step que devuelve el backend
+        const nextStepUrl = res.next_step?.contrato_url || res.next_step?.toku_url || `/firma-contrato/${res.invitado.id}`;
+        
         setTimeout(() => {
-          navigate(`/firma-contrato/${res.invitado.id}`);
+          navigate(nextStepUrl);
         }, 1500);
       } else {
         console.error("Error al guardar:", res.error);
