@@ -77,9 +77,9 @@ export default function Comunicacion() {
         </div>
       </div>
 
-      {/* Datos del asistente */}
+      {/* Datos del graduado */}
       <div className="form-section">
-        <h4 className="form-subsection-title">Datos del asistente</h4>
+        <h4 className="form-subsection-title">Datos del graduado</h4>
         
         <div className="form-field">
           <label className="form-label">Nombre completo</label>
@@ -114,7 +114,7 @@ export default function Comunicacion() {
           <Search className="search-icon" size={20} />
           <input
             type="text"
-            placeholder="Buscar asistente"
+            placeholder="Buscar graduado"
             className="chat-search-input"
           />
         </div>
@@ -163,7 +163,7 @@ export default function Comunicacion() {
     <div className="cuestionario-container">
       <div className="cuestionario-info">
         <h3>Enlace del cuestionario generado</h3>
-        <p>Comparte este enlace con los asistentes para que llenen el cuestionario</p>
+        <p>Comparte este enlace con los graduados para que llenen el cuestionario</p>
         
         <div className="link-container">
           <input
@@ -209,7 +209,7 @@ export default function Comunicacion() {
             <Search className="search-icon" size={20} />
             <input
               type="text"
-              placeholder="Buscar asistente"
+              placeholder="Buscar graduado"
               className="search-input"
             />
           </div>
@@ -313,7 +313,7 @@ export default function Comunicacion() {
                         </div>
 
                         <div className="mobile-attendees">
-                          <p>Listado de assistentes adicionales firmante responsable o elegirle de familia, AC)</p>
+                          <p>Listado de graduados adicionales firmante responsable o elegirle de familia, AC)</p>
                         </div>
 
                         <div className="mobile-emergency">

@@ -222,8 +222,8 @@ export default function Dashboard() {
         /> */}
         <Metrica
           valor={Math.round(porcentajeInvitadoConPago)}
-          titulo="Invitados pagados (%)"
-          subtitulo={`${invitadoConPago} / ${invitadosFirmados} invitados`}
+          titulo="Graduados pagados (%)"
+          subtitulo={`${invitadoConPago} / ${invitadosFirmados} graduados`}
           gradienteId="gradPagos"
           color1="#0d3b66"
           color2="#2a9d8f"
@@ -240,7 +240,7 @@ export default function Dashboard() {
         <Metrica
           valor={Math.round(porcentajeBoletos)}
           titulo="Boletos emitidos"
-          subtitulo={`${boletosEmitidos} / ${capacidadMaxima} invitados`}
+          subtitulo={`${boletosEmitidos} / ${capacidadMaxima} graduados`}
           gradienteId="gradBoletos"
           color1="#2a9d8f"
           color2="#0d3b66"
@@ -248,8 +248,8 @@ export default function Dashboard() {
 
         <Metrica
           valor={Math.round(porcentajeInvitadosSinFirmar)}
-          titulo="Invitados registrados"
-          subtitulo={`${invitadosSinFirmar} / ${invitadosRegistrados} invitados`}
+          titulo="Graduados registrados"
+          subtitulo={`${invitadosSinFirmar} / ${invitadosRegistrados} graduados`}
           gradienteId="gradBoletos"
           color1="#2a9d8f"
           color2="#0d3b66"
@@ -257,8 +257,8 @@ export default function Dashboard() {
 
         <Metrica
           valor={Math.round(porcentajeInvitadosFirmados)}
-          titulo="Invitados con contrato firmado"
-          subtitulo={`${invitadosFirmados} / ${invitadosRegistrados} invitados`}
+          titulo="Graduados con contrato firmado"
+          subtitulo={`${invitadosFirmados} / ${invitadosRegistrados} graduados`}
           gradienteId="gradBoletos"
           color1="#2a9d8f"
           color2="#0d3b66"

@@ -47,7 +47,7 @@ export default function Invitados() {
       <div className="header-invitados">
         <div>
           <p className="text-[#af0d89] text-3xl font-semibold">
-            Lista de invitados
+            Lista de graduados
           </p>
           <p className="subtitulo">
             Las personas especiales que compartirán nuestro día
@@ -66,7 +66,7 @@ export default function Invitados() {
               onClick={() => setModalOpen(true)}
             >
               <Plus className="w-9 h-7 bg-[#af0d89] text-white rounded-full px-1" />{" "}
-              <span className="mx-4">Añadir invitado</span>
+              <span className="mx-4">Añadir graduado</span>
             </Button>
             <div className="flex gap-4">
               <div className="flex items-center gap-2 relative">
@@ -283,10 +283,10 @@ export default function Invitados() {
                             as="h3"
                             className="text-2xl font-bold text-foreground"
                           >
-                            Añadir Invitado
+                            Añadir Graduado
                           </DialogTitle>
                           <p className="text-sm text-muted-foreground mt-1">
-                            Completa la información del nuevo invitado
+                            Completa la información del nuevo graduado
                           </p>
                         </div>
                       </div>
@@ -477,7 +477,7 @@ export default function Invitados() {
 
           <div className="p-6 mt-4">
             <p className="text-gray-600 text-xl font-semibold">
-              Invitados confirmados
+              Graduados confirmados
             </p>
             <p className="font-semibold">
               <span className="text-[#e0b165] text-4xl">

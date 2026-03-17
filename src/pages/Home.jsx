@@ -131,7 +131,7 @@ export default function Home() {
             </div>
             <div className="px-6 md:py-2 flex justify-center border-t-2 py-6 border-gray-200 md:border-t-2 md:border-r-2 md:border-b-0 lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r-0">
               <div>
-                <p className="text-xl font-bold text-gray-900 mb-">Invitados</p>
+                <p className="text-xl font-bold text-gray-900 mb-">Graduados</p>
                 <div className="contenido">
                   <ul className="space-y-3 mt-6">
                     <li className="flex gap-2">

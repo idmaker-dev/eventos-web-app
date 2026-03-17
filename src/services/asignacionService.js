@@ -31,7 +31,7 @@ class AsignacionService {
       }
 
       if (!asignacion.invitado_id) {
-        throw new Error("invitado_id es requerido");
+        throw new Error("graduado_id es requerido");
       }
 
       if (!asignacion.mesa_id) {
@@ -391,7 +391,7 @@ class AsignacionService {
   async moverInvitado(eventoId, asignacionId, nuevaMesaId) {
     try {
       if (EnvConfig.DEBUG_MODE) {
-        console.log("🔄 Moviendo invitado a nueva mesa:", {
+        console.log("🔄 Moviendo graduado a nueva mesa:", {
           eventoId,
           asignacionId,
           nuevaMesaId,
@@ -408,22 +408,22 @@ class AsignacionService {
       );
 
       if (EnvConfig.DEBUG_MODE) {
-        console.log("✅ Invitado movido exitosamente:", response);
+        console.log("✅ Graduado movido exitosamente:", response);
       }
 
       return {
         success: true,
         data: response.data,
-        message: response.message || "Invitado movido exitosamente",
+        message: response.message || "Graduado movido exitosamente",
       };
     } catch (error) {
       if (EnvConfig.DEBUG_MODE) {
-        console.error("❌ Error al mover invitado:", error);
+        console.error("❌ Error al mover graduado:", error);
       }
 
       return {
         success: false,
-        error: error.userMessage || error.message || "Error al mover invitado",
+        error: error.userMessage || error.message || "Error al mover graduado",
         details: error,
       };
     }
@@ -536,7 +536,7 @@ class AsignacionService {
   async verificarAsignacionInvitado(eventoId, invitadoId) {
     try {
       if (EnvConfig.DEBUG_MODE) {
-        console.log("🔄 Verificando asignación de invitado:", {
+        console.log("🔄 Verificando asignación de graduado:", {
           eventoId,
           invitadoId,
         });

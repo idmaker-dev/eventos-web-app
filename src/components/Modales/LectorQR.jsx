@@ -159,7 +159,7 @@ export default function LectorQR({ onClose, evento }) {
         
         invitadoData = {
           id: decodedText,
-          nombre: `Invitado ${decodedText.substring(0, 6)}`,
+          nombre: `Graduado ${decodedText.substring(0, 6)}`,
           mesa: randomMesa,
           boletos: randomBoletos,
           valido: true,
@@ -167,7 +167,7 @@ export default function LectorQR({ onClose, evento }) {
         };
       }
       
-      console.log('✅ Información del invitado encontrada:', invitadoData);
+      console.log('✅ Información del graduado encontrada:', invitadoData);
       
       // Calcular boletos restantes (total - ya usados)
       const boletosYaUsados = boletosRegistradosRef.current[invitadoData.id] || 0;
@@ -182,7 +182,7 @@ export default function LectorQR({ onClose, evento }) {
       
       if (boletosRestantes <= 0) {
         // No quedan boletos disponibles
-        console.warn('⚠️ No quedan boletos disponibles para este invitado');
+        console.warn('⚠️ No quedan boletos disponibles para este graduado');
         
         const scanData = {
           id: `QR-${Date.now()}`,
@@ -222,7 +222,7 @@ export default function LectorQR({ onClose, evento }) {
       setBoletosConfirmar(Math.min(boletosRestantes, 1));
       
     } catch (error) {
-      console.error('❌ Error al consultar información del invitado:', error);
+      console.error('❌ Error al consultar información del graduado:', error);
       
       // En caso de error, mostrar invitación no válida
       const errorScanData = {

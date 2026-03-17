@@ -273,7 +273,7 @@ export default function DetalleEvento({ open, onClose, evento }) {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <StatCard
-                    label="Alumnos"
+                    label="Graduados"
                     value={
                       evento.asistentesAlumnos || evento.asistentes_alumnos || 0
                     }

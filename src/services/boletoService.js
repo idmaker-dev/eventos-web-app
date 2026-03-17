@@ -172,7 +172,7 @@ class BoletoService {
    * @param {string} nombreInvitado - Nombre del invitado
    * @returns {Promise<Object>}
    */
-  async compartirBoleto(boletoUrl, nombreInvitado = "invitado") {
+  async compartirBoleto(boletoUrl, nombreInvitado = "graduado") {
     try {
       if (!navigator.share) {
         throw new Error("Compartir no disponible en este navegador");

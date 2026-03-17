@@ -4,7 +4,7 @@ import { useNotifications } from '../../contexts/NotificationContext';
 import clsx from 'clsx';
 
 /**
- * Componente para que el invitado seleccione mesas durante su turno activo
+ * Componente para que el graduado seleccione mesas durante su turno activo
  * Versión simplificada enfocada en el flujo de turnos
  * 
  * @param {Object} props
@@ -139,7 +139,7 @@ export default function SeleccionMesasInvitado({
     }
 
     if (faltanAsignar > 0) {
-      showError(`Faltan ${faltanAsignar} personas por asignar`);
+      showError(`Faltan ${faltanAsignar} graduados por asignar`);
       return false;
     }
 
@@ -205,7 +205,7 @@ export default function SeleccionMesasInvitado({
               ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
               : "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400"
           )}>
-            {personasAsignadas} / {cantidadTotal} personas
+            {personasAsignadas} / {cantidadTotal} graduados
           </div>
         </div>
 
@@ -361,7 +361,7 @@ export default function SeleccionMesasInvitado({
         <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg">
           <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
           <p className="text-sm text-yellow-700 dark:text-yellow-400">
-            Faltan {faltanAsignar} {faltanAsignar === 1 ? 'persona' : 'personas'} por asignar
+            Faltan {faltanAsignar} {faltanAsignar === 1 ? 'graduado' : 'graduados'} por asignar
           </p>
         </div>
       )}

@@ -25,7 +25,7 @@ export const useCuestionario = () => {
         return { success: false, error: result.error };
       }
     } catch (err) {
-      const msg = "Error al crear invitado";
+      const msg = "Error al crear graduado";
       setError(msg);
       return { success: false, error: msg };
     } finally {

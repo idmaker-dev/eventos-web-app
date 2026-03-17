@@ -129,7 +129,7 @@ export default function AsignacionUserPage() {
                   <p className="text-xs text-gray-500 font-mono break-all">
                     {!eventoId ? 'Falta ID del evento' : !eventoIdValido ? `ID de evento incompleto: ${eventoId}` : ''}
                     {(!eventoId || !eventoIdValido) && (!invitadoId || !invitadoIdValido) && ' | '}
-                    {!invitadoId ? 'Falta ID del invitado' : !invitadoIdValido ? `ID de invitado incompleto: ${invitadoId}` : ''}
+                    {!invitadoId ? 'Falta ID del graduado' : !invitadoIdValido ? `ID de graduado incompleto: ${invitadoId}` : ''}
                   </p>
                 </div>
 

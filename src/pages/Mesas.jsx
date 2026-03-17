@@ -39,13 +39,13 @@ export default function Mesas() {
       <div className="layout">
         {/* Invitados sin asignar */}
         <div className="invitados">
-          <h3>Invitados sin Asignar <span>(20 personas)</span></h3>
+          <h3>Graduados sin Asignar <span>(20 personas)</span></h3>
           <ul>
             {invitados.map((i) => (
               <li key={i.id}>{i.nombre}</li>
             ))}
           </ul>
-          <p className="arrastre">Arrastra los invitados a las mesas del plano para asignar lugares</p>
+          <p className="arrastre">Arrastra los graduados a las mesas del plano para asignar lugares</p>
         </div>
 
         {/* Plano del salón */}
@@ -71,7 +71,7 @@ export default function Mesas() {
 
       {/* Resumen */}
       <div className="resumen">
-        Asignados: <strong>27/48 invitados</strong> | 
+        Asignados: <strong>27/48 graduados</strong> | 
         Mesas ocupadas: <strong>4/6</strong> | 
         Capacidad utilizada: <span className="porcentaje">56%</span>
       </div>

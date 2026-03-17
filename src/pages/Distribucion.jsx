@@ -84,7 +84,7 @@ export default function Distribucion() {
               Layout No Disponible
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              El administrador aún no ha configurado el layout del salón. Por favor, espera a que el layout esté disponible para poder asignar a tus invitados.
+              El administrador aún no ha configurado el layout del salón. Por favor, espera a que el layout esté disponible para poder asignar a tus graduados.
             </p>
             
             <button 
@@ -107,10 +107,10 @@ export default function Distribucion() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Distribución de Invitados
+                Distribución de Graduados
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Asigna a tus invitados en las mesas disponibles
+                Asigna a tus graduados en las mesas disponibles
               </p>
             </div>
 
@@ -130,7 +130,7 @@ export default function Distribucion() {
         </div>
       </div> */}
 
-      {/* Estadísticas de Invitados */}
+      {/* Estadísticas de Graduados */}
       {/* <div className="bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
@@ -138,7 +138,7 @@ export default function Distribucion() {
               <div className="font-semibold text-gray-900 dark:text-white">
                 {invitados.reduce((total, inv) => total + inv.cantidad, 0)}
               </div>
-              <div className="text-gray-600 dark:text-gray-400">Total Invitados</div>
+              <div className="text-gray-600 dark:text-gray-400">Total Graduados</div>
             </div>
             <div className="text-sm">
               <div className="font-semibold text-green-600 dark:text-green-400">

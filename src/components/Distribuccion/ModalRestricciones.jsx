@@ -243,7 +243,7 @@ export default function ModalRestricciones({
         <div className="flex items-center justify-between p-4 border-b">
           <div>
             <p className="text-lg font-semibold dark:text-white">
-              Información de Invitados
+              Información de Graduados
             </p>
             <p className="text-xs dark:text-gray-400">
               Mesa {mesaNumero} • {cantidadPersonas}{" "}

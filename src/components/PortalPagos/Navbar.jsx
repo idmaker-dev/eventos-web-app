@@ -12,7 +12,7 @@ export default function Navbar({ invitado }) {
             <img src={logo} alt="Logo" className="w-32 h-full" />
           </Link>
           <p className="text-gray-50 border-l border-gray-300 pl-4 text-lg font-semibold">
-            {invitado?.nombre_completo || "Invitado"}
+            {invitado?.nombre_completo || "Graduado"}
           </p>
         </div>
       </div>

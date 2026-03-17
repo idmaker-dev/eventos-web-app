@@ -177,7 +177,7 @@ export const SignalRProvider = ({ children }) => {
         // Agregar notificación al estado
         const nuevaNotificacion = {
           tipo: 'mesa_seleccionada',
-          mensaje: 'Mesa seleccionada por invitado',
+          mensaje: 'Mesa seleccionada por graduado',
           data,
           timestamp: new Date().toISOString(),
         };

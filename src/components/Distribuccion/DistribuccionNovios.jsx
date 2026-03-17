@@ -262,7 +262,7 @@ export default function DistribuccionNovios({
   // Actualizar la función autoAsignarInvitados para priorizar necesidades especiales
   const autoAsignarInvitados = async () => {
     if (invitadosSinAsignar.length === 0) {
-      mostrarNotificacion("No hay invitados sin asignar", "info");
+      mostrarNotificacion("No hay graduados sin asignar", "info");
       return;
     }
 
@@ -392,7 +392,7 @@ export default function DistribuccionNovios({
       );
     } else {
       mostrarNotificacion(
-        "No se pudieron asignar más invitados automáticamente",
+        "No se pudieron asignar más graduados automáticamente",
         "warning"
       );
     }
@@ -874,7 +874,7 @@ export default function DistribuccionNovios({
 
           <div className="text-sm text-gray-600 space-y-2 mb-6">
             <p>
-              <strong>Invitado:</strong> {invitado.nombre}
+              <strong>Graduado:</strong> {invitado.nombre}
             </p>
             <p>
               <strong>Cantidad a asignar:</strong> {invitado.cantidad} personas
@@ -1205,7 +1205,7 @@ export default function DistribuccionNovios({
             <div className="mt-4 text-sm text-gray-700 bg-slate-100 px-4 py-3 rounded-lg border-gray-200 shadow-sm">
               <div className="flex items-center gap-6 text-center">
                 <div>
-                  <span className="font-medium text-gray-600">Invitados:</span>
+                  <span className="font-medium text-gray-600">Graduados:</span>
                   <span className="ml-2 font-bold text-blue-600">
                     {totalInvitadosAsignados}/{totalCapacidad}
                   </span>

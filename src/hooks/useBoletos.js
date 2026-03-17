@@ -148,7 +148,7 @@ export const useBoletos = () => {
     if (!invitadoId) {
       return {
         success: false,
-        error: "ID de invitado requerido",
+        error: "ID de graduado requerido",
       };
     }
 

@@ -378,7 +378,7 @@ export default function DistribuccionEditor({
       if (elemento.invitados > 0) {
         alert(
           `No se puede eliminar la Mesa ${elemento.numero}\n\n` +
-            `Esta mesa tiene ${elemento.invitados} invitado(s) asignado(s).\n`
+            `Esta mesa tiene ${elemento.invitados} graduado(s) asignado(s).\n`
         );
         return;
       }

@@ -112,7 +112,7 @@ export default function MobileSidebar({
                     }`
                   }
                 >
-                  <img src={ModuloInvitados} alt="Módulo de invitados" className="w-5 h-5" />
+                  <img src={ModuloInvitados} alt="Módulo de graduados" className="w-5 h-5" />
                   <span className="font-medium">Módulo de asignación</span>
                 </NavLink>
               </li>

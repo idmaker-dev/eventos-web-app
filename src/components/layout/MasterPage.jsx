@@ -18,7 +18,7 @@ export default function MasterPage({ children }) {
             } > Gestión Financiera </NavLink>
           
           <NavLink to="/Invitados" className={({ isActive }) => "nav-item invitados" + (isActive ? " active" : "")
-            } > Gestión de invitados </NavLink>
+            } > Gestión de graduados </NavLink>
           
           <NavLink to="/Distribucion" className={({ isActive }) => "nav-item mesas" + (isActive ? " active" : "")
             } > Distribución de mesas </NavLink>

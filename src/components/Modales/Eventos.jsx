@@ -331,7 +331,7 @@ export default function Eventos({ open, onClose, eventToEdit = null }) {
                       </div> */}
                       <div className="mb-3">
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
-                          Cantidad de asistentes maximo permitido
+                          Cantidad de graduados máximo permitido
                         </label>
                         <Input
                           type="number"
@@ -354,7 +354,7 @@ export default function Eventos({ open, onClose, eventToEdit = null }) {
                       </div>
                       <div className="mb-3">
                         <label className="block text-sm font-semibold text-[#246370] dark:text-gray-300">
-                          Cantidad minima de asistentes
+                          Cantidad mínima de graduados
                         </label>
                         <Input
                           type="number"
@@ -567,7 +567,7 @@ export default function Eventos({ open, onClose, eventToEdit = null }) {
                 <div className="mt-4 flex justify-center text-center">
                   <p className="text-base text-gray-800 font-semibold dark:text-gray-300">
                     Ya puede empezar a personalizar <br /> tus eventos y
-                    compartir la información <br /> con los asistentes.
+                    compartir la información <br /> con los graduados.
                   </p>
                 </div>
                 <div className="flex justify-center">

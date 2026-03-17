@@ -415,7 +415,7 @@ export const useAsignaciones = (eventoId = null) => {
           return result;
         }
       } catch (error) {
-        const errorMessage = "Error inesperado al mover invitado";
+        const errorMessage = "Error inesperado al mover graduado";
         setError(errorMessage);
 
         if (EnvConfig.DEBUG_MODE) {

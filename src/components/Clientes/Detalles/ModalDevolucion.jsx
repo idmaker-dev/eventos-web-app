@@ -24,7 +24,7 @@ export default function ModalDevolucion({ isOpen, onClose, ticket, onRefresh }) 
       const invitadoId = ticket?.cliente?.invitado_id || ticket?.invitado_id;
 
       if (!invitadoId) {
-        showError("No se encontró el ID del invitado");
+        showError("No se encontró el ID del graduado");
         return;
       }
 

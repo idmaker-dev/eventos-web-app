@@ -79,7 +79,7 @@ class GuestService {
       return {
         success: true,
         guest: response,
-        message: "Invitado agregado exitosamente",
+        message: "Graduado agregado exitosamente",
       };
     } catch (error) {
       return {
@@ -102,7 +102,7 @@ class GuestService {
       return {
         success: true,
         guest: response,
-        message: "Invitado actualizado exitosamente",
+        message: "Graduado actualizado exitosamente",
       };
     } catch (error) {
       return {
@@ -121,7 +121,7 @@ class GuestService {
 
       return {
         success: true,
-        message: "Invitado eliminado exitosamente",
+        message: "Graduado eliminado exitosamente",
       };
     } catch (error) {
       return {
@@ -146,7 +146,7 @@ class GuestService {
       return {
         success: true,
         deletedCount: response.deletedCount,
-        message: `${response.deletedCount} invitados eliminados exitosamente`,
+        message: `${response.deletedCount} graduados eliminados exitosamente`,
       };
     } catch (error) {
       return {
@@ -243,7 +243,7 @@ class GuestService {
         success: true,
         importedCount: response.importedCount,
         errors: response.errors || [],
-        message: `${response.importedCount} invitados importados exitosamente`,
+        message: `${response.importedCount} graduados importados exitosamente`,
       };
     } catch (error) {
       return {
@@ -274,7 +274,7 @@ class GuestService {
 
       return {
         success: true,
-        message: "Lista de invitados exportada exitosamente",
+        message: "Lista de graduados exportada exitosamente",
       };
     } catch (error) {
       return {
@@ -328,7 +328,7 @@ class GuestService {
       return {
         success: false,
         error:
-          error.userMessage || "Error al obtener el dashboard del invitado",
+          error.userMessage || "Error al obtener el dashboard del graduado",
       };
     }
   }
@@ -372,7 +372,7 @@ class GuestService {
     } catch (error) {
       return {
         success: false,
-        error: error.userMessage || "Error al obtener información del invitado",
+        error: error.userMessage || "Error al obtener información del graduado",
       };
     }
   }

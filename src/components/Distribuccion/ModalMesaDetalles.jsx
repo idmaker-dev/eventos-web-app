@@ -30,7 +30,7 @@ export default function ModalMesaDetalles({
     assigned = mesa.disponibilidad.asientos_ocupados_ids.map((asiento, index) => ({
       id: `asiento-${asiento.asiento_id}`,
       usuarioId: invitadoPrincipal?.invitado_id || 'unknown',
-      nombreCompleto: asiento.nombre_comensal?.trim() || `Invitado ${asiento.asiento_numero}`,
+      nombreCompleto: asiento.nombre_comensal?.trim() || `Graduado ${asiento.asiento_numero}`,
       tipoMenu: asiento.tipo_menu || 'normal',
       restricciones: Array.isArray(asiento.restricciones_dieteticas) 
         ? asiento.restricciones_dieteticas.reduce((acc, r) => ({ ...acc, [r]: true }), {})
@@ -145,7 +145,7 @@ export default function ModalMesaDetalles({
           <div>
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-xl font-semibold text-gray-800">
-                Invitados Asignados
+                Graduados Asignados
               </h4>
               <div className="bg-gray-200 rounded-full px-3 py-1 text-sm font-medium">
                 {Object.keys(gruposUsuarios).length}{" "}
@@ -159,7 +159,7 @@ export default function ModalMesaDetalles({
             {Object.keys(gruposUsuarios).length === 0 ? (
               <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-xl">
                 <Users className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p>No hay invitados asignados en esta mesa</p>
+                <p>No hay graduados asignados en esta mesa</p>
               </div>
             ) : (
               <div className="space-y-6">

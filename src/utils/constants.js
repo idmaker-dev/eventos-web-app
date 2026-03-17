@@ -88,7 +88,7 @@ export const TAREAS_DATA = [
   { id: 6, nombre: "¡Nuestra Boda!", estado: "pendiente", fecha: "" },
 ];
 
-// Estados posibles para invitados
+// Estados posibles para graduados
 export const ESTADOS_INVITADOS = {
   CONFIRMADO: "Confirmado",
   PENDIENTE: "Pendiente",

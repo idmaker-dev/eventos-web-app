@@ -101,7 +101,7 @@ export default function DesktopSidebar({
               >
                 <img
                   src={ModuloInvitados}
-                  alt="Módulo de invitados"
+                  alt="Módulo de graduados"
                   className="w-6 h-6"
                 />
               </NavLink>

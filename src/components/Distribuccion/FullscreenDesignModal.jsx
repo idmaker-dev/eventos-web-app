@@ -38,13 +38,13 @@ export default function FullscreenDesignModal({
       {/* Left panel: invitados */}
       <aside className="w-64 min-w-[18rem] bg-fondoVs dark:bg-slate-900 border-r h-full overflow-y-auto p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">Invitados sin Asignar</h3>
+          <h3 className="font-semibold">Graduados sin Asignar</h3>
           <div className="text-sm text-gray-500">({TotalPersonasSinAsignar})</div>
         </div>
 
         <div className="space-y-3">
           {invitadosSinAsignar.length === 0 ? (
-            <div className="text-gray-500">No hay invitados sin asignar</div>
+            <div className="text-gray-500">No hay graduados sin asignar</div>
           ) : (
             invitadosSinAsignar.map((inv) => (
               <div key={inv.id} className="cursor-move">

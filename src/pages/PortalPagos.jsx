@@ -24,7 +24,7 @@ export default function PortalPagos() {
   useEffect(() => {
     // Validar que existe invitadoId
     if (!invitadoId) {
-      setError("ID de invitado no proporcionado");
+      setError("ID de graduado no proporcionado");
       setLoading(false);
       return;
     }
@@ -39,7 +39,7 @@ export default function PortalPagos() {
         setDashboardData(resultado.data);
       } else {
         console.error("Error al cargar dashboard:", resultado.error);
-        setError(resultado.error || "Error al cargar la información del invitado");
+        setError(resultado.error || "Error al cargar la información del graduado");
       }
       setLoading(false);
     };

@@ -2310,7 +2310,7 @@ export default function DistribuccionMonitor({
                     🔓 Al DESBLOQUEAR esta mesa:
                   </p>
                   <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4">
-                    <li>• Los invitados podrán verla y seleccionarla</li>
+                    <li>• Los graduados podrán verla y seleccionarla</li>
                     <li>• Aparecerá como disponible en el sistema</li>
                     <li>• Se eliminará la restricción de acceso</li>
                   </ul>

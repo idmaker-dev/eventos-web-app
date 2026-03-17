@@ -78,7 +78,7 @@ export default function Pagos({ darkMode }) {
     
     // Mostrar notificación
     showSuccess(
-      `Pago completado: ${data.asistente?.nombre || 'Asistente'}`,
+      `Pago completado: ${data.asistente?.nombre || 'Graduado'}`,
       { duration: 5000 }
     );
 
@@ -237,7 +237,7 @@ export default function Pagos({ darkMode }) {
         <div className="pagos-info">
           <h2 className="pagos-titulo">Módulo de pagos</h2>
           <p className="pagos-subtitulo">
-            Seguimiento de pagos de asistentes mediante{" "}
+            Seguimiento de pagos de graduados mediante{" "}
             <span className="text-[#246370] dark:text-[#72B7A4] font-semibold">tabla de pagos</span>
           </p>
         </div>
@@ -246,7 +246,7 @@ export default function Pagos({ darkMode }) {
           <div className="buscar-wrapper">
             <input 
               type="text" 
-              placeholder="Buscar asistente" 
+              placeholder="Buscar graduado" 
               className="buscar"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -276,7 +276,7 @@ export default function Pagos({ darkMode }) {
 
       <div className="pagos-tabla">
         <div className="pagos-encabezados dark:text-gray-200">
-          <div>Asistente</div>
+          <div>Graduado</div>
           <div>Progreso</div>
           <div>Firma de contrato</div>
           <div>Total pagado</div>
@@ -302,7 +302,7 @@ export default function Pagos({ darkMode }) {
                 className="pagos-fila rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                 onClick={() => abrirModal(deuda)}
               >
-                <div className="col flex items-center" data-label="Asistente">
+                <div className="col flex items-center" data-label="Graduado">
                   <span className="nombre">{deuda.asistente.nombre_completo}</span>
                 </div>
 
@@ -338,7 +338,7 @@ export default function Pagos({ darkMode }) {
                     }}
                     className="btn-accion btn-historial"
                     disabled={!deuda.deuda_id}
-                    title={!deuda.deuda_id ? "Este invitado aún no tiene facturas (contrato no firmado)" : "Ver facturas"}
+                    title={!deuda.deuda_id ? "Este graduado aún no tiene facturas (contrato no firmado)" : "Ver facturas"}
                   >
                     {deuda.deuda_id ? "Ver facturas" : "Sin facturas"}
                   </button>

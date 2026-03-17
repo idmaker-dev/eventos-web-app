@@ -31,7 +31,7 @@ export default function Checkout({ totalAmount = 0, onBack }) {
   useEffect(() => {
     const cargarDatos = async () => {
       if (!invitadoId) {
-        setError("ID de invitado no proporcionado");
+        setError("ID de graduado no proporcionado");
         setLoading(false);
         return;
       }

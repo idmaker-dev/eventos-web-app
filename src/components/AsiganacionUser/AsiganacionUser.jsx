@@ -2095,7 +2095,7 @@ export default function AsignacionUser({
                             <div className="text-xs inline-block">
                               <div className="flex flex-col md:flex-row gap-4 text-center p-2 bg-gray-50 border border-gray-200 rounded-lg shadow-md">
                                 <Tooltip
-                                  content="Total de invitados asignados"
+                                  content="Total de graduados asignados"
                                   position="top"
                                 >
                                   <div className="">

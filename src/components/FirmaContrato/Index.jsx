@@ -153,10 +153,10 @@ export default function FirmaContrato() {
             // que el backend completó el proceso de Toku y cambió el estado a ACTIVO
           }
         } else {
-          setError(response.error || "No se pudo cargar la información del invitado");
+          setError(response.error || "No se pudo cargar la información del graduado");
         }
       } catch (err) {
-        console.error("Error al cargar invitado:", err);
+        console.error("Error al cargar graduado:", err);
         setError("Error al cargar la información. Por favor, intenta nuevamente.");
       } finally {
         setIsLoading(false);

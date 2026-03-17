@@ -129,7 +129,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
       const invitadoId = ticket?.cliente?.invitado_id || ticket?.invitado_id;
 
       if (!invitadoId) {
-        showError("No se encontró el ID del invitado");
+        showError("No se encontró el ID del graduado");
         return;
       }
 

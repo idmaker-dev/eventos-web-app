@@ -25,7 +25,7 @@ export default function SelectorCapacidadMesa({
 
     // Validar que la nueva capacidad no exceda invitados actuales
     if (selectedCapacidad < mesa.invitados) {
-      setError(`La nueva capacidad (${selectedCapacidad}) no puede ser menor a los invitados actuales (${mesa.invitados})`);
+      setError(`La nueva capacidad (${selectedCapacidad}) no puede ser menor a los graduados actuales (${mesa.invitados})`);
       return;
     }
 

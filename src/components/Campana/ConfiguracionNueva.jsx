@@ -532,8 +532,8 @@ function PanelDisparador({ disparador, setDisparador, error }) {
             className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300"
           >
             <option value="">Selecciona un evento...</option>
-            <option value="invitado_creado">Invitado Creado</option>
-            <option value="invitado_actualizado">Invitado Actualizado</option>
+            <option value="invitado_creado">Graduado Creado</option>
+            <option value="invitado_actualizado">Graduado Actualizado</option>
             <option value="pago_completado">Pago Completado</option>
             <option value="pago_parcial">Pago Parcial</option>
             <option value="deuda_vencida">Deuda Vencida</option>

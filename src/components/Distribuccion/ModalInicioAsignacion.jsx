@@ -405,7 +405,7 @@ export default function ModalInicioAsignacion({
                                 Configurar Proceso de Selección
                               </h5>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Configurar turnos para que los invitados seleccionen sus mesas
+                                Configurar turnos para que los graduados seleccionen sus mesas
                               </p>
                             </div>
                           </div>

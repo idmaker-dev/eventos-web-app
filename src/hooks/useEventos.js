@@ -542,7 +542,7 @@ const validarDatosEvento = (datos) => {
   }
 
   if (datos.cantidadAsistentes && isNaN(parseInt(datos.cantidadAsistentes))) {
-    errores.push("Cantidad de asistentes debe ser un número");
+    errores.push("Cantidad de graduados debe ser un número");
   }
 
   return errores;

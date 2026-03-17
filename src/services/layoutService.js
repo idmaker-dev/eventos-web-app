@@ -488,7 +488,7 @@ class LayoutService {
         }
         if (typeof elemento.invitados !== "number" || elemento.invitados < 0) {
           errores.push(
-            `Mesa ${elemento.id || index} - invitados debe ser número >= 0`
+            `Mesa ${elemento.id || index} - graduados debe ser número >= 0`
           );
         }
       }

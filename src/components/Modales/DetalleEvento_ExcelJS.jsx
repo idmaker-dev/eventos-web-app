@@ -358,8 +358,8 @@ const handleDescargarDistribucion = async () => {
       
       // Encabezados
       const detalleHeaders = [
-        'No. Invitado',
-        'Nombre Invitado',
+        'No. Graduado',
+        'Nombre Graduado',
         'No. Mesa',
         'Tipo Mesa',
         'No. Asiento',

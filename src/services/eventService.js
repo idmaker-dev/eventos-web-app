@@ -255,10 +255,10 @@ class EventService {
         porEstado: response.data?.por_estado || {},
       };
     } catch (error) {
-      console.error("Error al obtener estado de invitados:", error);
+      console.error("Error al obtener estado de graduados:", error);
       return {
         success: false,
-        error: error.userMessage || "Error al cargar estado de invitados",
+        error: error.userMessage || "Error al cargar estado de graduados",
         data: null,
         estadisticas: {},
         invitados: [],

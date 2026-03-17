@@ -56,7 +56,7 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
         const todosInvitados = response.guests;
         
         if (todosInvitados.length === 0) {
-          showError('No hay invitados en este evento');
+          showError('No hay graduados en este evento');
           setInvitados([]);
           setInvitadosOrdenados([]);
         } else {
@@ -85,13 +85,13 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
           setInvitadosOrdenados(ordenados);
         }
       } else {
-        showError('Error al cargar invitados');
+        showError('Error al cargar graduados');
         setInvitados([]);
         setInvitadosOrdenados([]);
       }
     } catch (error) {
       console.error('Error al cargar invitados:', error);
-      showError('Error al cargar invitados del evento');
+      showError('Error al cargar graduados del evento');
       setInvitados([]);
       setInvitadosOrdenados([]);
     } finally {
@@ -164,7 +164,7 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
    */
   const handleGenerarManual = async () => {
     if (invitadosOrdenados.length === 0) {
-      showError('No hay invitados para generar turnos');
+      showError('No hay graduados para generar turnos');
       return;
     }
 
@@ -340,7 +340,7 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
                       Orden Manual Personalizado
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                      Arrastra y suelta los invitados para definir manualmente el orden de los turnos.
+                      Arrastra y suelta los graduados para definir manualmente el orden de los turnos.
                       Útil para casos especiales o consideraciones específicas.
                     </p>
                     <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 font-semibold">
@@ -354,7 +354,7 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
               {isLoading && (
                 <div className="text-center py-4">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-casal" />
-                  <p className="text-sm text-gray-500 mt-2">Cargando invitados...</p>
+                  <p className="text-sm text-gray-500 mt-2">Cargando graduados...</p>
                 </div>
               )}
             </div>
@@ -405,14 +405,14 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
 
               <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                 <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Total de invitados: <strong>{invitados.length}</strong>
+                  Total de graduados: <strong>{invitados.length}</strong>
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                   Con deuda liquidada: <strong>{invitados.filter(inv => inv.deuda_liquidada).length}</strong>
                 </p>
                 {invitados.filter(inv => !inv.deuda_liquidada).length > 0 && (
                   <div className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
-                    ⚠️ Los invitados sin deuda liquidada serán omitidos automáticamente
+                    ⚠️ Los graduados sin deuda liquidada serán omitidos automáticamente
                   </div>
                 )}
               </div>
@@ -508,12 +508,12 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
             {isLoading ? (
               <div className="text-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto text-casal" />
-                <p className="text-gray-500 mt-3">Cargando invitados...</p>
+                <p className="text-gray-500 mt-3">Cargando graduados...</p>
               </div>
             ) : invitadosOrdenados.length === 0 ? (
               <div className="text-center py-12">
                 <AlertCircle className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">No hay invitados con deuda liquidada</p>
+                <p className="text-gray-500">No hay graduados con deuda liquidada</p>
               </div>
             ) : (
               <DndContext
@@ -556,7 +556,7 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
           <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
             <div className="flex justify-between items-center">
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                <strong>{invitadosOrdenados.length}</strong> invitados en orden
+                <strong>{invitadosOrdenados.length}</strong> graduados en orden
               </div>
               <div className="flex gap-3">
                 <button

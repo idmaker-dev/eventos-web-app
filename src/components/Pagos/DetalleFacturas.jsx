@@ -11,7 +11,7 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
 
   if (!deuda) return null;
   
-  // Verificar si el invitado no tiene deuda (no ha firmado contrato)
+  // Verificar si el graduado no tiene deuda (no ha firmado contrato)
   const sinDeuda = !deuda.deuda_id;
 
   const copiarLinkPortalPagos = async () => {
@@ -104,14 +104,14 @@ const DetalleFacturas = ({ isOpen, onClose, deuda, onBoletosActualizados }) => {
                 {deuda.estado.texto}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                Este invitado aún no ha completado el proceso de firma de contrato. 
+                Este graduado aún no ha completado el proceso de firma de contrato. 
                 Una vez que firme, se generarán automáticamente las facturas de pago.
               </p>
               
               {/* Información básica del invitado */}
               <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 max-w-2xl mx-auto">
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                  Información del Invitado
+                  Información del Graduado
                 </h4>
                 <div className="grid grid-cols-2 gap-4 text-left mb-4">
                   <div>
