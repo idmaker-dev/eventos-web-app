@@ -5,6 +5,35 @@ import httpService from "./httpService";
  */
 export const codigoVerificacionService = {
   /**
+   * Envía el código de verificación por email como respaldo
+   * @param {string} email - Correo electrónico
+   * @param {string} codigo - Código de verificación
+   * @param {string} nombre - Nombre del destinatario (opcional)
+   * @returns {Promise<Object>} Respuesta del envío
+   */
+  async enviarCodigoPorEmail(email, codigo, nombre = '') {
+    try {
+      const response = await httpService.post(
+        "/codigos-confirmacion/enviar-email",
+        {
+          email,
+          codigo,
+          nombre,
+        }
+      );
+
+      return response;
+    } catch (error) {
+      console.error("Error al enviar código por email:", error);
+      // No lanzar error, solo retornar false para que no bloquee el flujo
+      return {
+        success: false,
+        error: error.message || "Error al enviar código por email",
+      };
+    }
+  },
+
+  /**
    * Verifica el código de confirmación
    * @param {string} telefono - Número de teléfono
    * @param {string} codigo - Código de verificación

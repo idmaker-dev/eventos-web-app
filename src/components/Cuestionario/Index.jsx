@@ -165,15 +165,49 @@ export default function Cuestionario() {
       return;
     }
 
+    // Validar que el correo esté presente para el respaldo
+    if (!correo.trim()) {
+      showError("Por favor ingresa tu correo electrónico antes de solicitar el código");
+      return;
+    }
+
+    // Validar formato de correo
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.trim())) {
+      showError("Por favor ingresa un correo electrónico válido");
+      return;
+    }
+
     setIsGenerandoCodigo(true);
     try {
+      // 1. Generar código y enviar por WhatsApp (API externa)
       const response = await whatsappService.generarCodigo(telefono.trim());
 
       if (response.status === "ok") {
         setCodigoGenerado(response.codigo);
+        console.log("Código generado:", response.codigo);
         setTiempoExpiracion(response.expira);
         setMostrarCamposCodigo(true);
-        showSuccess("Código enviado por WhatsApp. Revisa tu teléfono.");
+
+        // 2. Enviar también por email como respaldo (nuestra API)
+        try {
+          const emailResponse = await codigoVerificacionService.enviarCodigoPorEmail(
+            correo.trim(),
+            response.codigo,
+            nombre.trim() || ''
+          );
+
+          if (emailResponse.success) {
+            showSuccess("Código enviado por WhatsApp y correo electrónico. Revisa ambos para obtener tu código.");
+          } else {
+            // Si falla el email, no es crítico
+            console.warn("No se pudo enviar código por email:", emailResponse.error);
+            showSuccess("Código enviado por WhatsApp. Revisa tu teléfono.");
+          }
+        } catch (emailError) {
+          // Si falla el email, no es crítico, el usuario aún tiene WhatsApp
+          console.warn("Error al enviar código por email:", emailError);
+          showSuccess("Código enviado por WhatsApp. Revisa tu teléfono.");
+        }
       } else {
         showError("Error al generar el código de verificación");
       }
@@ -189,13 +223,32 @@ export default function Cuestionario() {
   const handleReenviarCodigo = async () => {
     setIsReenviandoCodigo(true);
     try {
+      // 1. Reenviar código por WhatsApp (API externa)
       const response = await whatsappService.reenviarCodigo(telefono);
 
       if (response.status === "ok") {
         setCodigoGenerado(response.codigo);
         setTiempoExpiracion(response.expira);
         setIntentosRestantes(3); // Resetear intentos
-        showSuccess("Nuevo código enviado por WhatsApp");
+
+        // 2. Reenviar también por email como respaldo (nuestra API)
+        try {
+          const emailResponse = await codigoVerificacionService.enviarCodigoPorEmail(
+            correo.trim(),
+            response.codigo,
+            nombre.trim() || ''
+          );
+
+          if (emailResponse.success) {
+            showSuccess("Nuevo código enviado por WhatsApp y correo electrónico");
+          } else {
+            console.warn("No se pudo reenviar código por email:", emailResponse.error);
+            showSuccess("Nuevo código enviado por WhatsApp");
+          }
+        } catch (emailError) {
+          console.warn("Error al reenviar código por email:", emailError);
+          showSuccess("Nuevo código enviado por WhatsApp");
+        }
       } else {
         showError("Error al reenviar el código");
       }
@@ -446,9 +499,11 @@ export default function Cuestionario() {
 
         showSuccess("¡Registro completado exitosamente!");
 
-        // Redirigir a la página de firma de contrato
+        // Redirigir según el next_step que devuelve el backend
+        const nextStepUrl = res.next_step?.contrato_url || res.next_step?.toku_url || `/firma-contrato/${res.invitado.id}`;
+        
         setTimeout(() => {
-          navigate(`/firma-contrato/${res.invitado.id}`);
+          navigate(nextStepUrl);
         }, 1500);
       } else {
         console.error("Error al guardar:", res.error);
@@ -1151,8 +1206,14 @@ export default function Cuestionario() {
                           Código de verificación
                         </Label>
                         <p className="text-gray-600 text-xs mt-1 mb-2">
-                          Introduce el código que te enviamos por WhatsApp
+                          Introduce el código que te enviamos por WhatsApp y correo electrónico
                         </p>
+                        <div className="bg-amber-50 border-l-4 border-amber-400 p-3 mb-3 rounded">
+                          <p className="text-xs text-amber-800">
+                            <strong>📧 Importante:</strong> Si no recibiste el código por WhatsApp, revisa tu correo electrónico ({correo}). 
+                            El código también fue enviado a tu bandeja de entrada.
+                          </p>
+                        </div>
                         <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mb-3 rounded">
                           <p className="text-xs text-blue-800">
                             <strong>💡 Tip:</strong> Agrega el número que te envió el código a tus contactos. 
@@ -1269,6 +1330,11 @@ export default function Cuestionario() {
                     Introduce tu número telefono con el que deseas recibir
                     notificaciones y accesos relacionados con tu graduación.
                   </p>
+                  <div className="bg-blue-50 border-l-4 border-blue-400 p-3 mt-4 mx-auto w-full lg:w-3/4 rounded">
+                    <p className="text-xs text-blue-800">
+                      <strong>📧 Nota:</strong> Recibirás tu código de verificación por WhatsApp y también por correo electrónico como respaldo.
+                    </p>
+                  </div>
                 </div>
                 <div>
                   <Field>
@@ -1297,7 +1363,7 @@ export default function Cuestionario() {
                             Enviando código...
                           </>
                         ) : (
-                          "Enviar código por WhatsApp"
+                          "Enviar código de verificación"
                         )}
                       </Button>
                     </div>
@@ -1315,9 +1381,11 @@ export default function Cuestionario() {
                   className="w-20 h-auto mx-auto mt-10"
                 />
                 <h1 className="text-3xl font-semibold mt-4 text-center text-dark-sienna mb-3 text-casal">
-                  Introduce el código de confirmación que te enviamos a tu
-                  WhatsApp
+                  Introduce el código de confirmación que te enviamos
                 </h1>
+                <p className="text-center text-gray-600 text-sm mb-4 px-6">
+                  Revisa tu WhatsApp y tu correo electrónico ({correo})
+                </p>
 
                 <div>
                   <Field>
