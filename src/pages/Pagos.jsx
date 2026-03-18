@@ -9,6 +9,8 @@ import eventService from "../services/eventService";
 import { useSelectedEvent } from "../contexts/SelectedEventContext";
 import { useSignalRPagos } from "../hooks/useSignalRPagos";
 import { useNotifications } from "../contexts/NotificationContext";
+import { Trash2 } from "lucide-react";
+import ConfirmDialog from "../components/Modales/ConfirmDialog";
 
 export default function Pagos({ darkMode }) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -20,6 +22,11 @@ export default function Pagos({ darkMode }) {
   const [filterFirma, setFilterFirma] = useState("todos"); // "todos", "firmado", "no_firmado"
   const { eventoActual } = useSelectedEvent();
   const { showSuccess, showError } = useNotifications();
+
+  // Estados para eliminación
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [invitadoToDelete, setInvitadoToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Función para cargar deudas del evento
   const cargarDeudas = useCallback(async () => {
@@ -143,6 +150,31 @@ export default function Pagos({ darkMode }) {
     } catch (error) {
       console.error("Error exportando pagos:", error);
       showError("Error al exportar pagos");
+    }
+  };
+
+  // Función para eliminar un alumno
+  const handleEliminarAlumno = async () => {
+    if (!invitadoToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      const resultado = await eventService.deleteInvitadoAlumnos(invitadoToDelete.invitado_id);
+
+      if (resultado.success) {
+        showSuccess(resultado.message || "Graduado eliminado correctamente");
+        setIsDeleteModalOpen(false);
+        setInvitadoToDelete(null);
+        // Recargar la lista
+        cargarDeudas();
+      } else {
+        showError(resultado.error || "No se pudo eliminar al graduado");
+      }
+    } catch (error) {
+      console.error("Error en handleEliminarAlumno:", error);
+      showError("Ocurrió un error inesperado al eliminar");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -342,6 +374,18 @@ export default function Pagos({ darkMode }) {
                   >
                     {deuda.deuda_id ? "Ver facturas" : "Sin facturas"}
                   </button>
+                  
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInvitadoToDelete(deuda);
+                      setIsDeleteModalOpen(true);
+                    }}
+                    className="btn-accion btn-eliminar"
+                    title="Eliminar graduado"
+                  >
+                    <Trash2 size={18} color="#ef4444" />
+                  </button>
                 </div>
               </div>
             );
@@ -384,6 +428,30 @@ export default function Pagos({ darkMode }) {
         isOpen={modalExportarOpen}
         onClose={() => setModalExportarOpen(false)}
         onExportar={handleExportar}
+      />
+
+      {/* Modal de Confirmación de Eliminación */}
+      <ConfirmDialog
+        open={isDeleteModalOpen}
+        title="Eliminar Graduado"
+        message={
+          <>
+            ¿Estás seguro de que deseas eliminar a <strong>{invitadoToDelete?.asistente?.nombre_completo}</strong>? 
+            <br />
+            Esta acción <strong>no se puede deshacer</strong> y se eliminarán permanentemente todos sus datos asociados.
+          </>
+        }
+        confirmLabel="Eliminar permanentemente"
+        cancelLabel="Cancelar"
+        variant="danger"
+        loading={isDeleting}
+        onClose={() => {
+          if (!isDeleting) {
+            setIsDeleteModalOpen(false);
+            setInvitadoToDelete(null);
+          }
+        }}
+        onConfirm={handleEliminarAlumno}
       />
     </div>
   );

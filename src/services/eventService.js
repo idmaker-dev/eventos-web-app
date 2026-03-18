@@ -352,6 +352,30 @@ class EventService {
   }
 
   /**
+   * Eliminar un invitado/graduado
+   * @param {string} invitadoId - ID del invitado a eliminar
+   */
+  async deleteInvitadoAlumnos(invitadoId) {
+    try {
+      const response = await httpService.delete(
+        `/invitadosAlumnos/eliminar-alumno/${invitadoId}`
+      );
+
+      return {
+        success: true,
+        data: response.data || response,
+        message: "Graduado eliminado exitosamente",
+      };
+    } catch (error) {
+      console.error("Error al eliminar graduado:", error);
+      return {
+        success: false,
+        error: error?.data?.error || error.userMessage || "Error al eliminar graduado",
+      };
+    }
+  }
+
+  /**
    * Aplicar devolución a un invitado
    * @param {string} invitadoId - ID del invitado
    * @param {number} monto - Monto de la devolución

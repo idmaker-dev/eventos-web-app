@@ -233,6 +233,9 @@
   background: #f3f4f6;
   color: #374151;
 }
+.btn-eliminar {
+  margin-left: 8px;
+}
 
 /* Responsivo para convertir filas en cards */
 @media (max-width: 900px) {
