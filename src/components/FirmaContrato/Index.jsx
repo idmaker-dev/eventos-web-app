@@ -48,6 +48,9 @@ export default function FirmaContrato() {
   const [modoFirmaInterno, setModoFirmaInterno] = useState(null); // "SOLO_ACEPTAR" | "FIRMA_DIGITAL"
   const [mostrarModalContrato, setMostrarModalContrato] = useState(false);
   const [firmaCanvas, setFirmaCanvas] = useState(null);
+  const [esPlantillaWord, setEsPlantillaWord] = useState(false); // Para detectar plantillas Word
+  const [plantillaWordInfo, setPlantillaWordInfo] = useState(null); // Info de la plantilla Word
+  const [previewWordUrl, setPreviewWordUrl] = useState(null); // URL de preview del Word generado
 
   // ==========================================
   // CONECTAR A SIGNALR AL INICIAR COMPONENTE
@@ -208,8 +211,29 @@ export default function FirmaContrato() {
         if (previewResponse.success) {
           console.log("✅ Contrato INTERNO detectado");
           setTipoContrato("INTERNO");
-          setContratoHTML(previewResponse.data.html_procesado);
-          setModoFirmaInterno(previewResponse.data.modo_firma);
+          
+          // Verificar si es plantilla Word
+          if (previewResponse.data.tipo_plantilla === 'word') {
+            console.log("📄 Plantilla Word detectada - Preview generado");
+            console.log("📊 Estados establecidos:", {
+              tipoContrato: "INTERNO",
+              esPlantillaWord: true,
+              modoFirmaInterno: previewResponse.data.modo_firma,
+              plantillaWordInfo: previewResponse.data.plantilla_info,
+              previewUrl: previewResponse.data.preview_url
+            });
+            setEsPlantillaWord(true);
+            setPlantillaWordInfo(previewResponse.data.plantilla_info);
+            setModoFirmaInterno(previewResponse.data.modo_firma);
+            setPreviewWordUrl(previewResponse.data.preview_url); // Guardar URL de preview
+            setContratoHTML(null); // No hay HTML para Word
+          } else {
+            // Plantilla HTML tradicional
+            console.log("📄 Plantilla HTML detectada - Cargando preview");
+            setEsPlantillaWord(false);
+            setContratoHTML(previewResponse.data.html_procesado);
+            setModoFirmaInterno(previewResponse.data.modo_firma);
+          }
           return;
         }
       } catch (previewError) {
@@ -247,10 +271,23 @@ export default function FirmaContrato() {
       });
 
       if (response.success) {
-        console.log("✅ Contrato aceptado exitosamente");
+        console.log("✅ Contrato aceptado exitosamente", response.data);
         setMostrarModalContrato(false);
+        
+        // Si hay URL de contrato Word, mostrarlo
+        if (response.data.tipo_documento === "docx" && response.data.documento_url) {
+          console.log("📥 Contrato Word disponible para descarga:", response.data.documento_url);
+          // Descargar automáticamente
+          window.open(response.data.documento_url, "_blank");
+        }
+        
+        showSuccess("¡Contrato aceptado! Procesando tu cuenta...");
         setFirmaEnProceso(true);
-        showSuccess("¡Contrato aceptado! Procesando...");
+        
+        // Redirigir al portal de pagos después de 3 segundos
+        setTimeout(() => {
+          navigate(`/PortalPagos/${invitadoId}`);
+        }, 3000);
       } else {
         showError(response.error || "Error al aceptar el contrato");
       }
@@ -284,10 +321,23 @@ export default function FirmaContrato() {
       });
 
       if (response.success) {
-        console.log("✅ Contrato firmado exitosamente");
+        console.log("✅ Contrato firmado exitosamente", response.data);
         setMostrarModalContrato(false);
+        
+        // Si hay URL de contrato Word, mostrarlo
+        if (response.data.tipo_documento === "docx" && response.data.documento_url) {
+          console.log("📥 Contrato Word disponible para descarga:", response.data.documento_url);
+          // Descargar automáticamente
+          window.open(response.data.documento_url, "_blank");
+        }
+        
+        showSuccess("¡Contrato firmado! Procesando tu cuenta...");
         setFirmaEnProceso(true);
-        showSuccess("¡Contrato firmado! Procesando...");
+        
+        // Redirigir al portal de pagos después de 3 segundos
+        setTimeout(() => {
+          navigate(`/PortalPagos/${invitadoId}`);
+        }, 3000);
       } else {
         showError(response.error || "Error al firmar el contrato");
       }
@@ -516,12 +566,12 @@ export default function FirmaContrato() {
     };
 
     // Verificar cada 5 segundos cuando está en proceso
-    const intervalId = setInterval(verificarEstado, 5000);
+    // const intervalId = setInterval(verificarEstado, 5000);
     
     // Limpieza al desmontar o cuando cambie el estado
     return () => {
       console.log("🛑 Deteniendo polling de fallback");
-      clearInterval(intervalId);
+      // clearInterval(intervalId);
     };
   }, [mostrarIframe, firmaEnProceso, contratoFirmado, invitadoId, navigate, showSuccess]);
 
@@ -774,23 +824,25 @@ export default function FirmaContrato() {
           </p>
         </div>
 
-        {/* Mensaje instructivo sobre el botón Finalizar */}
-        <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-amber-800">
-                <strong>Importante:</strong> Al hacer clic en el botón <strong>"Finalizar"</strong> dentro del documento, 
-                estás aceptando los términos y condiciones del contrato del evento. Asegúrate de haber leído 
-                todo el documento antes de continuar.
-              </p>
+        {/* Mensaje instructivo sobre el botón Finalizar (solo para DocuSign) */}
+        {tipoContrato === "DOCUSIGN" && (
+          <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-amber-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-amber-800">
+                  <strong>Importante:</strong> Al hacer clic en el botón <strong>"Finalizar"</strong> dentro del documento, 
+                  estás aceptando los términos y condiciones del contrato del evento. Asegúrate de haber leído 
+                  todo el documento antes de continuar.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Visualización del contrato - DocuSign Iframe */}
         {mostrarIframe && signingUrl ? (
@@ -843,11 +895,42 @@ export default function FirmaContrato() {
             <p className="text-gray-600 mb-2 font-medium">
               Documento del Contrato
             </p>
-            <p className="text-sm text-gray-500">
-              {modoFirma === "embedded" 
-                ? "El contrato se cargará automáticamente en un momento..."
-                : "Haz clic en 'Enviar Contrato' para recibirlo por correo"}
+            <p className="text-sm text-gray-500 mb-4">
+              {tipoContrato === "INTERNO" && esPlantillaWord
+                ? "Este evento usa contratos en formato Word."
+                : modoFirma === "embedded" 
+                  ? "El contrato se cargará automáticamente en un momento..."
+                  : "Haz clic en 'Enviar Contrato' para recibirlo por correo"}
             </p>
+            {tipoContrato === "INTERNO" && esPlantillaWord && plantillaWordInfo && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                <p className="text-sm text-blue-900 mb-2">
+                  <strong>📄</strong> {plantillaWordInfo.nombre || "Contrato del Evento"}
+                </p>
+                <p className="text-sm text-blue-700 mb-3">
+                  Al firmar, se generará tu contrato personalizado en formato Word que podrás descargar.
+                </p>
+                
+                {/* Botón de firma dentro del cuadro informativo */}
+                <Button
+                  onClick={() => setMostrarModalContrato(true)}
+                  disabled={isFirmando}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center transition-all shadow-lg"
+                >
+                  {isFirmando ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 mr-2" />
+                      {modoFirmaInterno === "FIRMA_DIGITAL" ? "📝 Firmar Contrato Ahora" : "✅ Ver y Aceptar Contrato"}
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -861,9 +944,29 @@ export default function FirmaContrato() {
           </div>
         )}
 
+        {/* DEBUG: Mostrar estados actuales */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="bg-yellow-50 border border-yellow-300 rounded p-2 mb-4 text-xs">
+            <strong>🐛 DEBUG:</strong><br/>
+            tipoContrato: {tipoContrato || 'null'}<br/>
+            esPlantillaWord: {String(esPlantillaWord)}<br/>
+            contratoHTML: {contratoHTML ? 'presente' : 'null'}<br/>
+            modoFirmaInterno: {modoFirmaInterno || 'null'}<br/>
+            mostrarIframe: {String(mostrarIframe)}<br/>
+            isFirmando: {String(isFirmando)}
+          </div>
+        )}
+
         {/* Selector de modo y botón (solo si no se muestra iframe) */}
         {!mostrarIframe && (
           <div className="flex flex-col space-y-3">
+            {console.log("🔍 Renderizando área de botones:", {
+              mostrarIframe,
+              tipoContrato,
+              esPlantillaWord,
+              modoFirmaInterno
+            })}
+            
             {/* DOCUSIGN: Selector de modo de firma */}
             {tipoContrato === "DOCUSIGN" && (
               <>
@@ -928,23 +1031,62 @@ export default function FirmaContrato() {
 
             {/* INTERNO: Botón para abrir modal de firma */}
             {tipoContrato === "INTERNO" && (
-              <Button
-                onClick={() => setMostrarModalContrato(true)}
-                disabled={isFirmando || !contratoHTML}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center transition-all shadow-lg"
-              >
-                {isFirmando ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Procesando...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="w-5 h-5 mr-2" />
-                    {modoFirmaInterno === "FIRMA_DIGITAL" ? "Firmar Contrato" : "Ver y Aceptar Contrato"}
-                  </>
+              <>
+                {/* Debug log */}
+                {console.log("🔵 Renderizando botón INTERNO:", {
+                  tipoContrato,
+                  esPlantillaWord,
+                  modoFirmaInterno,
+                  contratoHTML: !!contratoHTML,
+                  isFirmando,
+                  buttonEnabled: !isFirmando && (!!contratoHTML || esPlantillaWord)
+                })}
+                
+                {/* Mensaje guía para plantillas Word */}
+                {esPlantillaWord && (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-lg p-4 mb-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+                      <p className="text-sm font-bold text-blue-900">
+                        👉 Siguiente paso: Firma tu contrato
+                      </p>
+                    </div>
+                    <p className="text-xs text-blue-800">
+                      Tu contrato se generará automáticamente cuando hagas clic en el botón de abajo.
+                      {modoFirmaInterno === "FIRMA_DIGITAL" 
+                        ? " Necesitarás firmar digitalmente con tu dedo o mouse."
+                        : " Solo necesitas aceptar los términos."}
+                    </p>
+                  </div>
                 )}
-              </Button>
+                
+                <Button
+                  onClick={() => setMostrarModalContrato(true)}
+                  disabled={isFirmando || (!contratoHTML && !esPlantillaWord)}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center transition-all shadow-lg"
+                >
+                  {isFirmando ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-5 h-5 mr-2" />
+                      {modoFirmaInterno === "FIRMA_DIGITAL" ? "Firmar Contrato" : "Ver y Aceptar Contrato"}
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+
+            {/* Mensaje de ayuda si no se renderiza ningún tipo */}
+            {!tipoContrato && !isFirmando && (
+              <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+                <p className="text-sm text-amber-800">
+                  ⏳ Detectando tipo de contrato... Si este mensaje persiste, contacta al organizador.
+                </p>
+              </div>
             )}
 
             <p className="text-xs text-gray-500 text-center">
@@ -955,17 +1097,20 @@ export default function FirmaContrato() {
       </div>
 
       {/* Modal de Firma INTERNO */}
-      {tipoContrato === "INTERNO" && contratoHTML && (
+      {tipoContrato === "INTERNO" && (contratoHTML || esPlantillaWord) && (
         <ModalFirmaContrato
           isOpen={mostrarModalContrato}
           onClose={() => setMostrarModalContrato(false)}
           contratoHTML={contratoHTML}
           contratoCSS=""
           modoFirma={modoFirmaInterno}
-          plantillaNombre="Contrato de Participación"
+          plantillaNombre={esPlantillaWord ? (plantillaWordInfo?.nombre || "Contrato Word") : "Contrato de Participación"}
           onAceptar={handleAceptarContratoInterno}
           onFirmar={handleFirmarContratoInterno}
           isSubmitting={isFirmando}
+          esPlantillaWord={esPlantillaWord}
+          plantillaWordInfo={plantillaWordInfo}
+          previewWordUrl={previewWordUrl}
         />
       )}
 

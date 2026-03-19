@@ -1,9 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FileSignature, ChevronDown, ChevronUp, Copy, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { 
+  FileSignature, ChevronDown, ChevronUp, Copy, Plus, Trash2, AlertCircle,
+  FileText, CheckSquare, Eye, Loader2
+} from 'lucide-react';
 import contratoConfigService from '../../services/contratoConfigService';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useSelectedEvent } from '../../contexts/SelectedEventContext';
+
+// Tipos de contrato disponibles
+const TIPO_CONTRATO = {
+  DOCUSIGN: 'DOCUSIGN',
+  INTERNO: 'INTERNO',
+  SIN_FIRMA_DIGITAL: 'SIN_FIRMA_DIGITAL',
+};
+
+const MODO_FIRMA = {
+  SOLO_ACEPTAR: 'SOLO_ACEPTAR',
+  FIRMA_DIGITAL: 'FIRMA_DIGITAL',
+};
 
 const ConfiguracionContrato = () => {
   const { eventoId: eventoIdFromUrl } = useParams();
@@ -11,27 +26,21 @@ const ConfiguracionContrato = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotifications();
 
-  // Usar el evento del contexto si está disponible, sino usar el de la URL
   const eventoId = eventoActual?.id || eventoIdFromUrl;
 
   // Estados principales
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
+  
+  // Tipo de contrato seleccionado
+  const [tipoContrato, setTipoContrato] = useState(TIPO_CONTRATO.DOCUSIGN);
+
+  // ==================== DOCUSIGN ====================
   const [templateId, setTemplateId] = useState('');
   const [mappings, setMappings] = useState([]);
-  
-  // Catálogo de campos
   const [catalogoCampos, setCatalogoCampos] = useState({});
   const [catalogoVisible, setCatalogoVisible] = useState(true);
   const [totalCampos, setTotalCampos] = useState(0);
-
-  // Modal de copiar configuración
-  const [modalCopiar, setModalCopiar] = useState(false);
-  const [eventosDisponibles, setEventosDisponibles] = useState([]);
-  const [eventoCopiarId, setEventoCopiarId] = useState('');
-  const [copiando, setCopiando] = useState(false);
-
-  // Nuevo mapping en progreso
   const [nuevoMapping, setNuevoMapping] = useState({
     label_docusign: '',
     tipo: 'campo_planoria',
@@ -39,6 +48,20 @@ const ConfiguracionContrato = () => {
     valor_personalizado: ''
   });
 
+  // ==================== INTERNO ====================
+  const [plantillas, setPlantillas] = useState([]);
+  const [plantillaSeleccionada, setPlantillaSeleccionada] = useState('');
+  const [modoFirma, setModoFirma] = useState(MODO_FIRMA.SOLO_ACEPTAR);
+  const [previewHTML, setPreviewHTML] = useState('');
+  const [cargandoPreview, setCargandoPreview] = useState(false);
+
+  // ==================== MODAL COPIAR ====================
+  const [modalCopiar, setModalCopiar] = useState(false);
+  const [eventosDisponibles, setEventosDisponibles] = useState([]);
+  const [eventoCopiarId, setEventoCopiarId] = useState('');
+  const [copiando, setCopiando] = useState(false);
+
+  // ==================== CARGAR DATOS ====================
   const cargarDatos = useCallback(async () => {
     if (!eventoId) {
       console.warn('No hay evento seleccionado');
@@ -49,38 +72,62 @@ const ConfiguracionContrato = () => {
       setLoading(true);
       console.log('🔄 Cargando configuración para evento:', eventoId);
       
-      // Cargar configuración existente
+      // Cargar configuración existente del evento
       const configResponse = await contratoConfigService.obtenerConfiguracion(eventoId);
       
-      // El service ya procesa response.data, entonces configResponse tiene la estructura directa
-      // { template_id, mappings, configurado, fecha_configuracion }
-      if (configResponse && (configResponse.template_id || configResponse.mappings)) {
-        setTemplateId(configResponse.template_id || '');
-        setMappings(configResponse.mappings || []);
-        console.log('✅ Configuración cargada:', { 
-          template_id: configResponse.template_id, 
-          mappings_count: configResponse.mappings?.length || 0
-        });
+      // Determinar tipo de contrato configurado
+      if (configResponse && configResponse.tipo_contrato) {
+        setTipoContrato(configResponse.tipo_contrato);
+        console.log('✅ Tipo de contrato detectado:', configResponse.tipo_contrato);
+
+        // Cargar datos según el tipo
+        if (configResponse.tipo_contrato === TIPO_CONTRATO.DOCUSIGN) {
+          setTemplateId(configResponse.template_id || '');
+          setMappings(configResponse.mappings || []);
+          console.log('✅ Configuración DocuSign cargada:', { 
+            template_id: configResponse.template_id, 
+            mappings_count: configResponse.mappings?.length || 0
+          });
+        } else if (configResponse.tipo_contrato === TIPO_CONTRATO.INTERNO) {
+          setPlantillaSeleccionada(configResponse.plantilla_id || '');
+          setModoFirma(configResponse.modo_firma || MODO_FIRMA.SOLO_ACEPTAR);
+          console.log('✅ Configuración INTERNO cargada:', {
+            plantilla_id: configResponse.plantilla_id,
+            modo_firma: configResponse.modo_firma
+          });
+        }
+        // SIN_FIRMA_DIGITAL no requiere configuración adicional
       } else {
-        // Si no hay configuración, limpiar los estados
+        // Sin configuración previa, limpiar estados
         setTemplateId('');
         setMappings([]);
-        console.log('ℹ️ No hay configuración para este evento');
+        setPlantillaSeleccionada('');
+        setModoFirma(MODO_FIRMA.SOLO_ACEPTAR);
+        console.log('ℹ️ No hay configuración para este evento (modo default: DOCUSIGN)');
       }
 
-      // Cargar catálogo de campos
+      // Cargar catálogo de campos (siempre, por si se necesita)
       const catalogoResponse = await contratoConfigService.obtenerCatalogoCampos();
-      
-      // El service devuelve directamente { catalogoPorCategoria, totalCampos }
       if (catalogoResponse && catalogoResponse.catalogoPorCategoria) {
-        const catalogo = catalogoResponse.catalogoPorCategoria;
-        // Transformar a formato más simple { evento: [...campos], invitado: [...campos] }
         const catalogoTransformado = {};
-        Object.keys(catalogo).forEach(key => {
-          catalogoTransformado[key] = catalogo[key].campos || [];
+        Object.keys(catalogoResponse.catalogoPorCategoria).forEach(key => {
+          catalogoTransformado[key] = catalogoResponse.catalogoPorCategoria[key].campos || [];
         });
         setCatalogoCampos(catalogoTransformado);
         setTotalCampos(catalogoResponse.totalCampos);
+      }
+
+      // Cargar plantillas disponibles si el tipo es INTERNO
+      if (configResponse?.tipo_contrato === TIPO_CONTRATO.INTERNO || tipoContrato === TIPO_CONTRATO.INTERNO) {
+        try {
+          const plantillasResponse = await contratoConfigService.listarPlantillas({ activo: true });
+          if (plantillasResponse && plantillasResponse.plantillas) {
+            setPlantillas(plantillasResponse.plantillas);
+            console.log('✅ Plantillas cargadas:', plantillasResponse.plantillas.length);
+          }
+        } catch (error) {
+          console.error('Error cargando plantillas:', error);
+        }
       }
       
       // Resetear formulario de nuevo mapping
@@ -96,12 +143,53 @@ const ConfiguracionContrato = () => {
     } finally {
       setLoading(false);
     }
-  }, [eventoId, showError]);
+  }, [eventoId, tipoContrato, showError]);
 
   useEffect(() => {
     cargarDatos();
   }, [cargarDatos]);
 
+  // ==================== FUNCIONES PARA TIPO INTERNO ====================
+  const previsualizarPlantilla = async () => {
+    if (!plantillaSeleccionada) {
+      showError('Debes seleccionar una plantilla');
+      return;
+    }
+
+    try {
+      setCargandoPreview(true);
+      // Datos de ejemplo para previsualizar
+      const datosEjemplo = {
+        invitado: {
+          nombre: "Juan Pérez",
+          email: "juan@example.com",
+          telefono: "+34123456789"
+        },
+        evento: {
+          nombre: "Boda María y Carlos",
+          fecha: "25 de diciembre de 2024",
+          hora: "18:00"
+        }
+      };
+
+      const response = await contratoConfigService.previsualizarPlantilla(
+        plantillaSeleccionada,
+        datosEjemplo
+      );
+
+      if (response && response.html) {
+        setPreviewHTML(response.html);
+        showSuccess('Vista previa generada');
+      }
+    } catch (error) {
+      console.error('Error generando preview:', error);
+      showError('Error al generar la vista previa');
+    } finally {
+      setCargandoPreview(false);
+    }
+  };
+
+  // ==================== FUNCIONES PARA TIPO DOCUSIGN ====================
   const agregarMapping = () => {
     // Validaciones
     if (!nuevoMapping.label_docusign.trim()) {
@@ -153,30 +241,48 @@ const ConfiguracionContrato = () => {
   };
 
   const guardarConfiguracion = async () => {
-    // Validaciones
-    if (!templateId.trim()) {
-      showError('Debes especificar el Template ID de DocuSign');
-      return;
-    }
-
-    if (mappings.length === 0) {
-      showError('Debes agregar al menos un mapping');
-      return;
-    }
-
     try {
       setGuardando(true);
       
-      const payload = {
-        template_id: templateId.trim(),
-        mappings: mappings
-      };
+      let payload = { tipo_contrato: tipoContrato };
+
+      // Validaciones y payload según el tipo de contrato
+      switch (tipoContrato) {
+        case TIPO_CONTRATO.DOCUSIGN:
+          if (!templateId.trim()) {
+            showError('Debes especificar el Template ID de DocuSign');
+            return;
+          }
+          if (mappings.length === 0) {
+            showError('Debes agregar al menos un mapping');
+            return;
+          }
+          payload.template_id = templateId.trim();
+          payload.mappings = mappings;
+          break;
+
+        case TIPO_CONTRATO.INTERNO:
+          if (!plantillaSeleccionada) {
+            showError('Debes seleccionar una plantilla');
+            return;
+          }
+          payload.plantilla_id = plantillaSeleccionada;
+          payload.modo_firma = modoFirma;
+          break;
+
+        case TIPO_CONTRATO.SIN_FIRMA_DIGITAL:
+          // No requiere configuración adicional
+          break;
+
+        default:
+          showError('Tipo de contrato no válido');
+          return;
+      }
 
       const response = await contratoConfigService.guardarConfiguracion(eventoId, payload);
       
       if (response) {
         showSuccess('Configuración guardada exitosamente');
-        // Recargar datos para confirmar
         await cargarDatos();
       }
     } catch (error) {
@@ -279,19 +385,147 @@ const ConfiguracionContrato = () => {
       </div>
 
       {/* Información */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6 flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-        <div className="text-sm text-blue-800 dark:text-blue-200">
-          <p className="font-medium mb-1">¿Cómo funciona el sistema de mapeo?</p>
-          <ol className="list-decimal list-inside space-y-1 ml-2">
-            <li>Configura tu template en DocuSign con los labels que necesites</li>
-            <li>Ingresa el Template ID en este formulario</li>
-            <li>Mapea cada label de DocuSign a un campo de Planoria o a un valor personalizado</li>
-            <li>Solo los campos mapeados serán enviados a DocuSign</li>
-          </ol>
+      {tipoContrato === TIPO_CONTRATO.DOCUSIGN && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-800 dark:text-blue-200">
+            <p className="font-medium mb-1">¿Cómo funciona el sistema de mapeo?</p>
+            <ol className="list-decimal list-inside space-y-1 ml-2">
+              <li>Configura tu template en DocuSign con los labels que necesites</li>
+              <li>Ingresa el Template ID en este formulario</li>
+              <li>Mapea cada label de DocuSign a un campo de Planoria o a un valor personalizado</li>
+              <li>Solo los campos mapeados serán enviados a DocuSign</li>
+            </ol>
+          </div>
+        </div>
+      )}
+
+      {tipoContrato === TIPO_CONTRATO.INTERNO && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-green-800 dark:text-green-200">
+            <p className="font-medium mb-1">¿Cómo funcionan las plantillas internas?</p>
+            <ol className="list-decimal list-inside space-y-1 ml-2">
+              <li>Selecciona una plantilla HTML o Word previamente creada</li>
+              <li>Las variables en la plantilla se reemplazarán automáticamente con datos del invitado</li>
+              <li>Elige el modo de firma: solo aceptar términos o firma digital</li>
+              <li>Los contratos se generarán automáticamente al momento de la confirmación</li>
+            </ol>
+          </div>
+        </div>
+      )}
+
+      {tipoContrato === TIPO_CONTRATO.SIN_FIRMA_DIGITAL && (
+        <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-gray-600 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-gray-800 dark:text-gray-200">
+            <p className="font-medium mb-1">Modo sin firma digital</p>
+            <p>En este modo, los invitados solo aceptarán términos y condiciones sin firma electrónica. Gratis y sin configuración adicional.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Selector de Tipo de Contrato */}
+      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Selecciona el tipo de contrato</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* DocuSign */}
+          <div
+            onClick={() => setTipoContrato(TIPO_CONTRATO.DOCUSIGN)}
+            className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${
+              tipoContrato === TIPO_CONTRATO.DOCUSIGN
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="radio"
+                checked={tipoContrato === TIPO_CONTRATO.DOCUSIGN}
+                onChange={() => setTipoContrato(TIPO_CONTRATO.DOCUSIGN)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileSignature className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">DocuSign</h4>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  Integración completa con DocuSign para firma digital profesional
+                </p>
+                <span className="text-xs px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded">
+                  Costo por uso
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* INTERNO */}
+          <div
+            onClick={() => setTipoContrato(TIPO_CONTRATO.INTERNO)}
+            className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${
+              tipoContrato === TIPO_CONTRATO.INTERNO
+                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="radio"
+                checked={tipoContrato === TIPO_CONTRATO.INTERNO}
+                onChange={() => setTipoContrato(TIPO_CONTRATO.INTERNO)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">Plantilla Interna</h4>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  Genera contratos con plantillas personalizadas (HTML o Word)
+                </p>
+                <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                  Sin costo adicional
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* SIN_FIRMA_DIGITAL */}
+          <div
+            onClick={() => setTipoContrato(TIPO_CONTRATO.SIN_FIRMA_DIGITAL)}
+            className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${
+              tipoContrato === TIPO_CONTRATO.SIN_FIRMA_DIGITAL
+                ? 'border-gray-500 bg-gray-50 dark:bg-gray-700'
+                : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="radio"
+                checked={tipoContrato === TIPO_CONTRATO.SIN_FIRMA_DIGITAL}
+                onChange={() => setTipoContrato(TIPO_CONTRATO.SIN_FIRMA_DIGITAL)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckSquare className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">Sin Firma Digital</h4>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  Solo aceptación de términos y condiciones
+                </p>
+                <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded">
+                  Gratis
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Contenido según tipo seleccionado */}
+      {tipoContrato === TIPO_CONTRATO.DOCUSIGN && (
       <div className="grid grid-cols-12 gap-6">
         {/* Catálogo de campos (Sidebar) */}
         <div className={`${catalogoVisible ? 'col-span-3' : 'col-span-1'} transition-all`}>
@@ -539,6 +773,200 @@ const ConfiguracionContrato = () => {
           </div>
         </div>
       </div>
+      )}
+
+      {/* Sección TIPO INTERNO */}
+      {tipoContrato === TIPO_CONTRATO.INTERNO && (
+        <div className="space-y-6">
+          {/* Selector de Plantilla */}
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">1. Seleccionar Plantilla</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Plantilla de contrato *
+                </label>
+                <select
+                  value={plantillaSeleccionada}
+                  onChange={(e) => setPlantillaSeleccionada(e.target.value)}
+                  className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                >
+                  <option value="">Selecciona una plantilla...</option>
+                  {plantillas.map((plantilla) => (
+                    <option key={plantilla.id} value={plantilla.id}>
+                      {plantilla.nombre} - v{plantilla.metadata?.version || 1} {plantilla.tipo_plantilla === 'word' ? '(Word)' : '(HTML)'}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Las plantillas se crean y gestionan desde el panel de plantillas
+                </p>
+              </div>
+
+              {/* Modo de Firma */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Modo de firma *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setModoFirma(MODO_FIRMA.SOLO_ACEPTAR)}
+                    className={`cursor-pointer p-3 rounded-lg border-2 transition-all ${
+                      modoFirma === MODO_FIRMA.SOLO_ACEPTAR
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        checked={modoFirma === MODO_FIRMA.SOLO_ACEPTAR}
+                        onChange={() => setModoFirma(MODO_FIRMA.SOLO_ACEPTAR)}
+                      />
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-900 dark:text-white">Solo Aceptar</h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-300">Checkbox de aceptación</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setModoFirma(MODO_FIRMA.FIRMA_DIGITAL)}
+                    className={`cursor-pointer p-3 rounded-lg border-2 transition-all ${
+                      modoFirma === MODO_FIRMA.FIRMA_DIGITAL
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        checked={modoFirma === MODO_FIRMA.FIRMA_DIGITAL}
+                        onChange={() => setModoFirma(MODO_FIRMA.FIRMA_DIGITAL)}
+                      />
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-900 dark:text-white">Firma Digital</h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-300">Canvas para firmar</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón Preview - Solo para plantillas HTML */}
+              {plantillaSeleccionada && (() => {
+                const plantilla = plantillas.find(p => p.id === plantillaSeleccionada);
+                const esPlantillaWord = plantilla?.tipo_plantilla === 'word' || !!plantilla?.word_template_url;
+                
+                if (esPlantillaWord) {
+                  return (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                      <p className="text-xs text-blue-800 dark:text-blue-200">
+                        ℹ️ <strong>Plantilla Word seleccionada:</strong> La vista previa no está disponible para plantillas Word. 
+                        Los contratos se generarán en formato .docx manteniendo todo el formato original.
+                      </p>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div>
+                    <button
+                      onClick={previsualizarPlantilla}
+                      disabled={cargandoPreview}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+                    >
+                      {cargandoPreview ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Generando...
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4" />
+                          Ver Vista Previa
+                        </>
+                      )}
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Vista Previa */}
+          {previewHTML && (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Vista Previa del Contrato</h3>
+              <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                <iframe
+                  srcDoc={previewHTML}
+                  className="w-full h-96 border-0"
+                  title="Vista previa del contrato"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Botón Guardar */}
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => navigate(`/admin/eventos/${eventoId}`)}
+              className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={guardarConfiguracion}
+              disabled={guardando || !plantillaSeleccionada}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
+            >
+              {guardando ? 'Guardando...' : 'Guardar Configuración'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sección SIN FIRMA DIGITAL */}
+      {tipoContrato === TIPO_CONTRATO.SIN_FIRMA_DIGITAL && (
+        <div className="space-y-6">
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8">
+            <div className="text-center">
+              <CheckSquare className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Sin Firma Digital
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-4 max-w-md mx-auto">
+                Este modo solo requiere que los invitados acepten los términos y condiciones mediante un checkbox.
+                No se genera ningún documento de contrato.
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-lg mx-auto">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>Nota:</strong> Los términos y condiciones se deben configurar en la sección de "Ajustes del Evento".
+                  Los invitados verán un checkbox de aceptación durante el proceso de confirmación.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Botón Guardar */}
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => navigate(`/admin/eventos/${eventoId}`)}
+              className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={guardarConfiguracion}
+              disabled={guardando}
+              className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
+            >
+              {guardando ? 'Guardando...' : 'Guardar Configuración'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Copiar Configuración */}
       {modalCopiar && (
