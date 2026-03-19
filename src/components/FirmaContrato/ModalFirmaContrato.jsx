@@ -7,6 +7,7 @@ import { X, Check, RotateCcw, FileText } from "lucide-react";
 /**
  * Modal de firma de contrato INTERNO
  * Muestra el HTML del contrato y permite firmarlo con canvas o solo aceptarlo
+ * Soporta plantillas Word (con preview descargable)
  */
 export default function ModalFirmaContrato({
   isOpen,
@@ -18,11 +19,15 @@ export default function ModalFirmaContrato({
   onAceptar,
   onFirmar,
   isSubmitting = false,
+  esPlantillaWord = false, // Nueva prop para detectar plantillas Word
+  plantillaWordInfo = null, // Info de la plantilla Word
+  previewWordUrl = null, // URL del preview Word generado
 }) {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [aceptoTerminos, setAceptoTerminos] = useState(false);
+  const [haDescargadoPreview, setHaDescargadoPreview] = useState(false);
 
   // Configurar canvas cuando se abre el modal
   useEffect(() => {
@@ -178,13 +183,67 @@ export default function ModalFirmaContrato({
 
         {/* Contenido del contrato */}
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-          <div className="bg-white rounded-lg p-8 shadow-sm">
-            <style>{contratoCSS}</style>
-            <div
-              className="contrato-html prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: contratoHTML }}
-            />
-          </div>
+          {esPlantillaWord ? (
+            // Mensaje informativo para plantillas Word
+            <div className="bg-white rounded-lg p-8 shadow-sm">
+              <div className="text-center py-12">
+                <FileText className="w-20 h-20 text-blue-600 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  Contrato en Formato Word
+                </h3>
+                <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                  Este evento utiliza contratos personalizados en formato Word. Al continuar con la firma,
+                  se generará automáticamente tu contrato con toda tu información personalizada.
+                </p>
+                {plantillaWordInfo && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto text-center">
+                    <p className="text-base text-blue-900 font-semibold">
+                      {plantillaWordInfo.nombre || "Contrato del Evento"}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Botón de descarga del preview Word */}
+                {previewWordUrl && (
+                  <div className="mt-6">
+                    <a
+                      href={previewWordUrl}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setHaDescargadoPreview(true)}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      📥 Descargar Vista Previa del Contrato
+                    </a>
+                    <p className="text-xs text-gray-500 mt-3 max-w-md mx-auto">
+                      <strong>Debes descargar y revisar el contrato</strong> con tus datos personalizados antes de poder aceptarlo.
+                      Este es un preview, el contrato final se generará al confirmar la firma.
+                    </p>
+                  </div>
+                )}
+                
+                <div className="mt-8 bg-amber-50 border-l-4 border-amber-400 p-4 rounded max-w-lg mx-auto text-left">
+                  <p className="text-sm text-amber-800">
+                    <strong>⚠️ Importante:</strong> Debes descargar y revisar el contrato antes de poder aceptarlo.
+                    Al aceptar este contrato, confirmas que has leído todos los términos y condiciones establecidos por el evento.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Preview HTML tradicional
+            <div className="bg-white rounded-lg p-8 shadow-sm">
+              <style>{contratoCSS}</style>
+              <div
+                className="contrato-html prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: contratoHTML }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Sección de firma (solo si modo = FIRMA_DIGITAL) */}
@@ -231,8 +290,8 @@ export default function ModalFirmaContrato({
                 type="checkbox"
                 checked={aceptoTerminos}
                 onChange={(e) => setAceptoTerminos(e.target.checked)}
-                disabled={isSubmitting}
-                className="mt-1 w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 disabled:opacity-50"
+                disabled={isSubmitting || (esPlantillaWord && !haDescargadoPreview)}
+                className="mt-1 w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <span className="text-sm text-gray-700 group-hover:text-gray-900">
                 {modoFirma === "FIRMA_DIGITAL"
@@ -240,6 +299,11 @@ export default function ModalFirmaContrato({
                   : "He leído y acepto todos los términos y condiciones del contrato."}
               </span>
             </label>
+            {esPlantillaWord && !haDescargadoPreview && (
+              <p className="text-xs text-amber-600 mt-2 ml-8">
+                ⚠️ Debes descargar el preview del contrato antes de poder aceptar
+              </p>
+            )}
           </div>
 
           <div className="flex gap-3 justify-end">
