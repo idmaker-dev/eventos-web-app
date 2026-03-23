@@ -24,6 +24,9 @@ class TicketsService {
       if (filters.limite) {
         params.append("limite", filters.limite);
       }
+      if (filters.eventoId) {
+        params.append("id_evento", filters.eventoId);
+      }
 
       const queryString = params.toString();
       const url = queryString ? `/tickets?${queryString}` : `/tickets`;

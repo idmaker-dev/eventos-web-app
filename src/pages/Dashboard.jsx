@@ -162,6 +162,100 @@ export default function Dashboard() {
     </div>
   );
 
+  const LineMetric = ({ titulo, valor, minimo, maximo }) => {
+    const minVal = Number(minimo) || 0;
+    const maxVal = Number(maximo) || (minVal + 1);
+    const currentVal = Number(valor) || 0;
+
+    const minPos = 25; // %
+    const maxPos = 90; // %
+    
+    let currentPos;
+    if (currentVal <= minVal) {
+      currentPos = minVal > 0 ? (currentVal / minVal) * minPos : 0;
+    } else {
+      const range = maxVal - minVal;
+      currentPos = minPos + ((currentVal - minVal) / range) * (maxPos - minPos);
+    }
+    currentPos = Math.max(5, Math.min(95, currentPos));
+
+    const porcentaje = maxVal > 0 ? Math.round((currentVal / maxVal) * 100) : 0;
+
+    return (
+      <div className="dashboard-metrica-horizontal">
+        <p className="text-sm font-semibold mb-6 text-left">{titulo}</p>
+        <div className="line-metric-container">
+          <div className="line-base"></div>
+          
+          <div className="line-marker min" style={{ left: `${minPos}%` }}>
+            <span className="marker-label">Min: {minVal}</span>
+            <div className="marker-tick"></div>
+          </div>
+
+          <div className="line-marker max" style={{ left: `${maxPos}%` }}>
+            <span className="marker-label">Max: {maxVal}</span>
+            <div className="marker-tick"></div>
+          </div>
+
+          <div 
+            className={`line-indicator-point ${currentVal < minVal ? 'below-min' : ''}`}
+            style={{ left: `${currentPos}%` }}
+          >
+            <div className="indicator-tooltip">
+              {currentVal} ({porcentaje}%)
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const BarMetric = ({ titulo, total, firmados, sinFirmar }) => {
+    const porcentajeFirmados = total > 0 ? Math.round((firmados / total) * 100) : 0;
+    const porcentajeSinFirmar = total > 0 ? Math.round((sinFirmar / total) * 100) : 0;
+
+    return (
+      <div className="dashboard-metrica-horizontal">
+        <p className="text-sm font-semibold mb-4 text-left">{titulo}</p>
+        <div className="bar-metric-wrapper">
+          <div className="bar-metric-container">
+            <div 
+              className="bar-segment signed" 
+              style={{ width: `${porcentajeFirmados}%` }}
+            >
+              {porcentajeFirmados >= 15 ? (
+                <span className="segment-label">{firmados} ({porcentajeFirmados}%)</span>
+              ) : (
+                <div className="segment-tooltip">
+                  Firmados: {firmados} ({porcentajeFirmados}%)
+                </div>
+              )}
+            </div>
+            <div 
+              className="bar-segment unsigned" 
+              style={{ width: `${porcentajeSinFirmar}%` }}
+            >
+              {porcentajeSinFirmar >= 15 ? (
+                <span className="segment-label">{sinFirmar} ({porcentajeSinFirmar}%)</span>
+              ) : (
+                <div className="segment-tooltip">
+                  Sin firmar: {sinFirmar} ({porcentajeSinFirmar}%)
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="bar-footer">
+            <span className="total-label">Total registrados: {total}</span>
+            <div className="flex gap-4">
+              <span className="legend-item"><i className="dot signed"></i> Firmados</span>
+              <span className="legend-item"><i className="dot unsigned"></i> Sin firmar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   function EventMetrics() {
     // Obtener capacidad máxima del evento
     const capacidadMaxima = dashboardStats?.evento?.capacidad_maxima || 0;
@@ -237,6 +331,22 @@ export default function Dashboard() {
           color1="#0f4c75"
           color2="#00b7c2"
         />
+
+        <LineMetric 
+          titulo="Boletos emitidos"
+          valor={boletosEmitidos}
+          minimo={dashboardStats?.evento?.cantidad_minima_asistentes || 0}
+          maximo={capacidadMaxima}
+        />
+
+        <BarMetric 
+          titulo="Graduados"
+          total={invitadosRegistrados}
+          firmados={invitadosFirmados}
+          sinFirmar={invitadosSinFirmar}
+        />
+
+        {/* 
         <Metrica
           valor={Math.round(porcentajeBoletos)}
           titulo="Boletos emitidos"
@@ -262,7 +372,8 @@ export default function Dashboard() {
           gradienteId="gradBoletos"
           color1="#2a9d8f"
           color2="#0d3b66"
-        />
+        /> 
+        */}
       </>
     );
   }

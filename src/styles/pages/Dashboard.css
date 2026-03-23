@@ -707,3 +707,270 @@ body.dark-mode .icon-circle.chat {
 body.dark-mode .icon-circle.conflicto {
   background: #00bcd4;
 }
+body.dark-mode .dashboard-metrica h3,
+body.dark-mode .dashboard-calendario-header h2,
+body.dark-mode .dashboard-acciones h2 {
+  /* color: #fff; */
+}
+
+/* NUEVAS MÉTRICAS HORIZONTALES */
+.dashboard-metrica-horizontal {
+  flex: 1;
+  min-width: 300px;
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s;
+  height: 100%;
+}
+
+.dashboard-metrica-horizontal:hover {
+  transform: translateY(-2px);
+}
+
+/* Line Metric */
+.line-metric-container {
+  position: relative;
+  height: 40px;
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+}
+
+.line-base {
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+}
+
+.line-marker {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+}
+
+.marker-tick {
+  width: 2px;
+  height: 12px;
+  background: #9ca3af;
+  margin-top: -4px;
+}
+
+.marker-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  position: absolute;
+  bottom: 15px;
+  white-space: nowrap;
+}
+
+.line-marker.min .marker-tick {
+  background: #ef4444;
+}
+
+.line-marker.max .marker-tick {
+  background: #246370;
+}
+
+.line-indicator-point {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #2a9d8f;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 10px rgba(42, 157, 143, 0.5);
+  transform: translate(-50%, -5px);
+  z-index: 10;
+  transition: left 0.5s ease-out;
+}
+
+.line-indicator-point.below-min {
+  background: #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.indicator-tooltip {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* Bar Metric */
+.bar-metric-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bar-metric-container {
+  display: flex;
+  width: 100%;
+  height: 32px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  overflow: visible; /* Cambiado de hidden para permitir ver el tooltip */
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.bar-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  position: relative; /* Para el tooltip */
+}
+
+.segment-tooltip {
+  visibility: hidden;
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  font-weight: 600;
+  z-index: 50;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+
+.segment-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1f2937 transparent transparent transparent;
+}
+
+.bar-segment:hover .segment-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.bar-segment.signed {
+  background: linear-gradient(90deg, #2a9d8f, #72b7a4);
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.bar-segment.unsigned {
+  background: #e5e7eb;
+  color: #4b5563;
+  text-shadow: none;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.bar-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.total-label {
+  font-weight: 700;
+  color: #374151;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot.signed { background: #2a9d8f; }
+.dot.unsigned { background: #d1d5db; }
+
+/* Dark Mode Adjustments */
+body.dark-mode .dashboard-metrica-horizontal {
+  background: #2a2a2a;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+body.dark-mode .line-base {
+  background: #374151;
+}
+
+body.dark-mode .marker-label {
+  color: #9ca3af;
+}
+
+body.dark-mode .bar-metric-container {
+  background: #1f2937;
+}
+
+body.dark-mode .bar-segment.unsigned {
+  background: #374151;
+  color: #9ca3af;
+}
+
+body.dark-mode .total-label {
+  color: #e5e7eb;
+}
+
+/* Responsiveness overrides */
+@media (max-width: 1024px) {
+  .dashboard-metrica-horizontal {
+    min-width: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-metricas {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .dashboard-metrica-horizontal {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-metrica-horizontal {
+    padding: 16px;
+  }
+  
+  .segment-label {
+    font-size: 10px;
+  }
+}
+
