@@ -11,6 +11,7 @@ import { useSignalRTickets } from "../../hooks/useSignalRTickets";
 import { useSignalRConnection } from "../../hooks/useSignalR";
 import { useTicketDetail } from "../../hooks/useTicketDetail";
 import { useClientInfo } from "../../hooks/useClientInfo";
+import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 import {
   transformarTicketCompletoParaUI,
   formatearFechaHora,
