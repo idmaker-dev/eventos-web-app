@@ -93,7 +93,11 @@ const ConfiguracionContrato = () => {
           setModoFirma(configResponse.modo_firma || MODO_FIRMA.SOLO_ACEPTAR);
           console.log('✅ Configuración INTERNO cargada:', {
             plantilla_id: configResponse.plantilla_id,
-            modo_firma: configResponse.modo_firma
+            modo_firma: configResponse.modo_firma,
+            estableciendo_estado: {
+              plantillaSeleccionada: configResponse.plantilla_id || '',
+              modoFirma: configResponse.modo_firma || MODO_FIRMA.SOLO_ACEPTAR
+            }
           });
         }
         // SIN_FIRMA_DIGITAL no requiere configuración adicional
@@ -117,17 +121,15 @@ const ConfiguracionContrato = () => {
         setTotalCampos(catalogoResponse.totalCampos);
       }
 
-      // Cargar plantillas disponibles si el tipo es INTERNO
-      if (configResponse?.tipo_contrato === TIPO_CONTRATO.INTERNO || tipoContrato === TIPO_CONTRATO.INTERNO) {
-        try {
-          const plantillasResponse = await contratoConfigService.listarPlantillas({ activo: true });
-          if (plantillasResponse && plantillasResponse.plantillas) {
-            setPlantillas(plantillasResponse.plantillas);
-            console.log('✅ Plantillas cargadas:', plantillasResponse.plantillas.length);
-          }
-        } catch (error) {
-          console.error('Error cargando plantillas:', error);
+      // Cargar plantillas disponibles (siempre, para tenerlas listas cuando se necesiten)
+      try {
+        const plantillasResponse = await contratoConfigService.listarPlantillas({ activo: true });
+        if (plantillasResponse && plantillasResponse.plantillas) {
+          setPlantillas(plantillasResponse.plantillas);
+          console.log('✅ Plantillas cargadas:', plantillasResponse.plantillas.length);
         }
+      } catch (error) {
+        console.error('Error cargando plantillas:', error);
       }
       
       // Resetear formulario de nuevo mapping
@@ -143,7 +145,7 @@ const ConfiguracionContrato = () => {
     } finally {
       setLoading(false);
     }
-  }, [eventoId, tipoContrato, showError]);
+  }, [eventoId, showError]);
 
   useEffect(() => {
     cargarDatos();
@@ -246,6 +248,12 @@ const ConfiguracionContrato = () => {
       
       let payload = { tipo_contrato: tipoContrato };
 
+      console.log('🔄 Guardando configuración...', {
+        tipoContrato,
+        plantillaSeleccionada,
+        modoFirma
+      });
+
       // Validaciones y payload según el tipo de contrato
       switch (tipoContrato) {
         case TIPO_CONTRATO.DOCUSIGN:
@@ -268,6 +276,7 @@ const ConfiguracionContrato = () => {
           }
           payload.plantilla_id = plantillaSeleccionada;
           payload.modo_firma = modoFirma;
+          console.log('📋 Payload INTERNO:', payload);
           break;
 
         case TIPO_CONTRATO.SIN_FIRMA_DIGITAL:
@@ -279,14 +288,18 @@ const ConfiguracionContrato = () => {
           return;
       }
 
+      console.log('📤 Enviando al backend:', payload);
       const response = await contratoConfigService.guardarConfiguracion(eventoId, payload);
+      console.log('✅ Respuesta del backend:', response);
       
       if (response) {
         showSuccess('Configuración guardada exitosamente');
+        // Recargar datos para reflejar cambios
         await cargarDatos();
+        console.log('✅ Datos recargados después de guardar');
       }
     } catch (error) {
-      console.error('Error guardando configuración:', error);
+      console.error('❌ Error guardando configuración:', error);
       showError('Error al guardar la configuración');
     } finally {
       setGuardando(false);
@@ -788,7 +801,14 @@ const ConfiguracionContrato = () => {
                 </label>
                 <select
                   value={plantillaSeleccionada}
-                  onChange={(e) => setPlantillaSeleccionada(e.target.value)}
+                  onChange={(e) => {
+                    const nuevaPlantilla = e.target.value;
+                    console.log('📝 Cambiando plantilla seleccionada:', {
+                      anterior: plantillaSeleccionada,
+                      nueva: nuevaPlantilla
+                    });
+                    setPlantillaSeleccionada(nuevaPlantilla);
+                  }}
                   className="w-full px-4 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
                   <option value="">Selecciona una plantilla...</option>

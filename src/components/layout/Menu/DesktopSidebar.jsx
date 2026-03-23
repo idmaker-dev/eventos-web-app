@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Settings, Bell, Pin, User, Users, Megaphone, Ticket, Tickets } from "lucide-react";
+import { Settings, Bell, Pin, User, Users, Megaphone, Ticket, Tickets, LucideCheckLine } from "lucide-react";
 import ResumenProgreso from "../../../assets/recursos/resumen_progreso.svg";
 import ModuloPagos from "../../../assets/recursos/moduloDePagos.svg";
 import ModuloAsignacion from "../../../assets/recursos/moduloDeAsignacion.svg";
@@ -236,7 +236,7 @@ export default function DesktopSidebar({
                     <span>Usuarios</span>
                   </NavLink>
                   <NavLink
-                    to="/admin/configuracion"
+                    to="/admin/plantillas"
                     onClick={() => setConfigMenuOpen(false)}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
@@ -246,8 +246,8 @@ export default function DesktopSidebar({
                       }`
                     }
                   >
-                    <Settings size={16} />
-                    <span>Configuración</span>
+                    <LucideCheckLine size={16} />
+                    <span>Plantillas</span>
                   </NavLink>
                 </div>
               </div>

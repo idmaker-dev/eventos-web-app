@@ -129,7 +129,8 @@ const contratoConfigService = {
   async obtenerPlantilla(plantillaId) {
     try {
       const response = await httpService.get(`/plantillas/${plantillaId}`);
-      return response.data;
+      // El endpoint regresa { data: { plantilla: {...} } }
+      return response.data.plantilla || response.data;
     } catch (error) {
       console.error('Error al obtener plantilla:', error);
       throw error;
