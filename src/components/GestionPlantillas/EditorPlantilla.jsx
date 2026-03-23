@@ -161,14 +161,42 @@ p {
       setLoading(true);
       const plantilla = await contratoConfigService.obtenerPlantilla(plantillaId);
       
+      console.log('🔍 Plantilla cargada desde servicio:', plantilla);
+      
       setNombre(plantilla.nombre);
       setDescripcion(plantilla.descripcion || '');
-      setContenido(plantilla.html_template);
-      setHtmlManual(plantilla.html_template);
-      setCssTemplate(plantilla.css_template || '');
       setModoFirma(plantilla.modo_firma);
       setActivo(plantilla.activo);
       setEsPredeterminada(plantilla.es_predeterminada);
+      
+      // Detectar tipo de plantilla (Word o HTML)
+      if (plantilla.tipo_plantilla === 'word') {
+        console.log('📄 Cargando plantilla Word:', plantilla);
+        
+        // Cambiar a modo WORD
+        setModoCreacion(MODO_CREACION.WORD);
+        
+        // Cargar estadísticas de la plantilla Word
+        if (plantilla.word_template_url) {
+          const estadisticas = {
+            nombreArchivo: plantilla.nombre + '.docx',
+            archivoUrl: plantilla.word_template_url,
+            blobPath: plantilla.word_blob_path,
+            variablesEncontradas: plantilla.variables_usadas || [],
+            totalVariables: (plantilla.variables_usadas || []).length,
+          };
+          console.log('✅ Estableciendo estadisticasWord:', estadisticas);
+          setEstadisticasWord(estadisticas);
+        }
+      } else {
+        // Plantilla HTML/Visual (comportamiento original)
+        console.log('🌐 Cargando plantilla HTML:', plantilla);
+        setModoCreacion(MODO_CREACION.VISUAL);
+        setContenido(plantilla.html_template || '');
+        setHtmlManual(plantilla.html_template || '');
+        setCssTemplate(plantilla.css_template || '');
+      }
+      
     } catch (error) {
       console.error('Error cargando plantilla:', error);
       showError('Error al cargar la plantilla');
@@ -485,25 +513,27 @@ ${htmlProcesado}
         </div>
       </div>
 
-      {/* Información de uso */}
+      {/* Información de uso - Solo Word */}
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6 flex items-start gap-3">
         <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
         <div className="text-sm text-blue-800 dark:text-blue-200">
-          <p className="font-medium mb-2">Tres formas de crear tu plantilla:</p>
+          <p className="font-medium mb-2">Cómo crear tu plantilla Word:</p>
           <ul className="list-disc list-inside space-y-1 ml-2 mb-3">
-            <li><strong>Subir Word</strong> (Recomendado): Mantiene 100% del formato original. Usa variables con llaves simples: {'{nombreVariable}'}</li>
-            <li><strong>Editor Visual</strong>: Escribe y formatea directamente en el navegador con variables {'{'}{'{'} dobles {'}'}{'}'}</li>
-            <li><strong>Código HTML</strong>: Para usuarios avanzados que quieran control total del código</li>
+            <li>Diseña tu contrato en Microsoft Word con el formato que desees (tablas, imágenes, etc.)</li>
+            <li>Inserta variables donde necesites datos dinámicos usando llaves simples: <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">{'{nombreVariable}'}</code></li>
+            <li>Guarda el archivo en formato .docx (Word 2007 o superior)</li>
+            <li>Sube el archivo aquí y el sistema detectará automáticamente las variables</li>
           </ul>
           <p className="text-xs mt-2 italic">
-            💡 Con plantillas Word, diseña en tu computadora con tablas, imágenes y formato complejo, 
-            luego inserta variables usando llaves simples.
+            💡 Las plantillas Word mantienen 100% del formato original, incluyendo tablas complejas, 
+            encabezados, pies de página e imágenes.
           </p>
         </div>
       </div>
 
-      {/* Tabs de modo de creación */}
-      {!esEdicion && (
+      {/* Tabs de modo de creación - DESHABILITADOS: Solo se usa Word ahora */}
+      {/* Los tabs Visual y HTML están ocultos porque el sistema solo soporta plantillas Word */}
+      {false && !esEdicion && (
         <div className="mb-6">
           <div className="flex gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
             <button
@@ -619,17 +649,9 @@ ${htmlProcesado}
           <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                {modoCreacion === MODO_CREACION.WORD ? (
-                  <Upload className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                ) : modoCreacion === MODO_CREACION.VISUAL ? (
-                  <FileText className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                ) : (
-                  <Code className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                )}
+                <Upload className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {modoCreacion === MODO_CREACION.WORD && 'Subir Archivo Word'}
-                  {modoCreacion === MODO_CREACION.VISUAL && 'Contenido del Contrato *'}
-                  {modoCreacion === MODO_CREACION.HTML && 'Código HTML *'}
+                  Subir Archivo Word
                 </h3>
               </div>
             </div>
@@ -645,7 +667,8 @@ ${htmlProcesado}
                   className="hidden"
                 />
                 
-                {!archivoWord && !htmlConvertido ? (
+                {/* Mostrar dropzone solo si NO hay estadísticas de Word cargadas */}
+                {!estadisticasWord && !htmlConvertido ? (
                   <div
                     onClick={() => fileInputRef.current?.click()}
                     className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-12 text-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all"
@@ -677,7 +700,7 @@ ${htmlProcesado}
                       <p className="text-sm text-gray-600 dark:text-gray-400">{progresoUpload}%</p>
                     </div>
                   </div>
-                ) : archivoWord && estadisticasWord ? (
+                ) : estadisticasWord ? (
                   <>
                     <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
                       <div className="flex items-start gap-3">
@@ -687,18 +710,28 @@ ${htmlProcesado}
                             <div>
                               <p className="font-medium text-green-800 dark:text-green-200">
                                 <File className="h-4 w-4 inline mr-1" />
-                                {archivoWord?.name}
+                                {archivoWord?.name || estadisticasWord.nombreArchivo}
                               </p>
                               <p className="text-sm text-green-700 dark:text-green-300 mt-1">
                                 ✅ Plantilla validada · {estadisticasWord?.totalVariables || 0} variables encontradas
                               </p>
                             </div>
-                            <button
-                              onClick={limpiarArchivoWord}
-                              className="p-1 hover:bg-green-100 dark:hover:bg-green-900 rounded transition-colors"
-                            >
-                              <X className="h-4 w-4 text-green-700 dark:text-green-300" />
-                            </button>
+                            {esEdicion && (
+                              <button
+                                onClick={() => fileInputRef.current?.click()}
+                                className="p-2 hover:bg-green-100 dark:hover:bg-green-900 rounded transition-colors text-green-700 dark:text-green-300 text-xs font-medium"
+                              >
+                                Cambiar archivo
+                              </button>
+                            )}
+                            {!esEdicion && (
+                              <button
+                                onClick={limpiarArchivoWord}
+                                className="p-1 hover:bg-green-100 dark:hover:bg-green-900 rounded transition-colors"
+                              >
+                                <X className="h-4 w-4 text-green-700 dark:text-green-300" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -755,8 +788,8 @@ ${htmlProcesado}
               </>
             )}
 
-            {/* Modo VISUAL: Editor Quill */}
-            {modoCreacion === MODO_CREACION.VISUAL && (
+            {/* Modo VISUAL: Editor Quill - DESHABILITADO (solo se usa Word) */}
+            {false && modoCreacion === MODO_CREACION.VISUAL && (
               <>
                 <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-600">
                   <ReactQuill
@@ -776,8 +809,8 @@ ${htmlProcesado}
               </>
             )}
 
-            {/* Modo HTML: Código manual */}
-            {modoCreacion === MODO_CREACION.HTML && (
+            {/* Modo HTML: Código manual - DESHABILITADO (solo se usa Word) */}
+            {false && modoCreacion === MODO_CREACION.HTML && (
               <>
                 <textarea
                   value={htmlManual}
@@ -793,7 +826,8 @@ ${htmlProcesado}
             )}
           </div>
 
-          {/* Editor CSS */}
+          {/* Editor CSS - DESHABILITADO (no se usa en plantillas Word) */}
+          {false && (
           <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center gap-2 mb-4">
               <Code className="h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -811,6 +845,7 @@ ${htmlProcesado}
               Estos estilos se aplicarán al documento final del contrato
             </p>
           </div>
+          )}
         </div>
 
         {/* Panel de variables */}
@@ -827,13 +862,7 @@ ${htmlProcesado}
                 </button>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {modoCreacion === MODO_CREACION.WORD ? (
-                  <>📋 <strong>Clic para copiar</strong> - Pégalas en tu Word con llaves simples: {'{nombreVariable}'}</>
-                ) : modoCreacion === MODO_CREACION.VISUAL ? (
-                  <>✏️ <strong>Clic para insertar</strong> en el cursor</>
-                ) : (
-                  <>📝 <strong>Clic para copiar</strong> - Pégalas en tu código HTML</>
-                )}
+                📋 <strong>Clic para copiar</strong> - Pégalas en tu Word con llaves simples: {'{nombreVariable}'}
               </p>
             </div>
 
@@ -847,26 +876,16 @@ ${htmlProcesado}
                       </h4>
                       <div className="space-y-1">
                         {Object.entries(datos.variables).map(([variableKey, variableInfo]) => {
-                          // Determinar formato de variable según el modo
-                          const formatoVariable = modoCreacion === MODO_CREACION.WORD 
-                            ? `{${variableKey}}` 
-                            : `{{${variableKey}}}`;
+                          // Formato para Word: llaves simples
+                          const formatoVariable = `{${variableKey}}`;
                           
                           return (
                             <button
                               key={variableKey}
                               onClick={() => {
-                                if (modoCreacion === MODO_CREACION.WORD) {
-                                  // En modo Word, copiar al portapapeles
-                                  navigator.clipboard.writeText(`{${variableKey}}`);
-                                  showSuccess(`Variable {${variableKey}} copiada al portapapeles`);
-                                } else if (modoCreacion === MODO_CREACION.VISUAL) {
-                                  insertarVariable(variableKey);
-                                } else {
-                                  // En modo HTML, copiar al portapapeles
-                                  navigator.clipboard.writeText(`{{${variableKey}}}`);
-                                  showSuccess(`Variable {{${variableKey}}} copiada al portapapeles`);
-                                }
+                                // Copiar al portapapeles con formato Word
+                                navigator.clipboard.writeText(`{${variableKey}}`);
+                                showSuccess(`Variable {${variableKey}} copiada al portapapeles`);
                               }}
                               className="w-full text-left text-xs p-2 hover:bg-white dark:hover:bg-gray-700 rounded cursor-pointer transition-colors"
                             >
