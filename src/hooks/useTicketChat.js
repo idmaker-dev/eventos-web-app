@@ -80,7 +80,7 @@ export const useTicketChat = (ticketId, options = {}) => {
    * Enviar un mensaje al chat
    */
   const enviarMensaje = useCallback(
-    async (texto, marcarLeidos = autoMarkAsRead) => {
+    async (texto) => {
       if (!ticketId) {
         if (EnvConfig.DEBUG_MODE) {
           console.warn("⚠️ [useTicketChat] No se proporcionó ticketId");
@@ -111,7 +111,6 @@ export const useTicketChat = (ticketId, options = {}) => {
         () =>
           ticketsService.sendMessage(ticketId, {
             texto: texto.trim(),
-            marcar_leidos: marcarLeidos,
           }),
         {
           successMsg: "Mensaje enviado",

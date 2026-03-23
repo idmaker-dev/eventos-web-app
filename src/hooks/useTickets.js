@@ -1,33 +1,49 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useApi } from "./useApi";
 import ticketsService from "../services/ticketsService";
 import EnvConfig from "../utils/config";
 
 /**
  * Hook personalizado para gestionar la lista de tickets
- * @param {Object} filtrosIniciales - Filtros iniciales (estatus, telefono, limite)
+ * @param {Object} filtrosIniciales - Filtros iniciales (estatus, telefono, limite, eventoId)
  * @returns {Object} - Estado y funciones para manejar tickets
  */
 export const useTickets = (filtrosIniciales = {}) => {
   const [tickets, setTickets] = useState([]);
   const [estadisticas, setEstadisticas] = useState(null);
   const [filtros, setFiltros] = useState(filtrosIniciales);
+  
+  const filtrosRef = useRef(filtros);
+  
+  useEffect(() => {
+    filtrosRef.current = filtros;
+  }, [filtros]);
+
+  useEffect(() => {
+    if (filtrosIniciales && Object.keys(filtrosIniciales).length > 0) {
+      setFiltros(prev => {
+        const hasChanged = Object.keys(filtrosIniciales).some(key => filtrosIniciales[key] !== prev[key]);
+        if (hasChanged) {
+          return { ...prev, ...filtrosIniciales };
+        }
+        return prev;
+      });
+    }
+  }, [JSON.stringify(filtrosIniciales)]);
+
   const { execute, loading, error } = useApi({
     showSuccessNotification: false,
     showErrorNotification: true,
     errorContext: "tickets",
   });
 
-  /**
-   * Cargar tickets desde el servidor
-   */
   const cargarTickets = useCallback(async (options = {}) => {
     if (EnvConfig.DEBUG_MODE) {
-      console.log("🎫 [useTickets] Cargando tickets con filtros:", filtros);
+      console.log("🎫 [useTickets] Cargando tickets con filtros (ref):", filtrosRef.current);
     }
 
     const result = await execute(
-      () => ticketsService.getAllTickets(filtros),
+      () => ticketsService.getAllTickets(filtrosRef.current),
       {
         showSuccessMsg: false,
         showLoading: options.silent ? false : true,
@@ -39,23 +55,14 @@ export const useTickets = (filtrosIniciales = {}) => {
       setEstadisticas(result.estadisticas);
 
       if (EnvConfig.DEBUG_MODE) {
-        console.log("✅ [useTickets] Tickets cargados:", {
-          total: result.total,
-          tickets: result.tickets.length,
-        });
+        console.log("✅ [useTickets] Tickets cargados:", result.tickets.length);
       }
     }
 
     return result;
-  }, [filtros, execute]);
+  }, [execute]);
 
-  /**
-   * Actualizar filtros y recargar tickets
-   */
   const actualizarFiltros = useCallback((nuevosFiltros) => {
-    if (EnvConfig.DEBUG_MODE) {
-      console.log("🔄 [useTickets] Actualizando filtros:", nuevosFiltros);
-    }
     setFiltros((prev) => ({
       ...prev,
       ...nuevosFiltros,
@@ -63,26 +70,84 @@ export const useTickets = (filtrosIniciales = {}) => {
   }, []);
 
   /**
-   * Limpiar todos los filtros
+   * Obtener valor de 'leido' actual de un ticket o true si no existe
    */
-  const limpiarFiltros = useCallback(() => {
-    if (EnvConfig.DEBUG_MODE) {
-      console.log("🧹 [useTickets] Limpiando filtros");
-    }
-    setFiltros({});
-  }, []);
+  const obtenerLeidoSeguro = (ticketId) => {
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (!ticket) return true;
+    return ticket.leido ?? true; // Si no existe, por defecto es true al interactuar
+  };
 
   /**
-   * Cerrar un ticket
+   * Marcar ticket como leído de forma robusta
+   */
+  const marcarComoLeido = useCallback(
+    async (ticketId) => {
+      // Buscar el ticket actual en el estado local
+      const ticketActual = tickets.find((t) => t.id === ticketId);
+
+      // Si el ticket ya está leído y NO tiene mensajes pendientes, no hacemos nada
+      if (
+        ticketActual &&
+        ticketActual.leido === true &&
+        (!ticketActual.msg_no_leidos || ticketActual.msg_no_leidos === 0)
+      ) {
+        if (EnvConfig.DEBUG_MODE) {
+          console.log(
+            "⏭️ [useTickets] Ticket ya está leído y sin mensajes pendientes, saltando actualización:",
+            ticketId
+          );
+        }
+        return { success: true, message: "Ticket ya leído" };
+      }
+
+      if (EnvConfig.DEBUG_MODE) {
+        console.log("📖 [useTickets] Marcando ticket como leído:", ticketId);
+      }
+
+      // Sincronización con el servidor
+      const result = await execute(
+        () =>
+          ticketsService.updateTicket(ticketId, {
+            leido: true,
+          }),
+        { showSuccessMsg: false, showLoading: false }
+      );
+
+      // Actualización local solo si fue exitoso
+      if (result?.success) {
+        setTickets((prev) =>
+          prev.map((t) => {
+            if (t.id === ticketId) {
+              return {
+                ...t,
+                leido: true,
+                msg_no_leidos: 0,
+              };
+            }
+            return t;
+          })
+        );
+      }
+
+      return result;
+    },
+    [execute, tickets]
+  );
+
+  /**
+   * Cerrar ticket, manteniendo o forzando el estado de lectura
    */
   const cerrarTicket = useCallback(
     async (ticketId) => {
-      if (EnvConfig.DEBUG_MODE) {
-        console.log("🔒 [useTickets] Cerrando ticket:", ticketId);
-      }
+      // Al cerrar un ticket, usualmente se considera leído o se preserva el estado
+      const leidoActual = obtenerLeidoSeguro(ticketId);
 
       const result = await execute(
-        () => ticketsService.closeTicket(ticketId),
+        () => ticketsService.updateTicket(ticketId, { 
+          estatus: "cerrado",
+          leido: leidoActual
+        }),
         {
           successMsg: "Ticket cerrado exitosamente",
           showSuccessMsg: true,
@@ -90,11 +155,10 @@ export const useTickets = (filtrosIniciales = {}) => {
       );
 
       if (result?.success) {
-        // Actualizar el ticket en la lista local
         setTickets((prev) =>
           prev.map((ticket) =>
             ticket.id === ticketId
-              ? { ...ticket, estatus: "cerrado" }
+              ? { ...ticket, estatus: "cerrado", leido: leidoActual }
               : ticket
           )
         );
@@ -102,20 +166,21 @@ export const useTickets = (filtrosIniciales = {}) => {
 
       return result;
     },
-    [execute]
+    [execute, tickets]
   );
 
   /**
-   * Marcar ticket como pendiente
+   * Marcar pendiente, manteniendo o forzando el estado de lectura
    */
   const marcarPendiente = useCallback(
     async (ticketId) => {
-      if (EnvConfig.DEBUG_MODE) {
-        console.log("⏳ [useTickets] Marcando ticket como pendiente:", ticketId);
-      }
+      const leidoActual = obtenerLeidoSeguro(ticketId);
 
       const result = await execute(
-        () => ticketsService.markAsPending(ticketId),
+        () => ticketsService.updateTicket(ticketId, { 
+          estatus: "pendiente",
+          leido: leidoActual
+        }),
         {
           successMsg: "Ticket marcado como pendiente",
           showSuccessMsg: true,
@@ -123,11 +188,10 @@ export const useTickets = (filtrosIniciales = {}) => {
       );
 
       if (result?.success) {
-        // Actualizar el ticket en la lista local
         setTickets((prev) =>
           prev.map((ticket) =>
             ticket.id === ticketId
-              ? { ...ticket, estatus: "pendiente" }
+              ? { ...ticket, estatus: "pendiente", leido: leidoActual }
               : ticket
           )
         );
@@ -135,107 +199,38 @@ export const useTickets = (filtrosIniciales = {}) => {
 
       return result;
     },
-    [execute]
+    [execute, tickets]
   );
 
-  /**
-   * Asignar promotor a un ticket
-   */
-  const asignarPromotor = useCallback(
-    async (ticketId, promotorId) => {
-      if (EnvConfig.DEBUG_MODE) {
-        console.log("👤 [useTickets] Asignando promotor al ticket:", {
-          ticketId,
-          promotorId,
-        });
-      }
-
-      const result = await execute(
-        () => ticketsService.assignPromotor(ticketId, promotorId),
-        {
-          successMsg: "Promotor asignado exitosamente",
-          showSuccessMsg: true,
-        }
-      );
-
-      if (result?.success) {
-        // Actualizar el ticket en la lista local
-        setTickets((prev) =>
-          prev.map((ticket) =>
-            ticket.id === ticketId
-              ? { ...ticket, promotor_asignado: promotorId }
-              : ticket
-          )
-        );
-      }
-
-      return result;
-    },
-    [execute]
-  );
-
-  /**
-   * Buscar tickets por término
-   */
-  const buscarTickets = useCallback(
-    (termino) => {
-      if (!termino.trim()) {
-        return tickets;
-      }
-
-      const terminoLower = termino.toLowerCase();
-      return tickets.filter(
-        (ticket) =>
-          ticket.nombre?.toLowerCase().includes(terminoLower) ||
-          ticket.ticket?.toLowerCase().includes(terminoLower) ||
-          ticket.telefono?.includes(terminoLower)
-      );
-    },
-    [tickets]
-  );
-
-  /**
-   * Obtener estadísticas de tickets por estado
-   */
   const obtenerEstadisticasLocales = useCallback(() => {
-    const activos = tickets.filter((t) => {
-      const estado = t.estado || t.estatus;
-      return estado !== 'cerrado' && estado !== 'closed';
-    }).length;
-    const cerrados = tickets.filter((t) => {
-      const estado = t.estado || t.estatus;
-      return estado === 'cerrado' || estado === 'closed';
-    }).length;
+    const activos = tickets.filter(t => (t.estado || t.estatus) !== 'cerrado').length;
+    const cerrados = tickets.filter(t => (t.estado || t.estatus) === 'cerrado').length;
+    const pendientes = tickets.filter(t => ['pendiente', 'en espera'].includes((t.estado || t.estatus || "").toLowerCase())).length;
 
     return {
       total: tickets.length,
       activos,
+      pendientes,
       cerrados,
     };
   }, [tickets]);
 
-  // Cargar tickets al montar y cuando cambien los filtros
   useEffect(() => {
     cargarTickets();
-  }, [cargarTickets]);
+  }, [cargarTickets, filtros]);
 
   return {
-    // Estado
     tickets,
     estadisticas: estadisticas || obtenerEstadisticasLocales(),
     loading,
     error,
     filtros,
-
-    // Funciones
     cargarTickets,
     actualizarFiltros,
-    limpiarFiltros,
+    marcarComoLeido,
     cerrarTicket,
     marcarPendiente,
-    asignarPromotor,
-    buscarTickets,
-    refetch: cargarTickets, // Alias para compatibilidad
+    refetch: cargarTickets,
   };
 };
 

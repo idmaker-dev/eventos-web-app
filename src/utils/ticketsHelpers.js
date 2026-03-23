@@ -149,6 +149,7 @@ export function transformarTicketParaUI(ticketAPI) {
     fecha_cierre: ticketAPI.fecha_cierre,
     promotor_asignado: ticketAPI.promotor_asignado,
     canalizado_por_bot: ticketAPI.canalizado_por_bot,
+    leido: ticketAPI.leido === true, // Solo true si explícitamente es true
   };
 }
 
@@ -270,8 +271,9 @@ export function transformarMensajesParaUI(mensajes, nombreCliente = "Cliente") {
     remitente: msg.es_admin ? "Soporte" : "Cliente",
     nombre: msg.es_admin ? msg.admin_nombre || "Soporte" : nombreCliente,
     texto: msg.texto,
-    hora: formatearFechaHora(msg.fecha),
-    leido: msg.leido,
+    hora: formatearFechaHora(msg.fecha || msg.timestamp),
+    from: msg.from || (msg.es_admin ? "admin" : "usuario"),
+    leido: msg.leido === true, // Solo true si es explícitamente true
     id: msg.id,
   }));
 }
