@@ -44,8 +44,16 @@ export default function CompClientes() {
   // Hook para conectar a SignalR automáticamente
   const { conectado: signalRConectado } = useSignalRConnection();
 
+    // Obtener el evento seleccionado actualmente
+  const { eventoActual } = useSelectedEvent();
+
+  // Memoizar los filtros iniciales para evitar re-renders innecesarios
+  const filtrosIniciales = React.useMemo(() => ({
+    eventoId: eventoActual?.id
+  }), [eventoActual?.id]);
+
   // Hook para cargar tickets desde el API
-  const { tickets, loading, error, cargarTickets, estadisticas, cerrarTicket } = useTickets();
+  const { tickets, loading, error, cargarTickets, estadisticas, cerrarTicket } = useTickets(filtrosIniciales);
 
   const handleCerrarTicket = async () => {
     if (ticketSeleccionadoSimple?.id) {
