@@ -1,8 +1,8 @@
 import { Button, Input } from "@headlessui/react";
 import clsx from "clsx";
-import { Minus, Plus, Search, X, RefreshCw } from "lucide-react";
+import { Minus, Plus, Search, X, RefreshCw, Inbox, Clock, CheckCircle, AlertCircle, Menu } from "lucide-react";
 import { Tooltip } from "../ui/Tooltip.jsx";
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import ListaTickets from "./Detalles/ListaClientes.jsx";
 import Destalles from "./Detalles/Destalles.jsx";
 import ChatModal from "./Chat/ChatModal.jsx";
@@ -40,12 +40,24 @@ export default function CompClientes() {
   const [searchTerm, setSearchTerm] = useState("");
   const [historialAcciones, setHistorialAcciones] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const [filtroEstado, setFiltroEstado] = useState("todos"); // "todos", "abierto", "pendiente", "cerrado"
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isTicketsListOpen, setIsTicketsListOpen] = useState(true);
   const isMobile = useIsMobile();
+  const lastMarkedTicketId = useRef(null);
+
+  const handleVolverALista = useCallback(() => {
+    setShowDetails(false);
+    setTicketSeleccionadoSimple(null);
+    setTicketSeleccionado(null);
+    setChatOpen(false);
+    lastMarkedTicketId.current = null;
+  }, []);
 
   // Hook para conectar a SignalR automáticamente
   const { conectado: signalRConectado } = useSignalRConnection();
 
-    // Obtener el evento seleccionado actualmente
+  // Obtener el evento seleccionado actualmente
   const { eventoActual } = useSelectedEvent();
 
   // Memoizar los filtros iniciales para evitar re-renders innecesarios
@@ -54,7 +66,21 @@ export default function CompClientes() {
   }), [eventoActual?.id]);
 
   // Hook para cargar tickets desde el API
-  const { tickets, loading, error, cargarTickets, estadisticas, cerrarTicket } = useTickets(filtrosIniciales);
+  const { tickets, loading, error, cargarTickets, estadisticas, cerrarTicket, actualizarFiltros, marcarComoLeido } = useTickets(filtrosIniciales);
+
+  // Reiniciar la selección de ticket cuando cambia el evento o el filtro de estado
+  useEffect(() => {
+    handleVolverALista();
+  }, [eventoActual?.id, filtroEstado, handleVolverALista]);
+
+  // Resetear el estado a "todos" cuando cambia el evento seleccionado
+  useEffect(() => {
+    if (eventoActual?.id) {
+      setFiltroEstado("todos");
+    }
+  }, [eventoActual?.id]);
+
+
 
   const handleCerrarTicket = async () => {
     if (ticketSeleccionadoSimple?.id) {
@@ -193,26 +219,26 @@ export default function CompClientes() {
   // Efecto para transformar datos cuando se cargan el detalle y el cliente
   useEffect(() => {
     if (ticketDetail && clientInfo) {
-      console.log("🔄 [CompClientes] Transformando datos:", {
-        ticketDetail,
-        clientInfo,
-        tieneTicket: !!ticketDetail.ticket,
-        tieneDatosPersonales: !!clientInfo.datos_personales,
-        tieneTickets: !!clientInfo.tickets,
-      });
+      console.log("🔄 [CompClientes] Transformando datos y marcando como leído si es necesario...");
+      
       const ticketCompleto = transformarTicketCompletoParaUI(
         ticketDetail,
         clientInfo
       );
 
-      // Sobrescribir historialSecuencial con el específico si existe
+      // 1. Marcar como leído si es un ticket nuevo cargado con éxito
+      if (ticketDetail.ticket?.id && lastMarkedTicketId.current !== ticketDetail.ticket.id) {
+        // Solo marcar si no ha sido marcado ya en esta sesión de carga
+        marcarComoLeido(ticketDetail.ticket.id);
+        lastMarkedTicketId.current = ticketDetail.ticket.id;
+      }
+
+      // 2. Transformación UI
       if (historialAcciones.length > 0) {
         ticketCompleto.historialSecuencial = historialAcciones;
       }
 
       setTicketSeleccionado((prev) => {
-        // Si ya teníamos el ticket seleccionado, preservamos los mensajes locales
-        // (mensajes que enviamos o recibimos en tiempo real que aún no están en el API)
         if (prev && prev.id === ticketCompleto.id) {
           const chatIds = new Set(ticketCompleto.chat.map((m) => m.id));
           const mensajesLocales = (prev.chat || []).filter(
@@ -220,12 +246,7 @@ export default function CompClientes() {
           );
 
           if (mensajesLocales.length > 0) {
-            // console.log(
-            //   `➕ [CompClientes] Preservando ${mensajesLocales.length} mensajes locales`
-            // );
             ticketCompleto.chat = [...ticketCompleto.chat, ...mensajesLocales];
-            // Opcional: ordenar por timestamp si los mensajes tienen fecha
-            // ticketCompleto.chat.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
           }
         }
 
@@ -248,19 +269,32 @@ export default function CompClientes() {
     }
   };
 
-  const handleVolverALista = () => {
-    setShowDetails(false);
-    setTicketSeleccionadoSimple(null);
-    setTicketSeleccionado(null);
-    setChatOpen(false);
-  };
 
   const ticketsFiltrados = useMemo(() => {
-    if (!searchTerm.trim()) {
-      return tickets;
+    let result = tickets;
+
+    // Filtrar por estado (Local)
+    if (filtroEstado !== "todos") {
+      result = result.filter((t) => {
+        const estado = (t.estado || t.estatus || "").toLowerCase();
+        if (filtroEstado === "abierto") {
+          return estado === "abierto" || estado === "open" || estado === "urgente";
+        }
+        if (filtroEstado === "pendiente") {
+          return estado === "pendiente" || estado === "en espera" || estado === "waiting";
+        }
+        if (filtroEstado === "cerrado") {
+          return estado === "cerrado" || estado === "closed";
+        }
+        return true;
+      });
     }
 
-    return tickets.filter((ticket) => {
+    if (!searchTerm.trim()) {
+      return result;
+    }
+
+    return result.filter((ticket) => {
       const searchLower = searchTerm.toLowerCase();
       const nombre = ticket.nombre?.toLowerCase() || "";
       const numeroTicket = ticket.ticket?.toLowerCase() || "";
@@ -272,7 +306,7 @@ export default function CompClientes() {
         telefono.includes(searchLower)
       );
     });
-  }, [searchTerm, tickets]);
+  }, [searchTerm, tickets, filtroEstado]);
 
   // Vista para móvil
   if (isMobile) {
@@ -284,7 +318,7 @@ export default function CompClientes() {
             <div className="p-4 bg-fondoVs dark:bg-[#1a1a1a] border-b rounded-t-xl">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-xl font-bold text-casal">
-                  Tickets ({estadisticas.total})
+                  Tickets ({estadisticas[filtroEstado === "todos" ? "total" : filtroEstado === "abierto" ? "activos" : filtroEstado === "pendiente" ? "pendientes" : "cerrados"]})
                 </h2>
                 <Tooltip content="Recargar tickets">
                   <Button
@@ -300,6 +334,39 @@ export default function CompClientes() {
                   </Button>
                 </Tooltip>
               </div>
+              
+              {/* Selector de estados móvil (estilo Gmail/Tabs) */}
+              <div className="flex gap-2 overflow-x-auto pb-3 mb-1 no-scrollbar">
+                {[
+                  { id: "todos", label: "Recibidos", icon: Inbox },
+                  { id: "abierto", label: "Activos", icon: AlertCircle },
+                  { id: "pendiente", label: "En espera", icon: Clock },
+                  { id: "cerrado", label: "Cerrados", icon: CheckCircle }
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setFiltroEstado(item.id)}
+                    className={clsx(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap text-xs transition-all",
+                      filtroEstado === item.id 
+                        ? "bg-casal text-white font-bold shadow-sm" 
+                        : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-100 dark:border-gray-700"
+                    )}
+                  >
+                    <item.icon className="w-3.5 h-3.5" />
+                    {item.label}
+                    {(estadisticas[item.id === "todos" ? "total" : item.id === "abierto" ? "activos" : item.id === "pendiente" ? "pendientes" : "cerrados"] || 0) > 0 && (
+                      <span className={clsx(
+                        "ml-1 text-[10px] px-1.5 py-0.5 rounded-full",
+                        filtroEstado === item.id ? "bg-white/20 text-white" : "bg-gray-100 dark:bg-gray-700 text-gray-500"
+                      )}>
+                        {estadisticas[item.id === "todos" ? "total" : item.id === "abierto" ? "activos" : item.id === "pendiente" ? "pendientes" : "cerrados"]}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
               <div className="relative">
                 <Input
                   type="text"
@@ -398,29 +465,97 @@ export default function CompClientes() {
   return (
     <div>
       <div className="h-[100%] lg:h-[80vh] bg-white dark:bg-[#1a1a1a] rounded-3xl border shadow-md">
-        <div className="flex">
-          <div className="w-72 h-full border-r border-gray-200 dark:border-gray-700">
+        <div className="flex bg-fondoVs dark:bg-[#1a1a1a] overflow-hidden rounded-3xl h-full">
+          {/* Barra lateral estilo Gmail (Navegación por estado) */}
+          <div className={clsx(
+            "h-full border-r border-gray-100 dark:border-gray-800 flex flex-col pt-4 bg-fondoVs dark:bg-[#1a1a1a] rounded-l-3xl transition-all duration-300",
+            isSidebarOpen ? "w-16 md:w-56" : "w-16 md:w-16"
+          )}>
+            <div className={clsx("px-3 mb-2 flex items-center", isSidebarOpen ? "justify-start" : "justify-center")}>
+              <button
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-500 transition-colors hidden md:block"
+                title="Alternar menú"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-2 space-y-1">
+              {[
+                { id: "todos", label: "Recibidos", icon: Inbox, color: "text-blue-500", count: estadisticas.total },
+                { id: "abierto", label: "Activos", icon: AlertCircle, color: "text-green-500", count: estadisticas.activos },
+                { id: "pendiente", label: "En espera", icon: Clock, color: "text-yellow-500", count: estadisticas.pendientes || 0 },
+                { id: "cerrado", label: "Cerrados", icon: CheckCircle, color: "text-gray-500", count: estadisticas.cerrados || estadisticas.cerrado || 0 }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setFiltroEstado(item.id)}
+                  title={!isSidebarOpen ? item.label : undefined}
+                  className={clsx(
+                    "flex items-center gap-3 py-2 transition-all group relative",
+                    isSidebarOpen ? "w-full px-3 rounded-r-full" : "w-10 h-10 mx-auto justify-center rounded-full",
+                    filtroEstado === item.id 
+                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold" 
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                  )}
+                >
+                  <item.icon className={clsx("w-5 h-5", filtroEstado === item.id ? item.color : "text-gray-400 group-hover:text-gray-600")} />
+                  <span className={clsx("hidden text-sm whitespace-nowrap overflow-hidden transition-all", isSidebarOpen ? "md:block" : "md:hidden")}>
+                    {item.label}
+                  </span>
+                  {item.count > 0 && (
+                    <span className={clsx(
+                      "hidden ml-auto text-xs px-2 py-0.5 rounded-full transition-all",
+                      isSidebarOpen ? "md:block" : "md:hidden",
+                      filtroEstado === item.id ? "bg-blue-100 dark:bg-blue-800 text-blue-700" : "bg-gray-200 dark:bg-gray-700 text-gray-500"
+                    )}>
+                      {item.count}
+                    </span>
+                  )}
+                  {/* Indicador activo estilo Gmail */}
+                  {filtroEstado === item.id && isSidebarOpen && (
+                    <div className="absolute left-0 top-1 bottom-1 w-1 bg-blue-600 rounded-r-full" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={clsx(
+            "h-full border-r border-gray-200 dark:border-gray-700 transition-all duration-300 flex flex-col",
+            isTicketsListOpen ? "w-72" : "w-16 md:w-20"
+          )}>
             <div className="p-4 bg-fondoVs dark:bg-[#1a1a1a] rounded-tl-3xl">
               <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Total: {estadisticas.total} | Activos:{" "}
-                  {estadisticas.activos || 0}
-                </div>
-                <Tooltip content="Recargar tickets">
-                  <Button
-                    onClick={cargarTickets}
-                    disabled={loading}
-                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                <div className="flex items-center gap-2 relative">
+                  <button
+                    onClick={() => setIsTicketsListOpen(!isTicketsListOpen)}
+                    className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-500 transition-colors hidden md:block"
+                    title="Alternar lista de tickets"
                   >
-                    <RefreshCw
-                      className={`w-4 h-4 text-casal ${
-                        loading ? "animate-spin" : ""
-                      }`}
-                    />
-                  </Button>
-                </Tooltip>
+                    <Menu className="w-5 h-5" />
+                  </button>
+                  <div className={clsx("text-sm font-semibold text-casal", !isTicketsListOpen && "hidden")}>
+                    Tickets
+                  </div>
+                </div>
+                {isTicketsListOpen && (
+                  <Tooltip content="Recargar tickets">
+                    <Button
+                      onClick={cargarTickets}
+                      disabled={loading}
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                    >
+                      <RefreshCw
+                        className={`w-4 h-4 text-casal ${
+                          loading ? "animate-spin" : ""
+                        }`}
+                      />
+                    </Button>
+                  </Tooltip>
+                )}
               </div>
-              <div className="relative">
+              <div className={clsx("relative mt-2", !isTicketsListOpen && "hidden")}>
                 <Input
                   type="text"
                   placeholder="Buscar..."
@@ -442,19 +577,19 @@ export default function CompClientes() {
                 </div>
               </div>
             </div>
-            <div className="h-[calc(100vh-80px)] lg:h-[calc(81.2vh-80px)] rounded-bl-3xl px-4 overflow-y-auto space-y-2 bg-fondoVs dark:bg-[#1a1a1a]">
+            <div className="flex-1 rounded-bl-3xl px-2 md:px-4 overflow-y-auto space-y-3 bg-fondoVs dark:bg-[#1a1a1a] pb-4 pt-3 custom-scrollbar">
               {loading && tickets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-32 text-gray-500 dark:text-gray-400">
                   <RefreshCw className="w-8 h-8 mb-2 opacity-50 animate-spin" />
-                  <p className="text-sm">Cargando tickets...</p>
+                  <p className={clsx("text-sm", !isTicketsListOpen && "hidden")}>Cargando tickets...</p>
                 </div>
               ) : error ? (
                 <div className="flex flex-col items-center justify-center h-32 text-red-500">
                   <X className="w-8 h-8 mb-2 opacity-50" />
-                  <p className="text-sm text-center">{error}</p>
+                  <p className={clsx("text-sm text-center", !isTicketsListOpen && "hidden")}>{error}</p>
                   <Button
                     onClick={cargarTickets}
-                    className="mt-2 text-xs underline"
+                    className={clsx("mt-2 text-xs underline", !isTicketsListOpen && "hidden")}
                   >
                     Reintentar
                   </Button>
@@ -464,11 +599,12 @@ export default function CompClientes() {
                   ticketsData={ticketsFiltrados}
                   onSeleccionar={handleSeleccionarTicket}
                   ticketSeleccionado={ticketSeleccionado}
+                  isCollapsed={!isTicketsListOpen}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-32 text-gray-500 dark:text-gray-400">
                   <Search className="w-8 h-8 mb-2 opacity-50" />
-                  <p className="text-sm">No se encontraron tickets</p>
+                  <p className={clsx("text-sm", !isTicketsListOpen && "hidden")}>No se encontraron tickets</p>
                 </div>
               )}
             </div>
