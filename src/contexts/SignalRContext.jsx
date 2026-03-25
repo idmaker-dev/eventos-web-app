@@ -23,6 +23,7 @@ export const SignalRProvider = ({ children }) => {
   const ticketNuevoCallbackRef = useRef(null); // Callback para nuevo ticket
   const ticketActualizadoCallbackRef = useRef(null); // Callback para ticket actualizado
   const mensajeNuevoCallbackRef = useRef(null); // Callback para nuevo mensaje en chat
+  const nuevoTicketDBCallbackRef = useRef(null); // Callback para nuevo ticket (DB)
   const intentosConexionRef = useRef(0);
   const conectandoRef = useRef(false); // Flag para evitar conexiones simultáneas
   const ultimoIntentoRef = useRef(0); // Timestamp del último intento
@@ -245,6 +246,34 @@ export const SignalRProvider = ({ children }) => {
         }
       });
 
+      // Escuchar evento de nuevo ticket (DB) - Según requerimiento de usuario
+      newConnection.on('nuevoTicket', (notificacion) => {
+        if (EnvConfig.DEBUG_MODE) {
+          console.log('🔔 Notificación Nuevo Ticket DB:', notificacion);
+        }
+
+        // Agregar a la lista de notificaciones local (opcional, el user lo quiere en la campanita)
+        const nuevaNotif = {
+          tipo: 'NUEVO_TICKET_DB',
+          mensaje: notificacion.mensaje,
+          data: notificacion,
+          timestamp: notificacion.created_at || notificacion.fechaCreacion || new Date().toISOString(),
+        };
+
+        setNotificaciones(prev => [nuevaNotif, ...prev]);
+
+        // Ejecutar callback para la campanita
+        if (nuevoTicketDBCallbackRef.current) {
+          nuevoTicketDBCallbackRef.current(notificacion);
+        }
+
+        // Ejecutar también el callback general de nuevo ticket para que la lista se actualice
+        if (ticketNuevoCallbackRef.current) {
+          console.log('🔔 [SignalR] Notificando actualización de lista por nuevoTicket');
+          ticketNuevoCallbackRef.current(notificacion);
+        }
+      });
+
       // Escuchar evento de ticket actualizado
       newConnection.on('ticketActualizado', (data) => {
         if (EnvConfig.DEBUG_MODE) {
@@ -437,6 +466,16 @@ export const SignalRProvider = ({ children }) => {
     mensajeNuevoCallbackRef.current = null;
   }, []);
 
+  // Función para registrar callback de nuevo ticket DB
+  const registrarCallbackNuevoTicketDB = useCallback((callback) => {
+    nuevoTicketDBCallbackRef.current = callback;
+  }, []);
+
+  // Función para desregistrar callback de nuevo ticket DB
+  const desregistrarCallbackNuevoTicketDB = useCallback(() => {
+    nuevoTicketDBCallbackRef.current = null;
+  }, []);
+
   // Función para obtener información de estado
   const obtenerEstadoConexion = useCallback(() => {
     return {
@@ -470,6 +509,8 @@ export const SignalRProvider = ({ children }) => {
     desregistrarCallbackTicketActualizado,
     registrarCallbackNuevoMensaje,
     desregistrarCallbackNuevoMensaje,
+    registrarCallbackNuevoTicketDB,
+    desregistrarCallbackNuevoTicketDB,
     obtenerEstadoConexion,
   };
 

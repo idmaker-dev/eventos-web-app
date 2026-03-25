@@ -23,6 +23,7 @@ import CrearCuestionarioPages from "../Comunicacion/CrearCuestionarioPages";
 
 import DesktopSidebar from "./Menu/DesktopSidebar";
 import MobileSidebar from "./Menu/MobilSidebar";
+import NotificationBell from "./NotificationBell";
 
 import { useNotifications } from "../../contexts/NotificationContext";
 
@@ -176,12 +177,6 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    console.debug(
-      "[AdminPage] eventos.count=",
-      eventos?.length,
-      "first=",
-      eventos?.[0]
-    );
     if (eventos && eventos.length > 0) {
       const first = eventos[0];
       const label = getLabel(first, 0);
@@ -194,6 +189,14 @@ export default function AdminPage() {
       setSelectedOption("Selecciona un evento");
     }
   }, [eventos, selectEvent, getLabel]);
+
+  // Sincronizar selectedOption cuando eventoActual cambie externamente (ej. desde notificaciones)
+  useEffect(() => {
+    if (eventoActual) {
+      const label = getLabel(eventoActual, 0);
+      setSelectedOption(label);
+    }
+  }, [eventoActual, getLabel]);
 
   const handleSelect = (evento) => {
     const label = getLabel(evento, 0);
@@ -364,12 +367,7 @@ export default function AdminPage() {
               </button>
 
               <div className="flex items-center gap-2">
-                <button className="w-9 h-9 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 border border-gray-200 dark:border-gray-600">
-                  <Bell
-                    className="text-gray-600 dark:text-gray-300"
-                    size={16}
-                  />
-                </button>
+                <NotificationBell />
 
                 <button
                   onClick={() => setDarkMode(!darkMode)}

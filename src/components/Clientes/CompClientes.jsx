@@ -3,6 +3,8 @@ import clsx from "clsx";
 import { Minus, Plus, Search, X, RefreshCw, Inbox, Clock, CheckCircle, AlertCircle, Menu } from "lucide-react";
 import { Tooltip } from "../ui/Tooltip.jsx";
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 import ListaTickets from "./Detalles/ListaClientes.jsx";
 import Destalles from "./Detalles/Destalles.jsx";
 import ChatModal from "./Chat/ChatModal.jsx";
@@ -11,7 +13,6 @@ import { useSignalRTickets } from "../../hooks/useSignalRTickets";
 import { useSignalRConnection } from "../../hooks/useSignalR";
 import { useTicketDetail } from "../../hooks/useTicketDetail";
 import { useClientInfo } from "../../hooks/useClientInfo";
-import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 import {
   transformarTicketCompletoParaUI,
   formatearFechaHora,
@@ -35,6 +36,8 @@ export default function CompClientes() {
   const [ticketSeleccionadoSimple, setTicketSeleccionadoSimple] =
     useState(null);
   const [ticketSeleccionado, setTicketSeleccionado] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { selectEvent, eventoActual } = useSelectedEvent();
   const [chatOpen, setChatOpen] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,9 +59,6 @@ export default function CompClientes() {
 
   // Hook para conectar a SignalR automáticamente
   const { conectado: signalRConectado } = useSignalRConnection();
-
-  // Obtener el evento seleccionado actualmente
-  const { eventoActual } = useSelectedEvent();
 
   // Memoizar los filtros iniciales para evitar re-renders innecesarios
   const filtrosIniciales = React.useMemo(() => ({
@@ -112,6 +112,43 @@ export default function CompClientes() {
   useEffect(() => {
     console.log("📡 [CompClientes] Estado de SignalR:", signalRConectado);
   }, [signalRConectado]);
+
+  // Efecto para manejar la selección de ticket por URL parameter (desde notificaciones)
+  useEffect(() => {
+    const ticketIdFromUrl = searchParams.get("ticketId");
+    const eventIdFromUrl = searchParams.get("eventId");
+
+    // 1. Si hay un eventId en la URL y es diferente al actual, cambiar de evento primero
+    if (eventIdFromUrl && (!eventoActual || eventoActual.id !== eventIdFromUrl)) {
+      console.log("🔄 Cambiando a evento desde notificación:", eventIdFromUrl);
+      selectEvent(eventIdFromUrl);
+      // Retornar temprano ya que el cambio de evento provocará una recarga de tickets
+      return;
+    }
+
+    // 2. Si ya estamos en el evento correcto (o no hay eventId), buscar el ticket
+    if (ticketIdFromUrl && tickets.length > 0) {
+      console.log("📍 Buscando ticket desde URL:", ticketIdFromUrl);
+      const ticketFound = tickets.find(
+        (t) => t.id === ticketIdFromUrl || t.ticket === ticketIdFromUrl
+      );
+      
+      if (ticketFound && (!ticketSeleccionadoSimple || (ticketSeleccionadoSimple.id !== ticketFound.id && ticketSeleccionadoSimple.ticket !== ticketFound.ticket))) {
+        console.log("✅ Ticket encontrado y seleccionado:", ticketFound.ticket);
+        setTicketSeleccionadoSimple(ticketFound);
+        setChatOpen(true);
+        if (isMobile) {
+          setShowDetails(true);
+        }
+        
+        // Limpiar el parámetro de la URL para evitar re-selecciones infinitas al cerrar el ticket
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("ticketId");
+        newParams.delete("eventId");
+        setSearchParams(newParams, { replace: true });
+      }
+    }
+  }, [searchParams, tickets, ticketSeleccionadoSimple, isMobile, eventoActual, selectEvent]);
 
   // Hooks para cargar detalle del ticket y datos del cliente
   const {

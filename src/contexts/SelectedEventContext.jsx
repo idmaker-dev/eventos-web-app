@@ -18,13 +18,7 @@ export const SelectedEventProvider = ({ children }) => {
     try { localStorage.setItem('selectedEventId', id); } catch (e) {}
   }, [cargarEvento, isAdmin]);
 
-  useEffect(() => {
-    if (!isAdmin) return; // no intentar restaurar selección si no es admin
-    const stored = (() => {
-      try { return localStorage.getItem('selectedEventId'); } catch (e) { return null; }
-    })();
-    if (stored) selectEvent(stored);
-  }, [selectEvent, isAdmin]);
+  // No restaurar selección de localStorage al iniciar (según prefencia del usuario de resetear en reload)
 
   return (
     <SelectedEventContext.Provider value={{ ...eventosHook, selectEvent, isAdmin }}>

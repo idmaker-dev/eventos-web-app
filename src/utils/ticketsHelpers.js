@@ -30,6 +30,53 @@ export function calcularTiempoTranscurrido(fechaISO) {
 }
 
 /**
+ * Formatear fecha al estilo WhatsApp
+ * @param {string} fechaISO - Fecha en formato ISO 8601
+ * @returns {string} - Formato amigable (Hora, Ayer, Día, o Fecha)
+ */
+export function formatearFechaWhatsApp(fechaISO) {
+  if (!fechaISO) return "";
+  const ahora = new Date();
+  const fecha = new Date(fechaISO);
+  
+  // Resetear horas para comparar días exactos
+  const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+  const ayer = new Date(hoy);
+  ayer.setDate(ayer.getDate() - 1);
+  const hace6Dias = new Date(hoy);
+  hace6Dias.setDate(hace6Dias.getDate() - 6);
+  
+  const fechaSoloDia = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+
+  // Hoy: Mostrar solo la hora
+  if (fechaSoloDia.getTime() === hoy.getTime()) {
+    return fecha.toLocaleTimeString("es-MX", { 
+      hour: "2-digit", 
+      minute: "2-digit", 
+      hour12: true 
+    }).toLowerCase();
+  }
+  
+  // Ayer: Mostrar "Ayer"
+  if (fechaSoloDia.getTime() === ayer.getTime()) {
+    return "Ayer";
+  }
+  
+  // Última semana: Mostrar el nombre del día
+  if (fechaSoloDia.getTime() > hace6Dias.getTime()) {
+    const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    return dias[fecha.getDay()];
+  }
+  
+  // Más antiguo: Mostrar fecha corta DD/MM/YY
+  return fecha.toLocaleDateString("es-MX", { 
+    day: "2-digit", 
+    month: "2-digit", 
+    year: "2-digit" 
+  });
+}
+
+/**
  * Mapear estado del ticket desde API a UI
  * @param {string} estatusAPI - Estado del ticket en el API ('activo', 'cerrado')
  * @returns {string} - Estado para la UI ('activo', 'cerrado')
