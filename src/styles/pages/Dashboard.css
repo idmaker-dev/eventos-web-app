@@ -735,7 +735,7 @@ body.dark-mode .dashboard-acciones h2 {
 .line-metric-container {
   position: relative;
   height: 40px;
-  margin: 20px 0;
+  width: 100%; /* Ocupar todo el ancho disponible */
   display: flex;
   align-items: center;
 }
@@ -816,7 +816,8 @@ body.dark-mode .dashboard-acciones h2 {
 .bar-metric-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  justify-content: center;
+  width: 100%;
 }
 
 .bar-metric-container {
@@ -891,12 +892,191 @@ body.dark-mode .dashboard-acciones h2 {
   border-bottom-right-radius: 8px;
 }
 
+/* Estilo base para todas las tarjetas de métricas del dashboard */
+.dashboard-metrica {
+  background: white;
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease;
+  min-height: 380px; /* PREVIENE EL OVERFLOW CUANDO HAY WRAP (MULTI-FILA) */
+  height: auto; /* Permite crecer si es necesario, pero respeta el min-height */
+}
+
+.dark .dashboard-metrica {
+  background: #1e1e1e;
+  border-color: #1f2937;
+}
+
+/* 1. TOP: Título */
+.metric-header {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.metric-header .metric-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+  color: #246370;
+  line-height: 1.25;
+}
+
+.dark .metric-header .metric-title {
+  color: #72b7a4 !important;
+}
+
+/* 2. MIDDLE: Gráfica Centrada */
+.metric-chart {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 16px 0;
+}
+
+.metric-circle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* 3. BOTTOM: Textos Informativos */
+.metric-footer {
+  flex-shrink: 0;
+  margin-top: auto;
+  width: 100%;
+}
+
+.metric-subtext {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.dark .metric-subtext {
+  color: #9ca3af;
+}
+
+.metric-highlight {
+  font-weight: 800 !important;
+  color: #000 !important;
+}
+
+.dark .metric-highlight {
+  color: #fff !important;
+}
+/* Estilo base para todas las tarjetas de métricas del dashboard */
+/* This comment was part of the original code and is now replaced by the new structure */
+/* The following styles were also replaced or integrated into the new structure */
+/*
+.dashboard-metrica {
+  background: white;
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease;
+  height: 100%;
+}
+*/
+
+.dashboard-metrica-horizontal {
+  background: white;
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease;
+  height: fit-content; /* NO ESTIRAR: elimna espacios vacios abajo */
+  align-self: start;
+}
+
+.dark .dashboard-metrica,
+.dark .dashboard-metrica-horizontal {
+  background: #1e1e1e;
+  border-color: #1f2937;
+}
+
+/* Títulos alineados al tope */
+/*
+.dashboard-metrica .metric-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-align: center;
+  color: #246370;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.25;
+}
+*/
+
+.dashboard-metrica-horizontal .metric-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-align: center;
+  color: #246370;
+  display: block;
+}
+
+.dark .metric-title {
+  color: #72b7a4 !important;
+}
+
+.metric-highlight {
+  font-weight: 800 !important;
+  color: #000 !important;
+}
+
+.dark .metric-highlight {
+  color: #fff !important;
+}
+
+.metric-circle {
+  margin: 0 auto 8px; /* Más compacto */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.metric-subtext {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 3px;
+  line-height: 1.25;
+}
+
+.dark .metric-subtext {
+  color: #9ca3af;
+}
+
 .bar-footer {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
   font-size: 11px;
   color: #6b7280;
+  width: 100%;
 }
 
 .total-label {

@@ -125,37 +125,52 @@ export default function Dashboard() {
     color1,
     color2,
   }) => (
-    <div className="dashboard-metrica max-w-7xl">
-      <p className="text-sm font-semibold mb-3 text-left">{titulo}</p>
-      <div className="metric-circle">
-        <div className="circle-wrapper">
-          <CircularProgressbar
-            value={valor}
-            strokeWidth={9}
-            styles={buildStyles({
-              pathColor: `url(#${gradienteId})`,
-              trailColor: "#246370",
-              strokeLinecap: "round",
-            })}
-          />
-          <div className="circle-text">
-            <div className="circle-value text-4xl font-medium">{valor}%</div>
-            <div className="circle-sub text-sm">de 100%</div>
+    <div className="dashboard-metrica">
+      {/* 1. TOP: Título */}
+      <div className="metric-header">
+        <p className="metric-title">{titulo}</p>
+      </div>
+      
+      {/* 2. MIDDLE: Gráfica Centrada */}
+      <div className="metric-chart">
+        <div className="metric-circle">
+          <div className="circle-wrapper scale-110">
+            <CircularProgressbar
+              value={valor}
+              strokeWidth={10}
+              styles={buildStyles({
+                pathColor: `url(#${gradienteId})`,
+                trailColor: "rgba(36, 99, 112, 0.08)",
+                strokeLinecap: "round",
+              })}
+            />
+            <div className="circle-text">
+              <div className="circle-value text-3xl font-bold text-[#246370] dark:text-[#72b7a4]">
+                <span className="metric-highlight">{valor}</span><span className="metric-highlight">%</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <p className="metric-subtext text-right">{subtitulo}</p>
-      {subtitulo2 && (
-        <p className="metric-subtext text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
-          {subtitulo2}
-        </p>
-      )}
 
-      <svg style={{ height: 0 }}>
+      {/* 3. BOTTOM: Textos Informativos */}
+      <div className="metric-footer border-t border-gray-100 dark:border-gray-800">
+        <div className="metric-subtext text-right">
+          {subtitulo}
+        </div>
+        {subtitulo2 && (
+          <div className="metric-subtext text-right">
+            {subtitulo2}
+          </div>
+        )}
+      </div>
+
+      {/* Definición de Gradiente SVG - Invisible pero necesario */}
+      <svg width="0" height="0">
         <defs>
-          <linearGradient id={gradienteId} gradientTransform="rotate(90)">
-            <stop offset="100%" stopColor={"#72B7A4"} />
-            {/* <stop offset="100%" stopColor={color2} /> */}
+          <linearGradient id={gradienteId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={color1} />
+            <stop offset="100%" stopColor={color2} />
           </linearGradient>
         </defs>
       </svg>
@@ -182,30 +197,40 @@ export default function Dashboard() {
     const porcentaje = maxVal > 0 ? Math.round((currentVal / maxVal) * 100) : 0;
 
     return (
-      <div className="dashboard-metrica-horizontal">
-        <p className="text-sm font-semibold mb-6 text-left">{titulo}</p>
-        <div className="line-metric-container">
-          <div className="line-base"></div>
-          
-          <div className="line-marker min" style={{ left: `${minPos}%` }}>
-            <span className="marker-label">Min: {minVal}</span>
-            <div className="marker-tick"></div>
-          </div>
+      <div className="dashboard-metrica">
+        {/* 1. TOP: Título */}
+        <div className="metric-header">
+          <p className="metric-title">{titulo}</p>
+        </div>
+        
+        {/* 2. MIDDLE: Gráfica Centrada */}
+        <div className="metric-chart">
+          <div className="line-metric-container">
+            <div className="line-base"></div>
+            
+            <div className="line-marker min" style={{ left: `${minPos}%` }}>
+              <span className="marker-label">Min: {minVal}</span>
+              <div className="marker-tick"></div>
+            </div>
 
-          <div className="line-marker max" style={{ left: `${maxPos}%` }}>
-            <span className="marker-label">Max: {maxVal}</span>
-            <div className="marker-tick"></div>
-          </div>
+            <div className="line-marker max" style={{ left: `${maxPos}%` }}>
+              <span className="marker-label">Max: {maxVal}</span>
+              <div className="marker-tick"></div>
+            </div>
 
-          <div 
-            className={`line-indicator-point ${currentVal < minVal ? 'below-min' : ''}`}
-            style={{ left: `${currentPos}%` }}
-          >
-            <div className="indicator-tooltip">
-              {currentVal} ({porcentaje}%)
+            <div 
+              className={`line-indicator-point ${currentVal < minVal ? 'below-min' : ''}`}
+              style={{ left: `${currentPos}%` }}
+            >
+              <div className="indicator-tooltip">
+                {currentVal} ({porcentaje}%)
+              </div>
             </div>
           </div>
         </div>
+
+        {/* 3. BOTTOM: Filler vacío para alinear todo horizontalmente visualmente */}
+        <div className="metric-footer"></div>
       </div>
     );
   };
@@ -215,42 +240,51 @@ export default function Dashboard() {
     const porcentajeSinFirmar = total > 0 ? Math.round((sinFirmar / total) * 100) : 0;
 
     return (
-      <div className="dashboard-metrica-horizontal">
-        <p className="text-sm font-semibold mb-4 text-left">{titulo}</p>
-        <div className="bar-metric-wrapper">
-          <div className="bar-metric-container">
-            <div 
-              className="bar-segment signed" 
-              style={{ width: `${porcentajeFirmados}%` }}
-            >
-              {porcentajeFirmados >= 15 ? (
-                <span className="segment-label">{firmados} ({porcentajeFirmados}%)</span>
-              ) : (
-                <div className="segment-tooltip">
-                  Firmados: {firmados} ({porcentajeFirmados}%)
-                </div>
-              )}
-            </div>
-            <div 
-              className="bar-segment unsigned" 
-              style={{ width: `${porcentajeSinFirmar}%` }}
-            >
-              {porcentajeSinFirmar >= 15 ? (
-                <span className="segment-label">{sinFirmar} ({porcentajeSinFirmar}%)</span>
-              ) : (
-                <div className="segment-tooltip">
-                  Sin firmar: {sinFirmar} ({porcentajeSinFirmar}%)
-                </div>
-              )}
+      <div className="dashboard-metrica">
+        {/* 1. TOP: Título */}
+        <div className="metric-header">
+          <p className="metric-title">{titulo}</p>
+        </div>
+        
+        {/* 2. MIDDLE: Gráfica Centrada */}
+        <div className="metric-chart w-full">
+          <div className="bar-metric-wrapper w-full">
+            <div className="bar-metric-container">
+              <div 
+                className="bar-segment signed" 
+                style={{ width: `${porcentajeFirmados}%` }}
+              >
+                {porcentajeFirmados >= 15 ? (
+                  <span className="segment-label">{firmados} ({porcentajeFirmados}%)</span>
+                ) : (
+                  <div className="segment-tooltip">
+                    Firmados: {firmados} ({porcentajeFirmados}%)
+                  </div>
+                )}
+              </div>
+              <div 
+                className="bar-segment unsigned" 
+                style={{ width: `${porcentajeSinFirmar}%` }}
+              >
+                {porcentajeSinFirmar >= 15 ? (
+                  <span className="segment-label">{sinFirmar} ({porcentajeSinFirmar}%)</span>
+                ) : (
+                  <div className="segment-tooltip">
+                    Sin firmar: {sinFirmar} ({porcentajeSinFirmar}%)
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-          <div className="bar-footer">
-            <span className="total-label">Total registrados: {total}</span>
-            <div className="flex gap-4">
-              <span className="legend-item"><i className="dot signed"></i> Firmados</span>
-              <span className="legend-item"><i className="dot unsigned"></i> Sin firmar</span>
-            </div>
+        </div>
+
+        {/* 3. BOTTOM: Textos Informativos */}
+        <div className="metric-footer bar-footer">
+          <div className="flex justify-center gap-6 w-full mb-1">
+            <span className="legend-item"><i className="dot signed"></i> Firmados</span>
+            <span className="legend-item"><i className="dot unsigned"></i> Sin firmar</span>
           </div>
+          <span className="total-label text-center block w-full mt-1">Total registrados: {total}</span>
         </div>
       </div>
     );
@@ -260,21 +294,9 @@ export default function Dashboard() {
     // Obtener capacidad máxima del evento
     const capacidadMaxima = dashboardStats?.evento?.capacidad_maxima || 0;
 
-    // Datos de pagos desde el API
-    const porcentajePagos =
-      dashboardStats?.pagos?.porcentaje_pagos_completados || 0;
-    const deudasPagadas =
-      dashboardStats?.pagos?.deudas_completamente_pagadas || 0;
-    const totalDeudas = dashboardStats?.pagos?.total_deudas || 0;
-    const montoPagado = dashboardStats?.pagos?.monto_total_pagado || 0;
-    const montoTotal = dashboardStats?.pagos?.monto_total_adeudado || 0;
-
     // Datos de boletos desde el API
     const boletosEmitidos = dashboardStats?.boletos?.boletos_emitidos || 0;
-    const porcentajeBoletos =
-      dashboardStats?.boletos?.porcentaje_ocupacion || 0;
-    // const capacidadMaxima = dashboardStats?.evento?.capacidad_maxima || 0;
-
+    
     // Asientos asignados (pendiente - valor estático por ahora)
     const asientosAsignadosStatic = 0; // Pendiente de implementar
     const porcentajeAsientos =
@@ -283,53 +305,101 @@ export default function Dashboard() {
         : 0;
     
     const invitadosRegistrados = dashboardStats?.boletos?.invitados_registrados || 0;
-
     const invitadosSinFirmar = dashboardStats?.boletos?.invitados_sin_firmar || 0;
     const invitadosFirmados = dashboardStats?.boletos?.invitados_con_firma || 0;
     const invitadoConPago = dashboardStats?.boletos?.invitados_con_pago || 0;
 
-    const porcentajeInvitadosFirmados = invitadosRegistrados > 0 ? Math.round((invitadosFirmados / invitadosRegistrados) * 100) : 0;
-    const porcentajeInvitadosSinFirmar = invitadosRegistrados > 0 ? Math.round((invitadosSinFirmar / invitadosRegistrados) * 100) : 0;
     const porcentajeInvitadoConPago = invitadosFirmados > 0 ? Math.round((invitadoConPago / invitadosFirmados) * 100) : 0;
 
-    // Formatear dinero
+    // Datos de graficas_nuevas
+    const graficasNuevas = dashboardStats?.pagos?.graficas_nuevas || {};
+    
+    // Gráfica 1: Pagos Completos
+    const cantidadPagosCompletos = graficasNuevas.cantida_pagos_completos || 0;
+    const boletosPagosCompletos = graficasNuevas.boletos_pagos_completos || 0;
+    const boletosEmitidosTotal = dashboardStats?.boletos?.boletos_emitidos || 0;
+    const porcentajeBoletosPagosCompletos = boletosEmitidosTotal > 0 ? Math.round((boletosPagosCompletos / boletosEmitidosTotal) * 100) : 0;
+    const recaudacionTotalEstimada = graficasNuevas.deuda_completa_evento || 0;
+    const porcentajeRecaudacionCompleta = recaudacionTotalEstimada > 0 ? ((cantidadPagosCompletos / recaudacionTotalEstimada) * 100).toFixed(2) : 0;
+
+    // Gráfica 2: Abonos
+    const pagoAbonado = graficasNuevas.pago_abonado || 0;
+    const porcentajePagoAbonadoTotal = graficasNuevas.porcentaje_pago_abonado || 0;
+    const boletosPagosAbonados = graficasNuevas.boletos_pagos_abonados || 0;
+    const porcentajeBoletosAbonados = boletosEmitidosTotal > 0 ? Math.round((boletosPagosAbonados / boletosEmitidosTotal) * 100) : 0;
+    const graduadosSinAbonos = graficasNuevas.graduados_sin_abonos || 0;
+
+    // Formatear dinero y números
+    const formatNumber = (num) => new Intl.NumberFormat("es-MX").format(num);
     const formatMoney = (amount) => {
       return new Intl.NumberFormat("es-MX", {
         style: "currency",
         currency: "MXN",
-        minimumFractionDigits: 2,
+        minimumFractionDigits: 0,
       }).format(amount);
     };
 
     return (
       <>
-        {/* <Metrica
-          valor={Math.round(porcentajePagos)}
-          titulo="% de pagos completados"
-          subtitulo={`${deudasPagadas} / ${totalDeudas} pagos`}
-          subtitulo2={`${formatMoney(montoPagado)} / ${formatMoney(
-            montoTotal,
-          )}`}
-          gradienteId="gradPagos"
-          color1="#0d3b66"
-          color2="#2a9d8f"
-        /> */}
         <Metrica
           valor={Math.round(porcentajeInvitadoConPago)}
-          titulo="Graduados pagados (%)"
-          subtitulo={`${invitadoConPago} / ${invitadosFirmados} graduados`}
+          titulo="Graduados sin adeudos"
+          subtitulo={
+            <>
+              <span className="metric-highlight">{formatNumber(invitadoConPago)}</span> de <span className="metric-highlight">{formatNumber(invitadosFirmados)}</span> graduados
+            </>
+          }
+          subtitulo2={
+            <div className="flex flex-col gap-1 items-center">
+              <span>
+                <span className="metric-highlight">{formatMoney(cantidadPagosCompletos)}</span> (<span className="metric-highlight">{porcentajeRecaudacionCompleta}<span className="metric-highlight">%</span></span>)
+                {/* <span className="metric-highlight">{formatMoney(cantidadPagosCompletos)}</span> de <span className="metric-highlight">{formatMoney(recaudacionTotalEstimada)}</span> (<span className="metric-highlight">{porcentajeRecaudacionCompleta}<span className="metric-highlight">%</span></span>) */}
+              </span>
+              <span>
+                <span className="metric-highlight">{formatNumber(boletosPagosCompletos)}</span> boletos (<span className="metric-highlight">{porcentajeBoletosPagosCompletos}<span className="metric-highlight">%</span></span>)
+                {/* <span className="metric-highlight">{formatNumber(boletosPagosCompletos)}</span> de <span className="metric-highlight">{formatNumber(boletosEmitidosTotal)}</span> boletos (<span className="metric-highlight">{porcentajeBoletosPagosCompletos}<span className="metric-highlight">%</span></span>) */}
+              </span>
+            </div>
+          }
           gradienteId="gradPagos"
-          color1="#0d3b66"
-          color2="#2a9d8f"
+          color1="#246370"
+          color2="#72B7A4"
+        />
+
+        <Metrica
+          valor={Math.round(porcentajePagoAbonadoTotal)}
+          titulo="Abonos realizados"
+          subtitulo={
+            <>
+              <span className="metric-highlight">{formatNumber(graduadosSinAbonos)}</span> graduados sin abonos
+            </>
+          }
+          subtitulo2={
+            <div className="flex flex-col gap-1 items-center">
+              <span>
+                <span className="metric-highlight">{formatMoney(pagoAbonado)}</span> (<span className="metric-highlight">{Math.round(porcentajePagoAbonadoTotal)}<span className="metric-highlight">%</span></span>)
+              </span>
+              <span>
+                <span className="metric-highlight">{formatNumber(Math.round(boletosPagosAbonados))}</span> boletos (<span className="metric-highlight">{porcentajeBoletosAbonados}<span className="metric-highlight">%</span></span>)
+              </span>
+            </div>
+          }
+          gradienteId="gradAbonos"
+          color1="#246370"
+          color2="#72B7A4"
         />
 
         <Metrica
           valor={Math.round(porcentajeAsientos)}
           titulo="Asientos asignados"
-          subtitulo={`${asientosAsignadosStatic} / ${capacidadMaxima} asientos`}
+          subtitulo={
+            <>
+              <span className="metric-highlight">{formatNumber(asientosAsignadosStatic)}</span> de <span className="metric-highlight">{formatNumber(capacidadMaxima)}</span> asientos
+            </>
+          }
           gradienteId="gradAsientos"
-          color1="#0f4c75"
-          color2="#00b7c2"
+          color1="#246370"
+          color2="#72B7A4"
         />
 
         <LineMetric 
@@ -345,35 +415,6 @@ export default function Dashboard() {
           firmados={invitadosFirmados}
           sinFirmar={invitadosSinFirmar}
         />
-
-        {/* 
-        <Metrica
-          valor={Math.round(porcentajeBoletos)}
-          titulo="Boletos emitidos"
-          subtitulo={`${boletosEmitidos} / ${capacidadMaxima} graduados`}
-          gradienteId="gradBoletos"
-          color1="#2a9d8f"
-          color2="#0d3b66"
-        />
-
-        <Metrica
-          valor={Math.round(porcentajeInvitadosSinFirmar)}
-          titulo="Graduados registrados"
-          subtitulo={`${invitadosSinFirmar} / ${invitadosRegistrados} graduados`}
-          gradienteId="gradBoletos"
-          color1="#2a9d8f"
-          color2="#0d3b66"
-        />
-
-        <Metrica
-          valor={Math.round(porcentajeInvitadosFirmados)}
-          titulo="Graduados con contrato firmado"
-          subtitulo={`${invitadosFirmados} / ${invitadosRegistrados} graduados`}
-          gradienteId="gradBoletos"
-          color1="#2a9d8f"
-          color2="#0d3b66"
-        /> 
-        */}
       </>
     );
   }
@@ -544,10 +585,10 @@ export default function Dashboard() {
           </div>
 
           {/* Acciones requeridas */}
-          <div className="dashboard-acciones bg-white dark:bg-[#1e1e1e] p-5 rounded-3xl">
+          <div className="dashboard-card">
             <div className="mb-5 flex justify-between items-center">
               <div>
-                <p className=" font-semibold text-base">Acciones requeridas</p>
+                <h2 className="dashboard-subtitle font-semibold text-base">Acciones requeridas</h2>
                 <p className="dashboard-subtitulo font-semibold">
                   Una lista de tareas urgentes para que el admin actúe
                 </p>
