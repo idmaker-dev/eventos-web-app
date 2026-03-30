@@ -113,42 +113,57 @@ export default function CompClientes() {
     console.log("📡 [CompClientes] Estado de SignalR:", signalRConectado);
   }, [signalRConectado]);
 
-  // Efecto para manejar la selección de ticket por URL parameter (desde notificaciones)
+  // Referencia para guardar el ticket pendiente de ser seleccionado desde la notificación
+  const pendingNotificationTicketRef = useRef(null);
+
+  // Efecto 1: Capturar los parámetros de la URL e inmediatamente limpiar y cambiar evento
   useEffect(() => {
     const ticketIdFromUrl = searchParams.get("ticketId");
     const eventIdFromUrl = searchParams.get("eventId");
 
-    // 1. Si hay un eventId en la URL y es diferente al actual, cambiar de evento primero
-    if (eventIdFromUrl && (!eventoActual || eventoActual.id !== eventIdFromUrl)) {
-      console.log("🔄 Cambiando a evento desde notificación:", eventIdFromUrl);
-      selectEvent(eventIdFromUrl);
-      // Retornar temprano ya que el cambio de evento provocará una recarga de tickets
-      return;
+    if (!ticketIdFromUrl && !eventIdFromUrl) return;
+
+    if (ticketIdFromUrl) {
+      pendingNotificationTicketRef.current = ticketIdFromUrl;
+      console.log("📍 Ticket pendiente capturado desde URL:", ticketIdFromUrl);
     }
 
-    // 2. Si ya estamos en el evento correcto (o no hay eventId), buscar el ticket
-    if (ticketIdFromUrl && tickets.length > 0) {
-      console.log("📍 Buscando ticket desde URL:", ticketIdFromUrl);
+    if (eventIdFromUrl && (!eventoActual || String(eventoActual.id) !== String(eventIdFromUrl))) {
+      console.log("🔄 Cambiando a evento desde notificación:", eventIdFromUrl);
+      selectEvent(eventIdFromUrl);
+    }
+
+    // Limpiar inmediatamente la URL para evitar re-selecciones y quedarse "pegado"
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("ticketId");
+    newParams.delete("eventId");
+    setSearchParams(newParams, { replace: true });
+  }, [searchParams, setSearchParams, eventoActual, selectEvent]);
+
+  // Efecto 2: Procesar el ticket pendiente de seleccionar cuando lleguen los tickets a la lista
+  useEffect(() => {
+    const pendingTicketId = pendingNotificationTicketRef.current;
+    if (!pendingTicketId) return;
+
+    if (tickets && tickets.length > 0) {
       const ticketFound = tickets.find(
-        (t) => t.id === ticketIdFromUrl || t.ticket === ticketIdFromUrl
+        (t) => String(t.id) === String(pendingTicketId) || String(t.ticket) === String(pendingTicketId)
       );
-      
-      if (ticketFound && (!ticketSeleccionadoSimple || (ticketSeleccionadoSimple.id !== ticketFound.id && ticketSeleccionadoSimple.ticket !== ticketFound.ticket))) {
-        console.log("✅ Ticket encontrado y seleccionado:", ticketFound.ticket);
-        setTicketSeleccionadoSimple(ticketFound);
-        setChatOpen(true);
-        if (isMobile) {
-          setShowDetails(true);
+
+      if (ticketFound) {
+        if (!ticketSeleccionadoSimple || (ticketSeleccionadoSimple.id !== ticketFound.id && ticketSeleccionadoSimple.ticket !== ticketFound.ticket)) {
+          console.log("✅ Ticket encontrado y seleccionado:", ticketFound.ticket);
+          setTicketSeleccionadoSimple(ticketFound);
+          setChatOpen(true);
+          if (isMobile) {
+            setShowDetails(true);
+          }
         }
-        
-        // Limpiar el parámetro de la URL para evitar re-selecciones infinitas al cerrar el ticket
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete("ticketId");
-        newParams.delete("eventId");
-        setSearchParams(newParams, { replace: true });
+        // Limpiamos la ref una vez procesado
+        pendingNotificationTicketRef.current = null;
       }
     }
-  }, [searchParams, tickets, ticketSeleccionadoSimple, isMobile, eventoActual, selectEvent]);
+  }, [tickets, ticketSeleccionadoSimple, isMobile]);
 
   // Hooks para cargar detalle del ticket y datos del cliente
   const {

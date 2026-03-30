@@ -62,14 +62,19 @@ export default function NotificationBell() {
   }, [fetchNotifications, registrarCallbackNuevoTicketDB, desregistrarCallbackNuevoTicketDB]);
 
   const handleMarkAsRead = async (id, ticketId, eventId, closePopover) => {
-    // Actualización silenciosa "under the hood"
-    notificationService.markAsRead(id);
-    
-    // Actualizar estado local inmediatamente
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, leido: true, leida: true } : n))
-    );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
+    // Determinar si la notificación era previamente "no leída"
+    const isUnread = notifications.find(n => n.id === id && (!n.leido && !n.leida));
+
+    if (isUnread) {
+      // Actualización silenciosa "under the hood" al marcar como leído
+      notificationService.markAsRead(id);
+      
+      // Actualizar estado local inmediatamente
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, leido: true, leida: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
 
     // Cerrar el popover si se proporciona la función
     if (typeof closePopover === "function") {
