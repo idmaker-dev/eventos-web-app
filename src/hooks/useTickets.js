@@ -24,6 +24,12 @@ export const useTickets = (filtrosIniciales = {}) => {
       setFiltros(prev => {
         const hasChanged = Object.keys(filtrosIniciales).some(key => filtrosIniciales[key] !== prev[key]);
         if (hasChanged) {
+          // Si el evento cambió, limpiamos los tickets inmediatamente para evitar mostrar datos "sucios"
+          if (String(prev.eventoId) !== String(filtrosIniciales.eventoId)) {
+            if (EnvConfig.DEBUG_MODE) console.log("🧹 [useTickets] Limpiando tickets por cambio de evento");
+            setTickets([]);
+            setEstadisticas(null);
+          }
           return { ...prev, ...filtrosIniciales };
         }
         return prev;
@@ -56,6 +62,12 @@ export const useTickets = (filtrosIniciales = {}) => {
 
       if (EnvConfig.DEBUG_MODE) {
         console.log("✅ [useTickets] Tickets cargados:", result.tickets.length);
+      }
+    } else {
+      // Si falló y no es una carga silenciosa, limpiamos para no mostrar data obsoleta
+      if (!options.silent) {
+        setTickets([]);
+        setEstadisticas(null);
       }
     }
 

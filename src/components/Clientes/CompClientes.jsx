@@ -60,10 +60,13 @@ export default function CompClientes() {
   // Hook para conectar a SignalR automáticamente
   const { conectado: signalRConectado } = useSignalRConnection();
 
-  // Memoizar los filtros iniciales para evitar re-renders innecesarios
-  const filtrosIniciales = React.useMemo(() => ({
-    eventoId: eventoActual?.id
-  }), [eventoActual?.id]);
+  const filtrosIniciales = React.useMemo(() => {
+    // Si venimos de una notificación, el eventId de la URL manda para evitar cargar el evento anterior
+    const urlEventId = searchParams.get("eventId");
+    return {
+      eventoId: urlEventId || eventoActual?.id
+    };
+  }, [eventoActual?.id, searchParams]);
 
   // Hook para cargar tickets desde el API
   const { tickets, loading, error, cargarTickets, estadisticas, cerrarTicket, actualizarFiltros, marcarComoLeido } = useTickets(filtrosIniciales);
@@ -113,8 +116,8 @@ export default function CompClientes() {
     console.log("📡 [CompClientes] Estado de SignalR:", signalRConectado);
   }, [signalRConectado]);
 
-  // Referencia para guardar el ticket pendiente de ser seleccionado desde la notificación
-  const pendingNotificationTicketRef = useRef(null);
+  // Estado para guardar el ticket pendiente de ser seleccionado desde la notificación
+  const [pendingTicketId, setPendingTicketId] = useState(null);
 
   // Efecto 1: Capturar los parámetros de la URL e inmediatamente limpiar y cambiar evento
   useEffect(() => {
@@ -124,7 +127,7 @@ export default function CompClientes() {
     if (!ticketIdFromUrl && !eventIdFromUrl) return;
 
     if (ticketIdFromUrl) {
-      pendingNotificationTicketRef.current = ticketIdFromUrl;
+      setPendingTicketId(ticketIdFromUrl);
       console.log("📍 Ticket pendiente capturado desde URL:", ticketIdFromUrl);
     }
 
@@ -142,7 +145,6 @@ export default function CompClientes() {
 
   // Efecto 2: Procesar el ticket pendiente de seleccionar cuando lleguen los tickets a la lista
   useEffect(() => {
-    const pendingTicketId = pendingNotificationTicketRef.current;
     if (!pendingTicketId) return;
 
     if (tickets && tickets.length > 0) {
@@ -158,12 +160,16 @@ export default function CompClientes() {
           if (isMobile) {
             setShowDetails(true);
           }
+        } else {
+          // Si ya es el ticket seleccionado pero necesitamos forzar apertura (por si se cerró por alguna razón)
+          setChatOpen(true);
+          if (isMobile) setShowDetails(true);
         }
-        // Limpiamos la ref una vez procesado
-        pendingNotificationTicketRef.current = null;
+        // Limpiamos el estado una vez procesado
+        setPendingTicketId(null);
       }
     }
-  }, [tickets, ticketSeleccionadoSimple, isMobile]);
+  }, [tickets, ticketSeleccionadoSimple, isMobile, pendingTicketId]);
 
   // Hooks para cargar detalle del ticket y datos del cliente
   const {
