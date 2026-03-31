@@ -20,6 +20,7 @@ import Boletos from "../../pages/Boletos"
 import ConfiguracionContrato from "../ConfiguracionContrato/Index"
 import GestionPlantillas from "../GestionPlantillas/Index"
 import EditorPlantilla from "../GestionPlantillas/EditorPlantilla"
+import Configuracion from "../../pages/Configuracion"
 
 /* Aqui van las rutas de Admin */
 import AdminPage from "./AdminPage"
@@ -34,6 +35,7 @@ import Clientes from "../../pages/Clientes"
 import Campanas from "../../pages/Campanas"
 // import Comunicacion from "../../pages/Comunicacion"
 import Resumen from "../../pages/resumen"
+import ImportacionIndividualPage from "../../pages/admin/ImportacionIndividualPage"
 
 /* Componentes de protección de rutas */
 import { 
@@ -100,6 +102,8 @@ export default function AppRoutes() {
         <Route path="plantillas" element={<GestionPlantillas />} />
         <Route path="plantillas/nueva" element={<EditorPlantilla />} />
         <Route path="plantillas/editar/:plantillaId" element={<EditorPlantilla />} />
+        <Route path="configuracion" element={<Configuracion />} />
+        <Route path="importacion-individual" element={<ImportacionIndividualPage />} />
         
         <Route path="Resumen" element={<Resumen />} />
       </Route>
