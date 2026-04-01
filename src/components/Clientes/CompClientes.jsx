@@ -129,6 +129,10 @@ export default function CompClientes() {
     if (ticketIdFromUrl) {
       setPendingTicketId(ticketIdFromUrl);
       console.log("📍 Ticket pendiente capturado desde URL:", ticketIdFromUrl);
+      // Cumpliendo el requerimiento: Cerrar detalles visuales de cualquier ticket anterior
+      handleVolverALista();
+      // Garantizar que la lista se cargue completa para poder encontrar el nuevo
+      setFiltroEstado("todos");
     }
 
     if (eventIdFromUrl && (!eventoActual || String(eventoActual.id) !== String(eventIdFromUrl))) {
@@ -146,6 +150,12 @@ export default function CompClientes() {
   // Efecto 2: Procesar el ticket pendiente de seleccionar cuando lleguen los tickets a la lista
   useEffect(() => {
     if (!pendingTicketId) return;
+
+    // Redirigido desde notificación o misma vista, hay que esperar que los tickets estén listos
+    if (loading) {
+      console.log("⏳ Esperando a que carguen los tickets para abrir detalles...");
+      return;
+    }
 
     if (tickets && tickets.length > 0) {
       const ticketFound = tickets.find(
@@ -276,7 +286,7 @@ export default function CompClientes() {
 
   // Efecto para transformar datos cuando se cargan el detalle y el cliente
   useEffect(() => {
-    if (ticketDetail && clientInfo) {
+    if (ticketDetail && clientInfo && ticketSeleccionadoSimple) {
       console.log("🔄 [CompClientes] Transformando datos y marcando como leído si es necesario...");
       
       const ticketCompleto = transformarTicketCompletoParaUI(
@@ -310,9 +320,12 @@ export default function CompClientes() {
 
         return ticketCompleto;
       });
+    } else if (!ticketSeleccionadoSimple) {
+      // Obligatorio para matar el fantasma del ticket viejo de la UI si se cerró
+      setTicketSeleccionado(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketDetail, clientInfo, loadingClient, historialAcciones]);
+  }, [ticketDetail, clientInfo, loadingClient, historialAcciones, ticketSeleccionadoSimple]);
 
   // Memoizar datos del chat para evitar re-renders innecesarios
   const chatData = useMemo(() => {

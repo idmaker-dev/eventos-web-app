@@ -11,6 +11,7 @@ import { useNotifications } from "../../contexts/NotificationContext";
 import { useSignalR } from "../../contexts/SignalRContext";
 import ModalFirmaContrato from "./ModalFirmaContrato";
 import logo from "../../assets/LOGOPLANORIA1.png";
+import EnvConfig from "../../utils/config";
 
 /**
  * Componente para la firma de contrato del invitado con integración de DocuSign
@@ -54,7 +55,7 @@ export default function FirmaContrato() {
 
   // Estados flotante de soporte
   const [mostrarMenuSoporte, setMostrarMenuSoporte] = useState(false);
-  const telefonoSoporte = process.env.REACT_APP_TELEFONO_SOPORTE;
+  const telefonoSoporte = EnvConfig.TELEFONO_SOPORTE;
 
   const enviarMensajeWp = (tipo) => {
     let mensaje = "";

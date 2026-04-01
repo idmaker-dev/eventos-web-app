@@ -5,6 +5,7 @@ import { Button, Checkbox } from "@headlessui/react";
 import { ProductDetailsModal } from "./ProductDetailsModal.jsx";
 import MetodoPagoModal from "./MetodoPagoModal.jsx";
 import { CheckIcon, X } from "lucide-react";
+import EnvConfig from "../../utils/config";
 
 const truncateText = (text, maxLength = 30) => {
   if (text.length <= maxLength) return text;
@@ -40,7 +41,7 @@ export function InstallmentsTable({ cuotas = [], resumen, invitadoId }) {
 
   // Estados flotante de soporte
   const [mostrarMenuSoporte, setMostrarMenuSoporte] = useState(false);
-  const telefonoSoporte = process.env.REACT_APP_TELEFONO_SOPORTE;
+  const telefonoSoporte = EnvConfig.TELEFONO_SOPORTE;
 
   const enviarMensajeWp = (tipo) => {
     let mensaje = "";

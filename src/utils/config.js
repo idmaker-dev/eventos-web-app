@@ -67,6 +67,10 @@ class EnvConfig {
     }
   }
 
+  static get TELEFONO_SOPORTE() {
+      return process.env.REACT_APP_TELEFONO_SOPORTE;
+  }
+
   // Development
   static get DEBUG_MODE() {
     return (
