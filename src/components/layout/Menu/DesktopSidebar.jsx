@@ -249,6 +249,20 @@ export default function DesktopSidebar({
                     <LucideCheckLine size={16} />
                     <span>Plantillas</span>
                   </NavLink>
+                  <NavLink
+                    to="/admin/configuracion"
+                    onClick={() => setConfigMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
+                        isActive
+                          ? "bg-[#216b6b] text-white"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#216b6b] dark:hover:text-white"
+                      }`
+                    }
+                  >
+                    <Settings size={16} />
+                    <span>Configuración</span>
+                  </NavLink>
                 </div>
               </div>
             </>
