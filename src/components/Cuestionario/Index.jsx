@@ -110,7 +110,7 @@ export default function Cuestionario() {
 
   // Estados flotante de soporte
   const [mostrarMenuSoporte, setMostrarMenuSoporte] = useState(false);
-  const telefonoSoporte = process.env.REACT_APP_TELEFONO_SOPORTE;
+  const telefonoSoporte = EnvConfig.TELEFONO_SOPORTE;
 
   const enviarMensajeWp = (tipo) => {
     let mensaje = "";
