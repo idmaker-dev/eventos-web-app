@@ -68,7 +68,23 @@ class EnvConfig {
   }
 
   static get TELEFONO_SOPORTE() {
-      return process.env.REACT_APP_TELEFONO_SOPORTE;
+    return process.env.REACT_APP_TELEFONO_SOPORTE || "5615824852";
+  }
+
+  /**
+   * Formatea un enlace de WhatsApp con el número de soporte y un mensaje opcional
+   * Asegura que el número tenga el prefijo de país correcto (52 para México)
+   */
+  static formatWhatsappLink(mensaje = "") {
+    let telefono = (this.TELEFONO_SOPORTE || "5615824852").replace(/\D/g, ""); // Solo números
+
+    // Si tiene 10 dígitos, asumimos que es México sin código de país
+    if (telefono.length === 10) {
+      telefono = `52${telefono}`;
+    }
+
+    const base = `https://wa.me/${telefono}`;
+    return mensaje ? `${base}?text=${encodeURIComponent(mensaje)}` : base;
   }
 
   // Development
