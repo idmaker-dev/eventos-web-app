@@ -6,7 +6,7 @@ import { useNotifications } from "../../contexts/NotificationContext";
 import clsx from "clsx";
 
 export default function ConfiguracionNueva({ campana, onVolver }) {
-  const { actualizarAutomatizacion, loading } = useAutomatizaciones();
+  const { actualizarAutomatizacion, obtenerAutomatizacionPorId, loading } = useAutomatizaciones();
   const { showSuccess, showError, showWarning } = useNotifications();
 
   // Estado para los 4 paneles de configuración
@@ -62,15 +62,22 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
 
   // Panel 3: Acciones
   const [acciones, setAcciones] = useState(() => {
+    console.log('🔧 Inicializando estado de acciones desde campana:', campana);
+    console.log('⚡ campana.acciones:', campana?.acciones);
+    
     if (campana?.acciones && campana.acciones.length > 0) {
-      return campana.acciones.map(accion => ({
+      const accionesMapeadas = campana.acciones.map(accion => ({
         tipo: accion.tipo || "whatsapp",
         plantilla: accion.plantilla || "",
         mensaje: accion.mensaje || "",
         asunto: accion.asunto || "",
         activa: accion.activa !== undefined ? accion.activa : true,
       }));
+      console.log('✅ Acciones mapeadas:', accionesMapeadas);
+      return accionesMapeadas;
     }
+    
+    console.log('⚠️ No hay acciones en campana, usando default (WhatsApp)');
     return [
       {
         tipo: "whatsapp",
@@ -217,12 +224,24 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
 
     setGuardando(true);
     try {
-      await actualizarAutomatizacion(campana.id, {
+      console.log('💾 Guardando configuración...');
+      console.log('⚡ Acciones a guardar:', acciones);
+      
+      const automatizacionActualizada = await actualizarAutomatizacion(campana.id, {
         disparador,
         filtros_destinatarios: filtros,
         acciones,
         frecuencia,
       });
+      
+      console.log('✅ Automatización guardada:', automatizacionActualizada);
+      console.log('⚡ Acciones en automatización guardada:', automatizacionActualizada?.acciones);
+      
+      // 🆕 SOLUCIÓN: Recargar datos frescos del backend antes de volver
+      console.log('🔄 Recargando datos actualizados del backend...');
+      const automatizacionFresca = await obtenerAutomatizacionPorId(campana.id);
+      console.log('✨ Automatización fresca del backend:', automatizacionFresca);
+      console.log('⚡ Acciones en automatización fresca:', automatizacionFresca?.acciones);
       
       showSuccess("Configuración guardada exitosamente");
       onVolver();

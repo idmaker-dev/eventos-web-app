@@ -71,9 +71,27 @@ export const useAutomatizaciones = (filtrosIniciales = {}) => {
       setLoading(true);
       setError(null);
 
+      console.log('🔍 Obteniendo automatización por ID:', id);
       const result = await automatizacionesService.getAutomatizacion(id);
 
+      console.log('📦 Resultado de obtenerAutomatizacionPorId:', result);
+      console.log('⚡ Acciones en resultado:', result.automatizacion?.acciones);
+
       if (result.success) {
+        // 🆕 SOLUCIÓN: Actualizar también el estado local para mantener sincronía
+        setAutomatizaciones((prev) => {
+          const updated = prev.map((a) => {
+            if (a.id === id) {
+              console.log('🔄 Actualizando automatización en estado local desde obtenerAutomatizacionPorId');
+              console.log('   Anterior:', a);
+              console.log('   Nueva:', result.automatizacion);
+              return result.automatizacion;
+            }
+            return a;
+          });
+          return updated;
+        });
+
         return result.automatizacion;
       } else {
         throw new Error(result.error || "Error al obtener automatización");
@@ -122,12 +140,31 @@ export const useAutomatizaciones = (filtrosIniciales = {}) => {
       setLoading(true);
       setError(null);
 
+      console.log('🚀 Actualizando automatización ID:', id);
+      console.log('📝 Datos enviados:', datos);
+      console.log('⚡ Acciones enviadas:', datos.acciones);
+
       const result = await automatizacionesService.actualizarAutomatizacion(id, datos);
 
+      console.log('✅ Resultado del servicio:', result);
+      console.log('📦 result.automatizacion:', result.automatizacion);
+      console.log('⚡ Acciones en result.automatizacion:', result.automatizacion?.acciones);
+
       if (result.success) {
-        setAutomatizaciones((prev) =>
-          prev.map((a) => (a.id === id ? result.automatizacion : a))
-        );
+        setAutomatizaciones((prev) => {
+          const updated = prev.map((a) => {
+            if (a.id === id) {
+              console.log('🔄 Reemplazando automatización en estado');
+              console.log('   Anterior:', a);
+              console.log('   Nueva:', result.automatizacion);
+              console.log('   Acciones en la nueva:', result.automatizacion?.acciones);
+              return result.automatizacion;
+            }
+            return a;
+          });
+          console.log('📋 Estado actualizado de automatizaciones:', updated);
+          return updated;
+        });
         return result.automatizacion;
       } else {
         throw new Error(result.error || "Error al actualizar automatización");
