@@ -41,14 +41,13 @@ export function InstallmentsTable({ cuotas = [], resumen, invitadoId }) {
 
   // Estados flotante de soporte
   const [mostrarMenuSoporte, setMostrarMenuSoporte] = useState(false);
-  const telefonoSoporte = EnvConfig.TELEFONO_SOPORTE;
 
   const enviarMensajeWp = (tipo) => {
     let mensaje = "";
     if (tipo === 1) mensaje = "Hola, quiero reportar que no se generaron mis facturas o cuotas de pago.";
     else if (tipo === 2) mensaje = ""; // Sin mensaje para el tipo 2
     
-    const url = `https://wa.me/${telefonoSoporte}${mensaje ? `?text=${encodeURIComponent(mensaje)}` : ""}`;
+    const url = EnvConfig.formatWhatsappLink(mensaje);
     window.open(url, "_blank");
     setMostrarMenuSoporte(false);
   };
