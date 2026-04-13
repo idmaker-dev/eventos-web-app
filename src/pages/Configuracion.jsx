@@ -9,7 +9,10 @@ import {
   Loader,
   Building2,
   Calendar,
-  Globe
+  Globe,
+  BotMessageSquare,
+  Plus,
+  Trash2
 } from "lucide-react";
 import { useNotifications } from "../contexts/NotificationContext";
 import httpService from "../services/httpService";
@@ -71,6 +74,11 @@ export default function Configuracion() {
     nombrePlataforma: "",
     urlBase: "",
     zonaHoraria: "",
+  });
+
+  // Estados para formulario de Bot
+  const [botData, setBotData] = useState({
+    preguntas_respuestas: [],
   });
 
   // Cargar configuración cuando cambian scope, lugarId o eventoId
@@ -169,6 +177,11 @@ export default function Configuracion() {
         }
         if (config.general) {
           setGeneralData(config.general);
+        }
+        if (config.bot) {
+          setBotData(config.bot);
+        } else {
+          setBotData({ preguntas_respuestas: [] });
         }
       }
     } catch (error) {
@@ -294,6 +307,57 @@ export default function Configuracion() {
       }
     } catch (error) {
       console.error("Error al guardar configuración de Email:", error);
+      showError(error.userMessage || "Error al guardar la configuración");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  /**
+   * Guarda la configuración del Bot (Q&A) según el scope seleccionado
+   */
+  const guardarBot = async () => {
+    try {
+      if (scope === "lugar" && !lugarId) {
+        showError("Debes seleccionar un lugar");
+        return;
+      }
+      if (scope === "evento" && !eventoId) {
+        showError("Debes seleccionar un evento");
+        return;
+      }
+
+      setGuardando(true);
+
+      const params = new URLSearchParams();
+      params.append("scope", scope);
+
+      if (scope === "lugar" && lugarId) {
+        params.append("scopeId", lugarId);
+      } else if (scope === "evento" && eventoId) {
+        params.append("scopeId", eventoId);
+        if (lugarId) {
+          params.append("lugarId", lugarId);
+        }
+      }
+
+      const response = await httpService.put(
+        `/configuracion/bot?${params.toString()}`,
+        botData
+      );
+
+      if (response.data) {
+        setConfiguracion(response.data);
+        showSuccess(
+          `Configuración del Bot guardada exitosamente para ${
+            scope === "global" ? "el sistema" : scope === "lugar" ? "el lugar" : "el evento"
+          }`
+        );
+
+        await cargarConfiguracion();
+      }
+    } catch (error) {
+      console.error("Error al guardar configuración de Bot:", error);
       showError(error.userMessage || "Error al guardar la configuración");
     } finally {
       setGuardando(false);
@@ -518,6 +582,18 @@ export default function Configuracion() {
             >
               <CreditCard size={18} />
               Pagos
+            </button>
+
+            <button
+              onClick={() => setTabActiva("bot")}
+              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${
+                tabActiva === "bot"
+                  ? "border-[#216b6b] text-[#216b6b]"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }`}
+            >
+              <BotMessageSquare size={18} />
+              Bot
             </button>
 
             <button
@@ -766,18 +842,143 @@ export default function Configuracion() {
             </div>
           )}
 
-          {/* Tab Pagos (Placeholder) */}
-          {tabActiva === "pagos" && (
+          {/* Tab Bot */}
+          {tabActiva === "bot" && (
             <div className="space-y-6">
-              <div className="text-center py-12">
-                <CreditCard size={48} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  Configuración de Pagos
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Esta sección estará disponible próximamente
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <BotMessageSquare size={24} className="text-[#216b6b]" />
+                  Configuración de Bot
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Configura las preguntas frecuentes y las respuestas automáticas del bot.
                 </p>
               </div>
+
+              <div className="bg-gray-50 dark:bg-[#1e1e1e] p-5 rounded-xl border border-gray-200 dark:border-gray-700 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                    Respuestas Automáticas
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setBotData((prev) => ({
+                        ...prev,
+                        preguntas_respuestas: [
+                          ...(prev.preguntas_respuestas || []),
+                          { pregunta: "", respuesta: "" }
+                        ]
+                      }));
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#216b6b]/10 text-[#216b6b] hover:bg-[#216b6b]/20 rounded-lg text-sm font-medium transition-colors border border-[#216b6b]/20"
+                  >
+                    <Plus size={16} />
+                    Agregar Nueva Pregunta
+                  </button>
+                </div>
+
+                {(!botData.preguntas_respuestas || botData.preguntas_respuestas.length === 0) ? (
+                  <div className="text-center bg-white dark:bg-[#2a2a2a] rounded-lg border border-gray-200 dark:border-gray-600 py-8 shadow-sm">
+                    <BotMessageSquare className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-2 opacity-50" />
+                    <p className="text-gray-500 font-medium">No hay preguntas configuradas</p>
+                    <p className="text-sm text-gray-400 mt-1">Haz clic en el botón de arriba para registrar la primera</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                    {botData.preguntas_respuestas.map((qa, index) => (
+                      <div key={index} className="flex flex-col sm:flex-row gap-3 bg-white dark:bg-[#2a2a2a] p-4 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm relative group hover:border-[#216b6b]/30 transition-colors">
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Pregunta (Palabras Clave)</label>
+                            <input
+                              type="text"
+                              value={qa.pregunta}
+                              onChange={(e) => {
+                                const newItems = [...botData.preguntas_respuestas];
+                                newItems[index].pregunta = e.target.value;
+                                setBotData({ ...botData, preguntas_respuestas: newItems });
+                              }}
+                              placeholder="Ej: horario, donde estan, precio, contacto"
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-[#1e1e1e] text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#216b6b] focus:border-transparent outline-none transition-all"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Respuesta del Bot</label>
+                            <textarea
+                              value={qa.respuesta}
+                              onChange={(e) => {
+                                const newItems = [...botData.preguntas_respuestas];
+                                newItems[index].respuesta = e.target.value;
+                                setBotData({ ...botData, preguntas_respuestas: newItems });
+                              }}
+                              placeholder="Ej: Hola, estamos ubicados en la calle principal..."
+                              rows={2}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-[#1e1e1e] text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#216b6b] focus:border-transparent outline-none resize-y transition-all"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex sm:flex-col justify-end sm:justify-start items-center ml-2 border-t sm:border-t-0 sm:border-l border-gray-100 dark:border-gray-700 pt-3 sm:pt-0 sm:pl-3">
+                          <button
+                            onClick={() => {
+                              const newItems = [...botData.preguntas_respuestas];
+                              newItems.splice(index, 1);
+                              setBotData({ ...botData, preguntas_respuestas: newItems });
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                            title="Eliminar registro"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => cargarConfiguracion()}
+                  disabled={guardando}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={guardarBot}
+                  disabled={guardando}
+                  className="px-6 py-2 bg-[#216b6b] text-white rounded-lg hover:bg-[#216b6b]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {guardando ? (
+                    <>
+                      <Loader className="animate-spin" size={18} />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={18} />
+                      Guardar Configuración
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Leyenda de herencia */}
+              {scope !== "global" && (
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={18} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-blue-800 dark:text-blue-300">
+                      <p className="font-medium">Herencia de configuración</p>
+                      <p className="mt-1">
+                        Si no configuras preguntas especificas para este nivel, 
+                        se usarán las configuraciones de los niveles superiores.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

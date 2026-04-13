@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Settings, Bell, Pin, User, X, Users, Megaphone, Ticket, Tickets } from "lucide-react";
+import { Settings, Bell, Pin, User, X, Users, Megaphone, Ticket, Tickets, LayoutDashboard } from "lucide-react";
 import ResumenProgreso from "../../../assets/recursos/resumen_progreso.svg";
 import ModuloPagos from "../../../assets/recursos/moduloDePagos.svg";
 import ModuloAsignacion from "../../../assets/recursos/moduloDeAsignacion.svg";
@@ -50,6 +50,23 @@ export default function MobileSidebar({
             <ul className="space-y-2">
               <li>
                 <NavLink
+                  to="/admin/Dashboard-General"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? "bg-[#216b6b] text-white shadow-lg"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-700/60 hover:shadow-md"
+                    }`
+                  }
+                >
+                  <LayoutDashboard size={20} />
+                  <span className="font-medium">Dashboard General</span>
+                </NavLink>
+              </li>
+
+              <li>
+                <NavLink
                   to="/admin"
                   end
                   onClick={() => setMobileMenuOpen(false)}
@@ -62,7 +79,7 @@ export default function MobileSidebar({
                   }
                 >
                   <img src={Inicio} alt="Inicio" className="w-5 h-5" />
-                  <span className="font-medium">Inicio</span>
+                  <span className="font-medium">Configuración del Evento</span>
                 </NavLink>
               </li>
 

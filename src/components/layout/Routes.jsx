@@ -36,6 +36,7 @@ import Campanas from "../../pages/Campanas"
 // import Comunicacion from "../../pages/Comunicacion"
 import Resumen from "../../pages/resumen"
 import ImportacionIndividualPage from "../../pages/admin/ImportacionIndividualPage"
+import DashboardGeneral from "../../pages/DashboardGeneral"
 
 /* Componentes de protección de rutas */
 import { 
@@ -104,8 +105,8 @@ export default function AppRoutes() {
         <Route path="plantillas/editar/:plantillaId" element={<EditorPlantilla />} />
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="importacion-individual" element={<ImportacionIndividualPage />} />
-        
         <Route path="Resumen" element={<Resumen />} />
+        <Route path="Dashboard-General" element={<DashboardGeneral />} />
       </Route>
 
       {/* Ruta pública - Accesible sin autenticación */}

@@ -9,6 +9,7 @@ import {
   CheckCircle,
   Clock,
   Ellipsis,
+  Eye,
 } from "lucide-react";
 import { Button, Input } from "@headlessui/react";
 import EmojiSelector from "./EmojiSelector";
@@ -42,6 +43,17 @@ export default function ChatModal({ open, onClose, chatData = [], ticket, telefo
   const menuRef = useRef(null);
   const inputRef = useRef(null);
   const isMobile = useIsMobile();
+
+  const isImageUrl = (text) => {
+    if (!text || typeof text !== "string") return false;
+    const trimmed = text.trim();
+    // Regex para detectar URLs de imágenes comunes
+    return (
+      trimmed.match(/^https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg)(?:\?.*)?$/i) != null ||
+      trimmed.startsWith("https://images.unsplash.com") ||
+      trimmed.startsWith("data:image/")
+    );
+  };
 
   const isClosed = estatus?.toLowerCase() === "cerrado";
 
@@ -192,35 +204,36 @@ export default function ChatModal({ open, onClose, chatData = [], ticket, telefo
     <div className="fixed bottom-0 right-0 md:bottom-4 md:right-4 z-50">
       {/* Modal de vista previa */}
       {previewFile && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]">
-          <div className="max-w-4xl max-h-[90vh] p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
-              <div className="flex justify-between items-center p-4 border-b">
-                <h3 className="font-semibold text-gray-900 dark:text-white">
-                  {previewFile.name}
-                </h3>
-                <button
-                  onClick={() => setPreviewFile(null)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-4 max-h-[70vh] overflow-auto">
-                {previewFile.preview ? (
-                  <img
-                    src={previewFile.preview}
-                    alt={previewFile.name}
-                    className="max-w-full max-h-full object-contain mx-auto"
-                  />
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">Vista previa no disponible para este tipo de archivo</p>
-                  </div>
-                )}
-              </div>
-            </div>
+        <div 
+          className="fixed inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center z-[100] animate-in fade-in duration-300"
+          onClick={() => setPreviewFile(null)}
+        >
+          <div className="absolute top-4 right-4 flex gap-4">
+            <button
+              onClick={() => setPreviewFile(null)}
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+              title="Cerrar"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
+          
+          <div 
+            className="max-w-[95vw] max-h-[85vh] flex items-center justify-center p-4 animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={previewFile.preview || previewFile.url}
+              alt={previewFile.name || "Vista previa"}
+              className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+            />
+          </div>
+          
+          {previewFile.name && (
+            <div className="absolute bottom-10 px-6 py-2 bg-black/40 backdrop-blur-md rounded-full text-white text-sm">
+              {previewFile.name}
+            </div>
+          )}
         </div>
       )}
 
@@ -368,7 +381,20 @@ export default function ChatModal({ open, onClose, chatData = [], ticket, telefo
                             }`}
                           >
                             {mensaje.texto && (
-                              <p className="text-sm">{mensaje.texto}</p>
+                              isImageUrl(mensaje.texto) ? (
+                                <div className="cursor-pointer overflow-hidden rounded-lg group relative" onClick={() => handlePreviewFile({ preview: mensaje.texto, name: "" })}>
+                                  <img 
+                                    src={mensaje.texto} 
+                                    alt="Imagen del chat" 
+                                    className="max-w-full h-auto object-cover hover:scale-105 transition-transform duration-300"
+                                  />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                    <Eye className="text-white opacity-0 group-hover:opacity-100 w-8 h-8 drop-shadow-lg" />
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-sm">{mensaje.texto}</p>
+                              )
                             )}
                             
                             {/* Archivos en mensajes */}
