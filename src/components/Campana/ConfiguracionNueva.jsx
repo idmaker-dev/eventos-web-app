@@ -4,6 +4,8 @@ import { Button } from "@headlessui/react";
 import useAutomatizaciones from "../../hooks/useAutomatizaciones";
 import { useNotifications } from "../../contexts/NotificationContext";
 import clsx from "clsx";
+import RichTextEditor from "./RichTextEditor";
+import EditorHelp from "./EditorHelp";
 
 export default function ConfiguracionNueva({ campana, onVolver }) {
   const { actualizarAutomatizacion, obtenerAutomatizacionPorId, loading } = useAutomatizaciones();
@@ -490,6 +492,9 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
           </div>
         </div>
       </div>
+      
+      {/* Ayuda flotante del editor */}
+      {(panelActual === 3) && <EditorHelp />}
     </div>
   );
 }
@@ -836,26 +841,13 @@ function PanelAcciones({ acciones, setAcciones, errores }) {
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Mensaje
                 </label>
-                <textarea
+                <RichTextEditor
                   value={accion.mensaje}
-                  onChange={(e) =>
-                    actualizarAccion(index, "mensaje", e.target.value)
+                  onChange={(contenido) =>
+                    actualizarAccion(index, "mensaje", contenido)
                   }
                   placeholder="Hola {{nombre}}, este es tu mensaje..."
-                  rows={4}
-                  className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 resize-none"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Variables disponibles: {"{"}
-                  {"{"}nombre{"}"}
-                  {"}"}, {"{"}
-                  {"{"}telefono{"}"}
-                  {"}"}, {"{"}
-                  {"{"}evento_nombre{"}"}
-                  {"}"}, {"{"}
-                  {"{"}monto_pendiente{"}"}
-                  {"}"}
-                </p>
               </div>
             )}
 
@@ -889,16 +881,14 @@ function PanelAcciones({ acciones, setAcciones, errores }) {
                 />
 
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Contenido (opcional)
+                  Contenido del Email
                 </label>
-                <textarea
+                <RichTextEditor
                   value={accion.mensaje}
-                  onChange={(e) =>
-                    actualizarAccion(index, "mensaje", e.target.value)
+                  onChange={(contenido) =>
+                    actualizarAccion(index, "mensaje", contenido)
                   }
-                  placeholder="Contenido adicional del email..."
-                  rows={4}
-                  className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 resize-none"
+                  placeholder="Escribe el contenido del correo aquí..."
                 />
               </div>
             )}
