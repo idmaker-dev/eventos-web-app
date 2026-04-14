@@ -17,6 +17,7 @@ import "react-circular-progressbar/dist/styles.css";
 import { useAuth } from "../hooks/useAuth";
 import DashboardGeneralService from "../services/DashboardGeneralService";
 import { useSelectedEvent } from "../contexts/SelectedEventContext";
+import DetalleEvento from "../components/Modales/DetalleEvento";
 
 export default function DashboardGeneral() {
   const [loading, setLoading] = useState(true);
@@ -45,6 +46,8 @@ export default function DashboardGeneral() {
     visualizacion: false,
     tablas: false,
   });
+  const [eventoSeleccionado, setEventoSeleccionado] = useState(null);
+  const [modalDetalleOpen, setModalDetalleOpen] = useState(false);
 
   const toggleCollapse = (section) => {
     setCollapsed((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -140,6 +143,16 @@ export default function DashboardGeneral() {
     // Desmarcar filtro por evento
     setFiltrarPorEvento(false);
     setLocalEventoId("");
+  };
+
+  const handleVerDetalle = (evento) => {
+    setEventoSeleccionado(evento);
+    setModalDetalleOpen(true);
+  };
+
+  const handleCloseDetalle = () => {
+    setModalDetalleOpen(false);
+    setEventoSeleccionado(null);
   };
 
   // const handleLogout = async () => {
@@ -1022,6 +1035,13 @@ export default function DashboardGeneral() {
           </linearGradient>
         </defs>
       </svg>
+
+      {/* Modal de detalle de evento */}
+      <DetalleEvento
+        open={modalDetalleOpen}
+        onClose={handleCloseDetalle}
+        evento={eventoSeleccionado}
+      />
     </div>
   );
 }

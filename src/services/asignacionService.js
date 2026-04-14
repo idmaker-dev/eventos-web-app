@@ -720,7 +720,7 @@ class AsignacionService {
       }
 
       if (!eventoId) {
-        throw new Error("eventoId es requerido");
+        throw new Error("El ID del evento es requerido para la descarga.");
       }
 
       const response = await httpService.get(

@@ -100,43 +100,123 @@ export default function DetalleEvento({ open, onClose, evento }) {
   };
 
   const handleDescargarDistribucion = async () => {
-    if (!eventoData?.id) {
-      alert("No se puede descargar: ID de evento no disponible");
-      return;
-    }
-
     setDescargando(true);
 
     try {
-      console.log(
-        "📥 Descargando Excel de distribución para evento:",
-        eventoData.id
-      );
+      // Importación dinámica de exceljs
+      const { default: ExcelJS } = await import("exceljs");
+      const workbook = new ExcelJS.Workbook();
+      
+      const shResumen = workbook.addWorksheet("Resumen de Distribución");
 
-      // 🆕 Usar el mismo endpoint que el Monitor (descarga directa del backend)
-      const blob = await asignacionService.descargarExcelSelecciones(eventoData.id);
+      // --- CONFIGURACIÓN DE ESTILOS ---
+      const headerFill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF246370' } // Color institucional
+      };
+      const headerFont = {
+        name: 'Arial',
+        size: 11,
+        bold: true,
+        color: { argb: 'FFFFFFFF' }
+      };
+      const centeredAlignment = { horizontal: 'center', vertical: 'middle' };
+      const borderStyle = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
 
-      // Crear link de descarga
+      // Configuración de columnas
+      shResumen.getColumn(1).width = 25;
+      shResumen.getColumn(2).width = 40;
+      shResumen.getColumn(3).width = 20;
+
+      // 1. TÍTULO Y FECHA
+      shResumen.mergeCells('A1:C1');
+      const titleCell = shResumen.getCell('A1');
+      titleCell.value = "REPORTE DE DISTRIBUCIÓN Y FINANZAS";
+      titleCell.font = { bold: true, size: 16, color: { argb: 'FF246370' } };
+      titleCell.alignment = centeredAlignment;
+
+      shResumen.mergeCells('A2:C2');
+      const eventTitleCell = shResumen.getCell('A2');
+      eventTitleCell.value = (eventoData.nombre_evento || "Evento").toUpperCase();
+      eventTitleCell.font = { bold: true, size: 14 };
+      eventTitleCell.alignment = centeredAlignment;
+
+      shResumen.addRow([]); // Espacio
+
+      // 2. INFORMACIÓN GENERAL
+      const addSectionHeader = (text) => {
+        const row = shResumen.addRow([text]);
+        shResumen.mergeCells(`A${row.number}:C${row.number}`);
+        row.getCell(1).fill = headerFill;
+        row.getCell(1).font = headerFont;
+        row.getCell(1).alignment = { horizontal: 'left' };
+      };
+
+      addSectionHeader("INFORMACIÓN GENERAL");
+      shResumen.addRow(["Institución", eventoData.instituto || "No especificado"]);
+      shResumen.addRow(["Licenciatura", eventoData.licenciatura || "No especificado"]);
+      shResumen.addRow(["Fecha del evento", formatDate(eventoData.fecha_evento)]);
+      shResumen.addRow(["Hora", formatTime(eventoData.hora_evento)]);
+      shResumen.addRow(["Tipo de evento", eventoData.tipo || "No especificado"]);
+      shResumen.addRow(["Coordinador", eventoData.coordinador_evento || "No especificado"]);
+      shResumen.addRow(["Capacidad Máxima", eventoData.asistentes_maximos || 0]);
+      shResumen.addRow([]);
+
+      // 3. ESTADÍSTICAS DE ASISTENCIA
+      addSectionHeader("ASISTENCIA");
+      shResumen.addRow(["Graduados registrados", evento.asistentesAlumnos || evento.asistentes_alumnos || 0]);
+      shResumen.addRow([]);
+
+      // 4. INFORMACIÓN FINANCIERA
+      addSectionHeader("RESUMEN FINANCIERO");
+      shResumen.addRow(["Concepto", "Métrica / Cantidad", "Monto"]);
+      
+      const financialRows = [
+        ["Costo por boleto", "", eventoData.costo || 0],
+        ["Boletos Apartados", evento.boletosApartados || 0, evento.boletosApartadosDinero || 0],
+        ["Boletos Pagados", `${evento.boletosPagados || 0} (${evento.porcentajePagados || 0}%)`, evento.boletosPagadosDinero || 0],
+        ["Abonos Realizados", `${evento.porcentajeAbonado || 0}% de avance`, evento.abonoRealizado || 0],
+        ["Pendiente por Pagar", evento.boletosPorPagar || 0, evento.boletosPorPagarDinero || 0]
+      ];
+
+      financialRows.forEach(dataRow => {
+        const row = shResumen.addRow(dataRow);
+        row.getCell(3).numFmt = '"$"#,##0.00';
+      });
+
+      // Estilos finales a todas las celdas con datos
+      shResumen.eachRow((row, rowNumber) => {
+        if (rowNumber > 3) {
+          row.eachCell((cell) => {
+            cell.border = borderStyle;
+          });
+        }
+      });
+
+      // Descarga del archivo
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
+      const anchor = document.createElement("a");
+      anchor.href = url;
       
-      const fechaActual = new Date().toISOString().split("T")[0];
-      const nombreArchivo = `Distribucion_Mesas_${eventoData.nombre_evento || "Evento"}_${fechaActual}.xlsx`;
+      const fecha = new Date().toISOString().split("T")[0];
+      const nombreLimpio = (eventoData.nombre_evento || "Evento").replace(/[^a-z0-9]/gi, '_');
+      anchor.download = `Distribucion_${nombreLimpio}_${fecha}.xlsx`;
       
-      link.setAttribute("download", nombreArchivo);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
+      anchor.click();
       window.URL.revokeObjectURL(url);
 
-      console.log("✅ Excel descargado exitosamente");
+      console.log("✅ Excel de detalle generado localmente exitosamente");
     } catch (error) {
-      console.error("❌ Error al descargar Excel:", error);
-      alert(
-        `Error al descargar el Excel: ${error.message || "Error desconocido"}`
-      );
+      console.error("❌ Error al generar Excel local:", error);
+      alert("Error al intentar exportar a Excel. Por favor, intenta de nuevo.");
     } finally {
       setDescargando(false);
     }
