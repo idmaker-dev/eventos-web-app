@@ -393,18 +393,9 @@ class EventService {
         nombre_solicitante: nombreSolicitante,
       });
       return response?.data || response;
-      // return {
-      //   success: true,
-      //   data: response?.data || response,
-      //   message: "Se ha iniciado el proceso de devolución correctamente",
-      // };
     } catch (error) {
       console.error("Error al aplicar devolución:", error);
       throw error;
-      // return {
-      //   success: false,
-      //   error: error?.data?.error || "Error al aplicar devolución",
-      // };
     }
   }
 
@@ -458,6 +449,52 @@ class EventService {
       return {
         success: false,
         error: error.userMessage || error.message || "Error al exportar pagos",
+      };
+    }
+  }
+
+  /**
+   * Solicitar la cancelación de boletos (Módulo de Cancelaciones)
+   * @param {Object} data - Datos de la cancelación (invitadoId, cantidad, banco, etc.)
+   */
+  async solicitarCancelacion(data) {
+    try {
+      const response = await httpService.post("/pagos/cancelar-boletos", data);
+
+      return {
+        success: true,
+        data: response.data || response,
+        message: "Solicitud de cancelación enviada correctamente",
+      };
+    } catch (error) {
+      console.error("Error al solicitar cancelación:", error);
+      return {
+        success: false,
+        error: error?.data?.error || error.userMessage || "Error al solicitar cancelación",
+      };
+    }
+  }
+
+  /**
+   * Obtener el listado de cancelaciones de un invitado
+   * @param {string} invitadoId - ID del invitado
+   */
+  async getCancelacionesPorInvitado(invitadoId) {
+    try {
+      const response = await httpService.get(
+        `/pagos/cancelaciones?id_invitado=${invitadoId}`
+      );
+
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      console.error("Error al obtener cancelaciones:", error);
+      return {
+        success: false,
+        error: error.userMessage || "Error al obtener cancelaciones",
+        data: [],
       };
     }
   }

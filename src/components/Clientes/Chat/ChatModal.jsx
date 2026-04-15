@@ -392,7 +392,8 @@ export default function ChatModal({ open, onClose, chatData = [], ticket, telefo
                                     <Eye className="text-white opacity-0 group-hover:opacity-100 w-8 h-8 drop-shadow-lg" />
                                   </div>
                                 </div>
-                              ) : (
+                              ) :
+                                (
                                 <p className="text-sm">{mensaje.texto}</p>
                               )
                             )}

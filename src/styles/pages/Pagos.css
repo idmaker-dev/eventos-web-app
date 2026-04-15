@@ -233,6 +233,14 @@
   background: #f3f4f6;
   color: #374151;
 }
+.btn-cancelar {
+  background: #fff7ed;
+  color: #f97316;
+  margin-left: 8px;
+}
+.btn-cancelar:hover {
+  background: #ffedd5;
+}
 .btn-eliminar {
   margin-left: 8px;
 }

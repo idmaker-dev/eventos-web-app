@@ -540,17 +540,17 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
   }));
 
   // Simulación: Agregar un mensaje con imagen si hay mensajes
-  if (mensajesFormateados.length > 0) {
-    mensajesFormateados.push({
-      id: "simulated-img-1",
-      remitente: "Cliente",
-      from: "usuario",
-      texto: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      hora: formatearFechaHora(new Date().toISOString()),
-      timestamp: new Date().toISOString(),
-      leido: true,
-    });
-  }
+  // if (mensajesFormateados.length > 0) {
+  //   mensajesFormateados.push({
+  //     id: "simulated-img-1",
+  //     remitente: "Cliente",
+  //     from: "usuario",
+  //     texto: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
+  //     hora: formatearFechaHora(new Date().toISOString()),
+  //     timestamp: new Date().toISOString(),
+  //     leido: true,
+  //   });
+  // }
 
   return {
     id: ticket.id,
@@ -676,5 +676,6 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
       cuotas: informacionPago.cuotas || {},
     },
     invitado_id: clientInfo?.invitado_id || null,
+    evento_id: evento?.id || null,
   };
 }

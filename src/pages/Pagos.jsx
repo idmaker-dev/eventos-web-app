@@ -5,11 +5,12 @@ import EstadoAprobado from "../assets/recursos/EstadoAprobado.svg";
 import EstadoParcial from "../assets/recursos/EstadoParcial.svg";
 import DetalleFacturas from "../components/Pagos/DetalleFacturas";
 import ModalExportarPagos from "../components/Pagos/ModalExportarPagos";
+import ModalCancelacionBoletos from "../components/Modales/ModalCancelacionBoletos";
 import eventService from "../services/eventService";
 import { useSelectedEvent } from "../contexts/SelectedEventContext";
 import { useSignalRPagos } from "../hooks/useSignalRPagos";
 import { useNotifications } from "../contexts/NotificationContext";
-import { Trash2 } from "lucide-react";
+import { Trash2, TicketX } from "lucide-react";
 import ConfirmDialog from "../components/Modales/ConfirmDialog";
 
 export default function Pagos({ darkMode }) {
@@ -27,6 +28,10 @@ export default function Pagos({ darkMode }) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [invitadoToDelete, setInvitadoToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Estados para cancelación
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [deudaToCancel, setDeudaToCancel] = useState(null);
 
   // Función para cargar deudas del evento
   const cargarDeudas = useCallback(async () => {
@@ -386,6 +391,18 @@ export default function Pagos({ darkMode }) {
                   >
                     <Trash2 size={18} color="#ef4444" />
                   </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeudaToCancel(deuda);
+                      setIsCancelModalOpen(true);
+                    }}
+                    className="btn-accion btn-cancelar"
+                    title="Cancelar boletos"
+                  >
+                    <TicketX size={18} color="#f97316" />
+                  </button>
                 </div>
               </div>
             );
@@ -452,6 +469,17 @@ export default function Pagos({ darkMode }) {
           }
         }}
         onConfirm={handleEliminarAlumno}
+      />
+
+      {/* Modal de Cancelación de Boletos */}
+      <ModalCancelacionBoletos
+        open={isCancelModalOpen}
+        onClose={() => {
+          setIsCancelModalOpen(false);
+          setDeudaToCancel(null);
+        }}
+        deuda={deudaToCancel}
+        onSuccess={cargarDeudas}
       />
     </div>
   );
