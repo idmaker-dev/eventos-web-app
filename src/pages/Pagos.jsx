@@ -392,7 +392,7 @@ export default function Pagos({ darkMode }) {
                     <Trash2 size={18} color="#ef4444" />
                   </button>
 
-                  <button
+                  {/* <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setDeudaToCancel(deuda);
@@ -402,7 +402,7 @@ export default function Pagos({ darkMode }) {
                     title="Cancelar boletos"
                   >
                     <TicketX size={18} color="#f97316" />
-                  </button>
+                  </button> */}
                 </div>
               </div>
             );
