@@ -17,13 +17,33 @@ Se ha implementado un editor de texto enriquecido (Rich Text Editor) para mejora
 ### 📋 Variables Dinámicas
 - Botones para insertar variables fácilmente
 - Variables destacadas en azul y negrita
-- Soporte para TODAS las variables del sistema:
-  - `{{nombre}}`, `{{nombre_completo}}`
-  - `{{correo}}`, `{{telefono}}`
-  - `{{instituto}}`, `{{licenciatura}}`
-  - `{{monto_total}}`, `{{monto_pendiente}}`
-  - `{{fecha_vencimiento_proxima}}`
-  - Y más...
+- Más de 60 variables organizadas en 6 categorías:
+
+**📅 Evento (8 variables):**
+  - `{{evento.nombre}}`, `{{evento.fecha}}`, `{{evento.hora}}`
+  - `{{evento.lugar}}`, `{{evento.direccion}}`
+  - `{{evento.costo}}`, `{{evento.costo_numerico}}`, `{{evento.institucion}}`
+
+**👤 Invitado (29 variables):**
+  - Nombres: `{{invitado.nombre_completo}}`, `{{invitado.nombre}}`, `{{nombre}}`
+  - Apellidos: `{{invitado.apellido_paterno}}`, `{{apellido_paterno}}`, `{{apellido_materno}}`
+  - Contacto: `{{invitado.correo}}`, `{{correo}}`, `{{invitado.telefono}}`, `{{telefono}}`, `{{numero}}`
+  - Datos: `{{invitado.fecha_nacimiento}}`, `{{invitado.edad}}`, `{{invitado.es_mayor_edad}}`
+  - Académico: `{{invitado.licenciatura}}`, `{{licenciatura}}`, `{{invitado.escuela}}`, `{{instituto}}`
+  - Boletos: `{{invitado.cantidad_boletos}}`, `{{cantidad_boletos}}`
+
+**👨‍👩‍👧 Tutor (3 variables):**
+  - `{{tutor.nombre_completo}}`, `{{tutor.telefono}}`, `{{tutor.relacion}}`
+
+**💰 Pagos (10 variables):**
+  - Montos: `{{monto_total}}`, `{{monto_total_numerico}}`, `{{monto_pendiente}}`
+  - Deuda: `{{deuda.monto_total}}`, `{{deuda.monto_pendiente}}`, `{{deuda.estado}}`
+  - Vencimientos: `{{deuda.fecha_vencimiento_proxima}}`
+  - Toku: `{{pago.numero_facturas}}`, `{{pago.fecha_primer_vencimiento}}`, `{{pago.monto_primera_factura}}`
+
+**📅 Sistema (7 variables):**
+  - `{{fecha_actual}}`, `{{dia_actual}}`, `{{mes_actual}}`, `{{anio_actual}}`
+  - `{{mes_actual_texto}}`, `{{fecha_firma}}`, `{{hora_firma}}`
 
 ### 🌓 Tema Oscuro/Claro
 - Soporte completo para tema oscuro
@@ -171,6 +191,81 @@ Tu pago de _$2000_ ha sido procesado.
 
 • Fecha: 13/04/2026
 • Monto: $2000
+```
+
+## 💡 Ejemplo Completo: Mensaje de Confirmación de Evento
+
+### Escribiendo en el Editor
+
+```html
+<h2>¡Hola {{invitado.nombre_completo}}!</h2>
+
+<p>Nos complace confirmar tu registro para <strong>{{evento.nombre}}</strong></p>
+
+<h3>📋 Detalles del Evento:</h3>
+<ul>
+  <li>📅 <strong>Fecha:</strong> {{evento.fecha}}</li>
+  <li>🕐 <strong>Hora:</strong> {{evento.hora}}</li>
+  <li>📍 <strong>Lugar:</strong> {{evento.lugar}} - {{evento.direccion}}</li>
+  <li>🎓 <strong>Instituto:</strong> {{instituto}}</li>
+</ul>
+
+<h3>💰 Información de Pago:</h3>
+<p>Monto total: <strong style="color: #059669;">{{monto_total}}</strong></p>
+<p>Plan de pagos: {{pago.numero_facturas}} cuotas</p>
+<p>Primera cuota: {{pago.monto_primera_factura}} - Vence: {{pago.fecha_primer_vencimiento}}</p>
+
+<p style="color: #6b7280; font-size: 0.9em;">
+  <em>Mensaje generado el {{fecha_actual}} a las {{hora_firma}}</em>
+</p>
+```
+
+### Salida para Email (HTML Formateado)
+
+```
+┌─────────────────────────────────────────┐
+│ ¡Hola Juan Pérez García!                │
+│                                         │
+│ Nos complace confirmar tu registro     │
+│ para ITAM VERANO 26                    │
+│                                         │
+│ 📋 Detalles del Evento:                │
+│ • 📅 Fecha: 15/06/2026                 │
+│ • 🕐 Hora: 20:00 hrs                   │
+│ • 📍 Lugar: Salón Imperial -            │
+│   Av. Reforma 123, CDMX                │
+│ • 🎓 Instituto: ITAM                    │
+│                                         │
+│ 💰 Información de Pago:                │
+│ Monto total: $5,000.00                 │
+│ Plan de pagos: 3 cuotas                │
+│ Primera cuota: $1,666.67 -             │
+│ Vence: 15/03/2026                      │
+│                                         │
+│ Mensaje generado el 13/04/2026         │
+│ a las 10:30                            │
+└─────────────────────────────────────────┘
+```
+
+### Salida para WhatsApp (Texto Plano)
+
+```
+*¡Hola Juan Pérez García!*
+
+Nos complace confirmar tu registro para *ITAM VERANO 26*
+
+*📋 Detalles del Evento:*
+• 📅 *Fecha:* 15/06/2026
+• 🕐 *Hora:* 20:00 hrs
+• 📍 *Lugar:* Salón Imperial - Av. Reforma 123, CDMX
+• 🎓 *Instituto:* ITAM
+
+*💰 Información de Pago:*
+Monto total: *$5,000.00*
+Plan de pagos: 3 cuotas
+Primera cuota: $1,666.67 - Vence: 15/03/2026
+
+_Mensaje generado el 13/04/2026 a las 10:30_
 ```
 
 ## 📦 Dependencias

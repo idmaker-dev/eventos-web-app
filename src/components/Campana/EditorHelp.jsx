@@ -95,16 +95,43 @@ export default function EditorHelp() {
 
         <section>
           <h4 className="font-semibold text-casal mb-2">🔧 Variables Disponibles</h4>
-          <div className="grid grid-cols-2 gap-1 text-xs">
-            <div className="text-gray-600 dark:text-gray-400">👤 nombre</div>
-            <div className="text-gray-600 dark:text-gray-400">📧 correo</div>
-            <div className="text-gray-600 dark:text-gray-400">📱 telefono</div>
-            <div className="text-gray-600 dark:text-gray-400">🎓 instituto</div>
-            <div className="text-gray-600 dark:text-gray-400">💰 monto_total</div>
-            <div className="text-gray-600 dark:text-gray-400">📅 fecha_vencimiento</div>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+            El sistema tiene más de 60 variables organizadas en categorías:
+          </p>
+          <div className="space-y-2 text-xs">
+            <div>
+              <span className="font-semibold text-blue-600 dark:text-blue-400">📅 Evento:</span>
+              <span className="text-gray-600 dark:text-gray-400 ml-1">
+                nombre, fecha, hora, lugar, dirección, costo, institución
+              </span>
+            </div>
+            <div>
+              <span className="font-semibold text-green-600 dark:text-green-400">👤 Invitado:</span>
+              <span className="text-gray-600 dark:text-gray-400 ml-1">
+                nombre, apellidos, email, teléfono, edad, licenciatura, escuela
+              </span>
+            </div>
+            <div>
+              <span className="font-semibold text-purple-600 dark:text-purple-400">👨‍👩‍👧 Tutor:</span>
+              <span className="text-gray-600 dark:text-gray-400 ml-1">
+                nombre completo, teléfono, relación
+              </span>
+            </div>
+            <div>
+              <span className="font-semibold text-yellow-600 dark:text-yellow-400">💰 Pagos:</span>
+              <span className="text-gray-600 dark:text-gray-400 ml-1">
+                monto total, pendiente, estado, vencimientos, número de facturas
+              </span>
+            </div>
+            <div>
+              <span className="font-semibold text-red-600 dark:text-red-400">📅 Sistema:</span>
+              <span className="text-gray-600 dark:text-gray-400 ml-1">
+                fecha actual, día, mes, año, fecha de firma
+              </span>
+            </div>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-            ... y muchas más en los botones arriba del editor
+            ℹ️ Usa los botones arriba del editor para insertar cualquier variable
           </p>
         </section>
       </div>

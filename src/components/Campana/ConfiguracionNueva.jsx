@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { ChevronLeft, Check, AlertCircle, CircleCheckBig, MoreHorizontal } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { ChevronLeft, Check, AlertCircle, CircleCheckBig, MoreHorizontal, Info } from "lucide-react";
 import { Button } from "@headlessui/react";
 import useAutomatizaciones from "../../hooks/useAutomatizaciones";
 import { useNotifications } from "../../contexts/NotificationContext";
 import clsx from "clsx";
 import RichTextEditor from "./RichTextEditor";
 import EditorHelp from "./EditorHelp";
+import { obtenerFiltrosDisponibles, obtenerMensajeAyuda } from "./filtrosContextuales";
+import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 
 export default function ConfiguracionNueva({ campana, onVolver }) {
   const { actualizarAutomatizacion, obtenerAutomatizacionPorId, loading } = useAutomatizaciones();
   const { showSuccess, showError, showWarning } = useNotifications();
+  const { eventos } = useSelectedEvent();
 
   // Estado para los 4 paneles de configuración
   const [panelActual, setPanelActual] = useState(1);
@@ -34,33 +37,88 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
     };
   });
 
-  // Panel 2: Filtros de destinatarios
+  // Panel 2: Filtros de destinatarios (expandido con nuevos campos)
   const [filtros, setFiltros] = useState(() => {
+    const defaultFiltros = {
+      // Filtros básicos
+      tiene_telefono: true,
+      tiene_email: false,
+      id_evento: "",
+      
+      // Filtros académicos
+      instituto: "",
+      licenciatura: "",
+      escuela: "",
+      
+      // Filtros personales
+      es_mayor_edad: null,
+      rango_edad_min: null,
+      rango_edad_max: null,
+      
+      // Filtros de boletos
+      tiene_boletos: false,
+      cantidad_boletos_min: null,
+      
+      // Filtros de deuda
+      estado_deuda: [],
+      monto_pendiente_min: null,
+      monto_pendiente_max: null,
+      dias_hasta_vencimiento: null,
+      
+      // Filtros de turnos
+      turno_confirmado: null,
+      tiene_turno_asignado: false,
+      
+      // Filtros de mesas
+      mesa_seleccionada: null,
+      tiene_restricciones_alimentarias: false,
+      
+      // Filtros de tutor
+      tiene_tutor: false,
+      
+      // Filtros de contrato
+      contrato_firmado: null,
+    };
+    
     if (campana?.filtros_destinatarios) {
       return {
-        tiene_telefono: campana.filtros_destinatarios.tiene_telefono !== undefined 
-          ? campana.filtros_destinatarios.tiene_telefono 
-          : true,
-        estado_deuda: Array.isArray(campana.filtros_destinatarios.estado_deuda) 
-          ? campana.filtros_destinatarios.estado_deuda 
-          : [],
-        turno_confirmado: campana.filtros_destinatarios.turno_confirmado !== undefined
-          ? campana.filtros_destinatarios.turno_confirmado
-          : null,
-        mesa_seleccionada: campana.filtros_destinatarios.mesa_seleccionada !== undefined
-          ? campana.filtros_destinatarios.mesa_seleccionada
-          : null,
+        ...defaultFiltros,
+        ...campana.filtros_destinatarios,
         id_evento: campana.filtros_destinatarios.id_evento || campana.id_evento || "",
       };
     }
-    return {
-      tiene_telefono: true,
-      estado_deuda: [],
-      turno_confirmado: null,
-      mesa_seleccionada: null,
-      id_evento: "",
-    };
+    
+    return defaultFiltros;
   });
+  
+  // Calcular filtros relevantes según el disparador
+  const filtrosRelevantes = useMemo(() => {
+    return obtenerFiltrosDisponibles(disparador.tipo, disparador.evento_tipo);
+  }, [disparador.tipo, disparador.evento_tipo]);
+
+  // Resetear todos los filtros cuando cambia el tipo de disparador/evento
+  useEffect(() => {
+    setFiltros(prev => ({
+      // Solo conservar los básicos con sus valores actuales
+      tiene_telefono: prev.tiene_telefono ?? true,
+      tiene_email: false,
+      id_evento: prev.id_evento ?? "",
+      // Todo lo demás vuelve a defaults
+      instituto: "", licenciatura: "", escuela: "",
+      es_mayor_edad: null, rango_edad_min: null, rango_edad_max: null,
+      tiene_boletos: false, cantidad_boletos_min: null,
+      estado_deuda: [], monto_pendiente_min: null, monto_pendiente_max: null, dias_hasta_vencimiento: null,
+      turno_confirmado: null, tiene_turno_asignado: false,
+      mesa_seleccionada: null, tiene_restricciones_alimentarias: false,
+      tiene_tutor: false, contrato_firmado: null,
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disparador.tipo, disparador.evento_tipo]);
+  
+  // Obtener mensaje de ayuda contextual
+  const mensajeAyudaFiltros = useMemo(() => {
+    return obtenerMensajeAyuda(disparador.tipo, disparador.evento_tipo);
+  }, [disparador.tipo, disparador.evento_tipo]);
 
   // Panel 3: Acciones
   const [acciones, setAcciones] = useState(() => {
@@ -443,6 +501,10 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
                   <PanelFiltros
                     filtros={filtros}
                     setFiltros={setFiltros}
+                    filtrosRelevantes={filtrosRelevantes}
+                    mensajeAyuda={mensajeAyudaFiltros}
+                    disparador={disparador}
+                    eventos={eventos}
                   />
                 )}
                 {panelActual === 3 && (
@@ -632,131 +694,302 @@ function PanelDisparador({ disparador, setDisparador, error }) {
 }
 
 // ========== PANEL 2: FILTROS ==========
-function PanelFiltros({ filtros, setFiltros }) {
+function PanelFiltros({ filtros, setFiltros, filtrosRelevantes, mensajeAyuda, disparador, eventos }) {
+  // Función auxiliar para actualizar filtro
+  const actualizarFiltro = (key, value) => {
+    setFiltros({ ...filtros, [key]: value });
+  };
+
+  // Contar filtros activos
+  const contarFiltrosActivos = () => {
+    return Object.entries(filtros).filter(([key, value]) => {
+      if (key === 'id_evento') return false; // id_evento no cuenta como filtro activo
+      if (value === null || value === '' || value === false) return false;
+      if (Array.isArray(value) && value.length === 0) return false;
+      return true;
+    }).length;
+  };
+
+  const filtrosActivos = contarFiltrosActivos();
+
+  // Renderizar filtro según su tipo
+  const renderizarFiltro = (key, config) => {
+    switch (config.tipo) {
+      case 'boolean':
+        return (
+          <div key={key} className="mb-6">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filtros[key] || false}
+                onChange={(e) => actualizarFiltro(key, e.target.checked)}
+                className="w-5 h-5 text-casal border-gray-300 rounded focus:ring-casal cursor-pointer"
+              />
+              <span className="ml-3 text-gray-700 dark:text-gray-300 font-medium">
+                {config.label}
+                {config.es_recomendado && (
+                  <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                    Recomendado
+                  </span>
+                )}
+              </span>
+            </label>
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-8">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+
+      case 'text':
+        return (
+          <div key={key} className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {config.label}
+              {config.es_recomendado && (
+                <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                  Recomendado
+                </span>
+              )}
+            </label>
+            <input
+              type="text"
+              value={filtros[key] || ''}
+              onChange={(e) => actualizarFiltro(key, e.target.value)}
+              placeholder={config.placeholder || ''}
+              className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300"
+            />
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+
+      case 'select': {
+        // Resolver opciones dinámicas
+        let opciones = config.opciones || [];
+        if (config.opciones_dinamicas === 'eventos' && eventos?.length > 0) {
+          opciones = eventos.map(ev => ({ value: ev.id, label: ev.nombreEvento || ev.nombre_evento || ev.nombre || ev.id }));
+        }
+        return (
+          <div key={key} className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {config.label}
+              {config.es_recomendado && (
+                <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                  Recomendado
+                </span>
+              )}
+            </label>
+            <select
+              value={filtros[key] || ''}
+              onChange={(e) => actualizarFiltro(key, e.target.value)}
+              className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 cursor-pointer"
+            >
+              <option value="">{config.placeholder || 'Seleccionar...'}</option>
+              {opciones.map((op) => (
+                <option key={op.value} value={op.value}>
+                  {op.label}
+                </option>
+              ))}
+            </select>
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+      }
+
+      case 'number':
+        return (
+          <div key={key} className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {config.label}
+              {config.es_recomendado && (
+                <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                  Recomendado
+                </span>
+              )}
+            </label>
+            <div className="relative">
+              {config.prefix && (
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                  {config.prefix}
+                </span>
+              )}
+              <input
+                type="number"
+                value={filtros[key] || ''}
+                onChange={(e) => actualizarFiltro(key, e.target.value ? parseInt(e.target.value) : null)}
+                min={config.min}
+                max={config.max}
+                placeholder={config.placeholder || ''}
+                className={clsx(
+                  "w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300",
+                  config.prefix && "pl-8"
+                )}
+              />
+            </div>
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+
+      case 'tristate':
+        return (
+          <div key={key} className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {config.label}
+              {config.es_recomendado && (
+                <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                  Recomendado
+                </span>
+              )}
+            </label>
+            <div className="flex gap-4">
+              {config.opciones.map((opcion) => (
+                <button
+                  key={String(opcion.value)}
+                  onClick={() => actualizarFiltro(key, opcion.value)}
+                  className={clsx(
+                    "flex-1 py-2 px-4 rounded-lg border-2 font-medium transition-all",
+                    filtros[key] === opcion.value
+                      ? "border-casal bg-casal text-white"
+                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-casal/50"
+                  )}
+                >
+                  {opcion.label}
+                </button>
+              ))}
+            </div>
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+
+      case 'multiselect':
+        return (
+          <div key={key} className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {config.label}
+              {config.es_recomendado && (
+                <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                  Recomendado
+                </span>
+              )}
+            </label>
+            <div className="space-y-2">
+              {config.opciones.map((opcion) => {
+                const valor = typeof opcion === 'string' ? opcion : opcion.value;
+                const etiqueta = typeof opcion === 'string' ? opcion : opcion.label;
+                const estaSeleccionado = Array.isArray(filtros[key]) && filtros[key].includes(valor);
+
+                return (
+                  <label key={valor} className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={estaSeleccionado}
+                      onChange={(e) => {
+                        const valoresActuales = Array.isArray(filtros[key]) ? filtros[key] : [];
+                        const nuevosValores = e.target.checked
+                          ? [...valoresActuales, valor]
+                          : valoresActuales.filter((v) => v !== valor);
+                        actualizarFiltro(key, nuevosValores);
+                      }}
+                      className="w-4 h-4 text-casal border-gray-300 rounded focus:ring-casal cursor-pointer"
+                    />
+                    <span className="ml-2 text-gray-700 dark:text-gray-300">
+                      {etiqueta}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // Verificar si hay disparador configurado
+  const hayDisparadorConfigado = disparador.tipo && 
+    (disparador.tipo !== 'evento' || disparador.evento_tipo);
+
   return (
     <div>
       <h3 className="text-xl font-bold text-casal mb-4">
         2. Filtros de Destinatarios
       </h3>
       <p className="text-gray-600 dark:text-gray-400 mb-6">
-        Define qué usuarios recibirán esta automatización
+        Define qué usuarios recibirán esta automatización. 
+        {filtrosActivos > 0 && (
+          <span className="ml-2 text-sm font-semibold text-casal">
+            ({filtrosActivos} {filtrosActivos === 1 ? 'filtro activo' : 'filtros activos'})
+          </span>
+        )}
       </p>
 
-      {/* Tiene teléfono */}
-      <div className="mb-6">
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={filtros.tiene_telefono}
-            onChange={(e) =>
-              setFiltros({ ...filtros, tiene_telefono: e.target.checked })
-            }
-            className="w-5 h-5 text-casal border-gray-300 rounded focus:ring-casal"
-          />
-          <span className="ml-3 text-gray-700 dark:text-gray-300 font-medium">
-            Solo usuarios con teléfono registrado
-          </span>
-        </label>
-      </div>
-
-      {/* ID de Evento */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          ID del Evento (Opcional)
-        </label>
-        <input
-          type="text"
-          value={filtros.id_evento || ""}
-          onChange={(e) => setFiltros({ ...filtros, id_evento: e.target.value })}
-          placeholder="Deja vacío para todos los eventos"
-          className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300"
-        />
-      </div>
-
-      {/* Estado de Deuda */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          Estado de Deuda
-        </label>
-        <div className="space-y-2">
-          {["PENDIENTE", "PAGADA", "VENCIDA", "PARCIAL"].map((estado) => (
-            <label key={estado} className="flex items-center">
-              <input
-                type="checkbox"
-                checked={filtros.estado_deuda?.includes(estado)}
-                onChange={(e) => {
-                  const nuevosEstados = e.target.checked
-                    ? [...(filtros.estado_deuda || []), estado]
-                    : (filtros.estado_deuda || []).filter((e) => e !== estado);
-                  setFiltros({ ...filtros, estado_deuda: nuevosEstados });
-                }}
-                className="w-4 h-4 text-casal border-gray-300 rounded focus:ring-casal"
-              />
-              <span className="ml-2 text-gray-700 dark:text-gray-300">
-                {estado}
-              </span>
-            </label>
-          ))}
+      {/* Mensaje de ayuda contextual */}
+      {mensajeAyuda && hayDisparadorConfigado && (
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex gap-3">
+          <Info size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-1">
+              Filtros contextuales
+            </p>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              {mensajeAyuda}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Turno Confirmado */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          Turno Confirmado
-        </label>
-        <div className="flex gap-4">
-          {[
-            { value: null, label: "Ambos" },
-            { value: true, label: "Sí" },
-            { value: false, label: "No" },
-          ].map((opcion) => (
-            <button
-              key={String(opcion.value)}
-              onClick={() =>
-                setFiltros({ ...filtros, turno_confirmado: opcion.value })
-              }
-              className={clsx(
-                "flex-1 py-2 px-4 rounded-lg border-2 font-medium transition-all",
-                filtros.turno_confirmado === opcion.value
-                  ? "border-casal bg-casal text-white"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-casal/50"
-              )}
-            >
-              {opcion.label}
-            </button>
-          ))}
+      {/* Advertencia si no hay disparador configurado */}
+      {!hayDisparadorConfigado && (
+        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex gap-3">
+          <AlertCircle size={20} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-1">
+              Configura el disparador primero
+            </p>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              Los filtros disponibles dependen del tipo de disparador que selecciones. 
+              Vuelve al paso 1 para configurar el disparador.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Mesa Seleccionada */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          Mesa Seleccionada
-        </label>
-        <div className="flex gap-4">
-          {[
-            { value: null, label: "Ambos" },
-            { value: true, label: "Sí" },
-            { value: false, label: "No" },
-          ].map((opcion) => (
-            <button
-              key={String(opcion.value)}
-              onClick={() =>
-                setFiltros({ ...filtros, mesa_seleccionada: opcion.value })
-              }
-              className={clsx(
-                "flex-1 py-2 px-4 rounded-lg border-2 font-medium transition-all",
-                filtros.mesa_seleccionada === opcion.value
-                  ? "border-casal bg-casal text-white"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-casal/50"
-              )}
-            >
-              {opcion.label}
-            </button>
-          ))}
+      {/* Renderizar filtros relevantes */}
+      {Object.keys(filtrosRelevantes).length > 0 ? (
+        <div className="space-y-1">
+          {Object.entries(filtrosRelevantes).map(([key, config]) => 
+            renderizarFiltro(key, config)
+          )}
         </div>
-      </div>
+      ) : (
+        <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+          <p>Selecciona un tipo de disparador en el paso 1 para ver los filtros disponibles.</p>
+        </div>
+      )}
     </div>
   );
 }
