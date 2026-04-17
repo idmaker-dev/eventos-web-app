@@ -113,6 +113,7 @@ async function fetchReal(params = {}) {
       abonoRealizado: parseMoney(e.abono_realizado),
       porcentajeAbonado: parsePercent(e.porcentaje_abonado),
     })),
+    cancelaciones: payload.cancelaciones || [],
     topTiposEventos: [], // backend aún no lo provee
     timestamp: payload.timestamp,
     raw: payload,
@@ -270,6 +271,7 @@ async function fetchMock() {
         porcentajeAbonado: 30,
       },
     ],
+    cancelaciones: [],
     topTiposEventos: [],
     timestamp: new Date().toISOString(),
     raw: null,

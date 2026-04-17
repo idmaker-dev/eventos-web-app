@@ -733,7 +733,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                           </div>
                           
                           {/* DESCOMENTAR AL TERMINAR CANCELACION */}
-                          {/* {!modificandoBoletos && (
+                          {!modificandoBoletos && (
                             <Tooltip content="Cancelar boletos (vía administrativa)">
                               <Button
                                 onClick={handleOpenCancelModal}
@@ -743,7 +743,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                                 <TicketX size={14} /> Cancelar Boletos
                               </Button>
                             </Tooltip>
-                          )} */}
+                          )}
                         </div>
 
                         {/* Panel de confirmación inline */}

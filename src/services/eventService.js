@@ -498,6 +498,84 @@ class EventService {
       };
     }
   }
+
+  /**
+   * Editar solicitud de cancelación
+   */
+  async editarCancelacion(id, data) {
+    try {
+      const response = await httpService.put(`/pagos/cancelaciones/${id}`, data);
+      return {
+        success: true,
+        data: response.data || response,
+        message: "Cancelación actualizada exitosamente",
+      };
+    } catch (error) {
+      console.error("Error al editar cancelación:", error);
+      return {
+        success: false,
+        error: error?.data?.error || error.userMessage || "Error al editar cancelación",
+      };
+    }
+  }
+
+  /**
+   * Obtener un invitado por ID
+   */
+  async getInvitadoById(id) {
+    try {
+      const response = await httpService.get(`/invitadosAlumnos/${id}`);
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      console.error("Error al obtener invitado:", error);
+      return {
+        success: false,
+        error: error.userMessage || "Error al obtener invitado",
+      };
+    }
+  }
+
+  /**
+   * Obtener deudas de un invitado especifico
+   */
+  async getDeudasByInvitado(invitadoId) {
+    try {
+      const response = await httpService.get(`/deudas?id_invitado=${invitadoId}`);
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      console.error("Error al obtener deudas del invitado:", error);
+      return {
+        success: false,
+        error: error.userMessage || "Error al obtener deudas",
+      };
+    }
+  }
+
+  /**
+   * Procesar/Confirmar devolución
+   */
+  async procesarDevolucion(id, data) {
+    try {
+      const response = await httpService.post(`/pagos/cancelaciones/${id}/procesar`, data);
+      return {
+        success: true,
+        data: response.data || response,
+        message: "Devolución procesada exitosamente",
+      };
+    } catch (error) {
+      console.error("Error al procesar devolución:", error);
+      return {
+        success: false,
+        error: error?.data?.error || error.userMessage || "Error al procesar devolución",
+      };
+    }
+  }
 }
 
 // Crear instancia singleton

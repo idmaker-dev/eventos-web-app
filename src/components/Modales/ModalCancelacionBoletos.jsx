@@ -148,6 +148,11 @@ export default function ModalCancelacionBoletos({
     e.preventDefault();
     if (!isValid) return;
 
+    if (calculo.canPagados < 1) {
+      showError("Para solicitar una cancelación debe haber al menos 1 boleto pagado. Para ajustar solo apartados, use el control de boletos estándar.");
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await eventService.solicitarCancelacion({
@@ -262,6 +267,16 @@ export default function ModalCancelacionBoletos({
               </div>
             </div>
           </div>
+
+          {/* Advertencia de Boletos Pagados */}
+          {calculo.canPagados < 1 && cantidadCancelar > 0 && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/30 mb-4">
+              <AlertCircle size={18} className="text-red-600 shrink-0" />
+              <p className="text-xs text-red-800 dark:text-red-200 leading-tight">
+                <strong>Atención:</strong> La cantidad seleccionada solo cubre boletos <strong>apartados</strong>. Una devolución requiere cancelar al menos 1 boleto <strong>pagado</strong>.
+              </p>
+            </div>
+          )}
 
           {/* Calculator Section */}
           <div className="calc-summary">
