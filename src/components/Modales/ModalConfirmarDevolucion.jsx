@@ -19,7 +19,9 @@ export default function ModalConfirmarDevolucion({ open, onClose, cancelacion, o
 
       if (response.success) {
         showSuccess(response.message || "Devolución confirmada con éxito");
-        if (onSuccess) await onSuccess();
+        if (onSuccess) {
+           setTimeout(() => onSuccess(), 800);
+        }
         onClose();
       } else {
         showError(response.error || "No se pudo confirmar la devolución");

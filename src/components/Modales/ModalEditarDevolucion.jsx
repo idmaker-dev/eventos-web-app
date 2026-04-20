@@ -130,7 +130,9 @@ export default function ModalEditarDevolucion({ open, onClose, cancelacion, onSu
 
       if (response.success) {
         showSuccess(response.message || "Cambios guardados con éxito");
-        if (onSuccess) await onSuccess();
+        if (onSuccess) {
+           setTimeout(() => onSuccess(), 800);
+        }
         onClose();
       } else {
         showError(response.error);
