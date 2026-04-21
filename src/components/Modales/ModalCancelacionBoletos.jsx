@@ -76,31 +76,38 @@ export default function ModalCancelacionBoletos({
     const montoPagadoActual = Math.round((montoTotal - montoPendiente) * 100) / 100;
 
     // --- NUEVA LÓGICA OBLIGATORIA (Análisis por Factura) ---
-    let totalPagadosDesdeFacturas = 0;
+    let totalBoletosPagados = 0;
+    let totalBoletosAbonados = 0;
 
     (deuda.facturas || []).forEach(f => {
-      const mf = cleanNumber(f.monto_total);
+      const mf = cleanNumber(f.monto_factura ?? f.monto_total);
       const mp = cleanNumber(f.monto_pagado);
 
-      // 1. Boletos por factura
-      // 2. Boletos pagados (floor para solo contar boletos cubiertos al 100%)
-      const boletosPagados = valorUnitario > 0 ? Math.floor(mp / valorUnitario) : 0;
-      
-      totalPagadosDesdeFacturas += boletosPagados;
+      if (valorUnitario > 0) {
+        // Unidades enteras pagadas al 100%
+        const pagadosAlCien = Math.floor(mp / valorUnitario);
+        totalBoletosPagados += pagadosAlCien;
+
+        // Si hay remanente de pago pero no llega al siguiente entero, es un abonado
+        const remanentePago = mp % valorUnitario;
+        if (remanentePago > 0.01) { // Pequeño margen para errores de flotante
+          totalBoletosAbonados += 1;
+        }
+      }
     });
 
-    // 3. Estado Final Real
-    // El campo cantidad_boletos ya refleja las cancelaciones en el back-end
     const boletosTotalesActuales = parseInt(deuda.asistente?.cantidad_boletos ?? deuda.detalle?.boletosTotales) || 0;
 
-    const boletosPagados = Math.min(totalPagadosDesdeFacturas, boletosTotalesActuales);
-    const boletosApartados = Math.max(0, boletosTotalesActuales - boletosPagados);
+    const boletosPagados = Math.min(totalBoletosPagados, boletosTotalesActuales);
+    const boletosAbonados = Math.min(totalBoletosAbonados, boletosTotalesActuales - boletosPagados);
+    const boletosApartados = Math.max(0, boletosTotalesActuales - boletosPagados - boletosAbonados);
 
     return {
       montoTotal,
       montoPagadoActual,
       valorUnitario,
       boletosPagados,
+      boletosAbonados,
       boletosApartados,
       cantidadBoletosTotal: boletosTotalesActuales
     };
@@ -113,18 +120,81 @@ export default function ModalCancelacionBoletos({
     const n = Number(cantidadCancelar) || 0;
     const pPercent = Number(porcentajePenalizacion) || 0;
 
-    // Lógica: Primero cancelamos los apartados (sin costo)
+    // LIFO (Last In First Out)
+    // 1. Primero cancelamos los apartados (sin costo/penalización)
     const canApartados = Math.min(n, stats.boletosApartados);
-    const canPagados = Math.max(0, n - canApartados);
+    let remanente = n - canApartados;
 
-    const montoBrutoPagados = canPagados * stats.valorUnitario;
-    const montoPenalizacion = montoBrutoPagados * (pPercent / 100);
-    const montoReembolsoNeto = montoBrutoPagados - montoPenalizacion;
+    // 2. Luego los abonados (tienen penalización sobre el precio total)
+    const canAbonados = Math.min(remanente, stats.boletosAbonados);
+    remanente -= canAbonados;
+
+    // 3. Por último los pagados (tienen penalización sobre el precio total)
+    const canPagados = Math.min(remanente, stats.boletosPagados);
+
+    // Los Abonados y Pagados entran en la bolsa de penalización
+    const boletosConPenalizacion = canAbonados + canPagados;
+
+    // Cálculo de montos (Prioridad: Apartados > Abonados > Pagados)
+    let montoPagadoInvolucrado = 0;
+    if (n > 0) {
+      // 1. Descomponer todas las facturas en boletos individuales con su monto pagado real
+      const todosLosBoletos = [];
+      (deuda.facturas || []).forEach(f => {
+        const mp = parseFloat(String(f.monto_pagado || 0).replace(/[^0-9.-]+/g,"")) || 0;
+        const mt = parseFloat(String(f.monto_factura ?? f.monto_total ?? 0).replace(/[^0-9.-]+/g,"")) || 0;
+        
+        // Determinar cuántos boletos representa esta factura
+        const numBoletosEnFactura = stats.valorUnitario > 0 ? Math.max(1, Math.round(mt / stats.valorUnitario)) : 1;
+        
+        const pagadosCount = stats.valorUnitario > 0 ? Math.floor(mp / stats.valorUnitario) : 0;
+        const remanentePago = stats.valorUnitario > 0 ? (mp % stats.valorUnitario) : 0;
+        const hasAbonado = remanentePago > 0.01;
+
+        for (let i = 0; i < numBoletosEnFactura; i++) {
+          let montoBoleto = 0;
+          let tipoPriority = 1; // Apartado
+
+          if (i < pagadosCount) {
+            montoBoleto = stats.valorUnitario;
+            tipoPriority = 3; // Pagado
+          } else if (i === pagadosCount && hasAbonado) {
+            montoBoleto = remanentePago;
+            tipoPriority = 2; // Abonado
+          } else {
+            montoBoleto = 0;
+            tipoPriority = 1; // Apartado
+          }
+
+          todosLosBoletos.push({
+            monto: montoBoleto,
+            prioridad: tipoPriority,
+            numFactura: f.numero_factura || 0
+          });
+        }
+      });
+
+      // 2. Ordenar globalmente por prioridad (Apartado=1, Abonado=2, Pagado=3) y LIFO (num factura desc)
+      todosLosBoletos.sort((a, b) => a.prioridad - b.prioridad || b.numFactura - a.numFactura);
+
+      // 3. Tomar los primeros n boletos de la lista de prioridad
+      const boletosElegidos = todosLosBoletos.slice(0, n);
+      montoPagadoInvolucrado = boletosElegidos.reduce((sum, b) => sum + b.monto, 0);
+    }
+
+    // Penalización sobre el COSTO DEL BOLETO (según req del usuario)
+    const montoBrutoParaPenalizacion = boletosConPenalizacion * stats.valorUnitario;
+    const montoPenalizacion = montoBrutoParaPenalizacion * (pPercent / 100);
+    
+    // El reembolso real es lo que el usuario PAGÓ menos la penalización aplicada
+    const montoReembolsoNeto = Math.max(0, montoPagadoInvolucrado - montoPenalizacion);
 
     return {
       canApartados,
+      canAbonados,
       canPagados,
-      montoBrutoPagados,
+      boletosConPenalizacion,
+      montoPagadoInvolucrado,
       montoPenalizacion,
       montoReembolsoNeto
     };
@@ -133,14 +203,19 @@ export default function ModalCancelacionBoletos({
   // Validation
   const isValid = useMemo(() => {
     const n = Number(cantidadCancelar);
+    const requiresBankInfo = (calculo?.boletosConPenalizacion || 0) > 0;
+
     return (
       n > 0 && 
       n <= (stats?.cantidadBoletosTotal || 0) &&
-      datosBancarios.clabe.length >= 10 &&
-      datosBancarios.banco.trim() !== "" &&
-      datosBancarios.titular.trim() !== ""
+      (!requiresBankInfo || (
+        datosBancarios.clabe.length >= 10 &&
+        datosBancarios.banco.trim() !== "" &&
+        datosBancarios.titular.trim() !== ""
+      ))
     );
-  }, [cantidadCancelar, stats, datosBancarios]);
+  }, [cantidadCancelar, stats, datosBancarios, calculo]);
+
 
   if (!open || !deuda) return null;
 
@@ -148,30 +223,39 @@ export default function ModalCancelacionBoletos({
     e.preventDefault();
     if (!isValid) return;
 
-    if (calculo.canPagados < 1) {
-      showError("Para solicitar una cancelación debe haber al menos 1 boleto pagado. Para ajustar solo apartados, use el control de boletos estándar.");
-      return;
-    }
-
     setLoading(true);
+    // Limpiar datos si no hay reembolso real al momento de guardar
+    const isApartadosOnly = (calculo?.boletosConPenalizacion || 0) === 0;
+    const finalPenalizacion = isApartadosOnly ? 0 : porcentajePenalizacion;
+    const finalDatosBancarios = isApartadosOnly 
+      ? { clabe: "", banco: "", titular: "" } 
+      : datosBancarios;
+
+    const payload = {
+      id_invitado: deuda.invitado_id, 
+      id_evento: deuda.evento_id, 
+      cantidad_cancelar: cantidadCancelar,
+      porcentaje_penalizacion: finalPenalizacion,
+      datos_bancarios: finalDatosBancarios,
+      detalles_calculo: {
+        boletos_apartados: calculo.canApartados,
+        boletos_abonados: calculo.canAbonados,
+        boletos_pagados: calculo.canPagados,
+        boletos_con_penalizacion: calculo.boletosConPenalizacion,
+        monto_reembolso_bruto: calculo.montoPagadoInvolucrado,
+        monto_penalizacion: isApartadosOnly ? 0 : calculo.montoPenalizacion,
+        monto_reembolso_neto: isApartadosOnly ? 0 : calculo.montoReembolsoNeto,
+        valor_unitario: stats.valorUnitario
+      },
+      responsable: localStorage.getItem("userName") || "Admin",
+      nombre_asistente: deuda.detalle?.nombreAsistente || deuda.cliente?.nombre,
+      nombre_evento: deuda.detalle?.nombreEvento || ""
+    };
+
+    console.log("DEBUG: Payload SolicitarCancelacion:", payload);
+
     try {
-      const response = await eventService.solicitarCancelacion({
-        id_invitado: deuda.invitado_id, 
-        id_evento: deuda.evento_id, 
-        cantidad_cancelar: cantidadCancelar,
-        porcentaje_penalizacion: porcentajePenalizacion,
-        datos_bancarios: datosBancarios,
-        detalles_calculo: {
-          boletos_sin_costo: calculo.canApartados,
-          boletos_con_penalizacion: calculo.canPagados,
-          monto_penalizacion: calculo.montoPenalizacion,
-          monto_reembolso_neto: calculo.montoReembolsoNeto,
-          valor_unitario: stats.valorUnitario
-        },
-        responsable: localStorage.getItem("userName") || "Admin",
-        nombre_asistente: deuda.detalle?.nombreAsistente || deuda.cliente?.nombre,
-        nombre_evento: deuda.detalle?.nombreEvento || ""
-      });
+      const response = await eventService.solicitarCancelacion(payload);
 
       if (response.success) {
         showSuccess(response.message || "Cancelación registrada");
@@ -216,16 +300,20 @@ export default function ModalCancelacionBoletos({
         {/* Relevant Info Panel */}
         <div className="modal-info-grid">
           <div className="info-card">
-            <span className="info-label">🎟️ Boletos Apartados</span>
+            <span className="info-label">🎟️ Apartados</span>
             <span className="info-value">{stats.boletosApartados}</span>
           </div>
           <div className="info-card">
-            <span className="info-label">💰 Boletos Pagados</span>
+            <span className="info-label">🌓 Abonados</span>
+            <span className="info-value">{stats.boletosAbonados}</span>
+          </div>
+          <div className="info-card">
+            <span className="info-label">💰 Pagados</span>
             <span className="info-value">{stats.boletosPagados}</span>
           </div>
           <div className="info-card">
-            <span className="info-label">💵 Monto Total Pagado</span>
-            <span className="info-value">${stats.montoPagadoActual.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+            <span className="info-label">💵 Monto Total Ya Pagado</span>
+            <span className="info-value text-[#206a73]">${stats.montoPagadoActual.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
           </div>
           <div className="info-card">
             <span className="info-label">🏷️ Valor Unitario</span>
@@ -250,33 +338,26 @@ export default function ModalCancelacionBoletos({
                   required
                 />
               </div>
-              <div className="form-group">
-                <label>% Penalización</label>
-                <div className="relative">
-                   <input 
-                    type="number" 
-                    min="0" 
-                    max="100"
-                    value={porcentajePenalizacion}
-                    onChange={(e) => setPorcentajePenalizacion(parseFloat(e.target.value) || 0)}
-                    className="modal-cancel-input w-full"
-                    required
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">%</span>
+              {calculo?.boletosConPenalizacion > 0 && (
+                <div className="form-group">
+                  <label>% Penalización</label>
+                  <div className="relative">
+                    <input 
+                      type="number" 
+                      min="0" 
+                      max="100"
+                      value={porcentajePenalizacion}
+                      onChange={(e) => setPorcentajePenalizacion(parseFloat(e.target.value) || 0)}
+                      className="modal-cancel-input w-full"
+                      required
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">%</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Advertencia de Boletos Pagados */}
-          {calculo.canPagados < 1 && cantidadCancelar > 0 && (
-            <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-900/30 mb-4">
-              <AlertCircle size={18} className="text-red-600 shrink-0" />
-              <p className="text-xs text-red-800 dark:text-red-200 leading-tight">
-                <strong>Atención:</strong> La cantidad seleccionada solo cubre boletos <strong>apartados</strong>. Una devolución requiere cancelar al menos 1 boleto <strong>pagado</strong>.
-              </p>
-            </div>
-          )}
 
           {/* Calculator Section */}
           <div className="calc-summary">
@@ -285,20 +366,20 @@ export default function ModalCancelacionBoletos({
             </div>
             
             <p className="calc-text">
-              Se cancelarán <strong>{calculo.canApartados}</strong> boletos sin costo (apartados) 
-              {calculo.canPagados > 0 && (
-                <> y <strong>{calculo.canPagados}</strong> boletos con penalización (pagados).</>
+              Se cancelarán <strong>{calculo.canApartados}</strong> boletos sin pago (apartados) 
+              {calculo.boletosConPenalizacion > 0 && (
+                <> y <strong>{calculo.boletosConPenalizacion}</strong> boletos con penalización ({calculo.canAbonados} abonados y {calculo.canPagados} pagados).</>
               )}
             </p>
 
-            {calculo.canPagados > 0 && (
+            {calculo.boletosConPenalizacion > 0 && (
               <>
                 <div className="calc-row">
-                  <span>Subtotal pagados ({calculo.canPagados} x ${stats.valorUnitario.toFixed(2)})</span>
-                  <span>${calculo.montoBrutoPagados.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
+                  <span>Monto ya abonado/pagado involucrado</span>
+                  <span>${calculo.montoPagadoInvolucrado.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="calc-row text-red-600">
-                  <span>Penalización ({porcentajePenalizacion}%)</span>
+                  <span>Penalización ({porcentajePenalizacion}% s/ costo total {calculo.boletosConPenalizacion} boletos)</span>
                   <span>- ${calculo.montoPenalizacion.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
                 </div>
               </>
@@ -310,46 +391,48 @@ export default function ModalCancelacionBoletos({
             </div>
           </div>
 
-          {/* Bank Info Section */}
-          <div className="form-section">
-            <h3 className="section-title">Datos Destino de Reembolso</h3>
-            <div className="form-group">
-              <label className="flex items-center gap-2"><Landmark size={14}/> CLABE Interbancaria (18 dígitos)</label>
-              <input 
-                type="text" 
-                maxLength="18"
-                placeholder="000000000000000000"
-                value={datosBancarios.clabe}
-                onChange={(e) => setDatosBancarios({...datosBancarios, clabe: e.target.value.replace(/\D/g, '')})}
-                className="modal-cancel-input"
-                required
-              />
-            </div>
-            <div className="input-row">
+          {/* Bank Info Section - Only if there is a refund */}
+          {calculo?.boletosConPenalizacion > 0 && (
+            <div className="form-section animate-fade-in">
+              <h3 className="section-title">Datos Destino de Reembolso</h3>
               <div className="form-group">
-                <label className="flex items-center gap-2"><Landmark size={14}/> Banco</label>
+                <label className="flex items-center gap-2"><Landmark size={14}/> CLABE Interbancaria (18 dígitos)</label>
                 <input 
                   type="text" 
-                  placeholder="Ej: BBVA, Banamex..."
-                  value={datosBancarios.banco}
-                  onChange={(e) => setDatosBancarios({...datosBancarios, banco: e.target.value})}
+                  maxLength="18"
+                  placeholder="000000000000000000"
+                  value={datosBancarios.clabe}
+                  onChange={(e) => setDatosBancarios({...datosBancarios, clabe: e.target.value.replace(/\D/g, '')})}
                   className="modal-cancel-input"
                   required
                 />
               </div>
-              <div className="form-group">
-                <label className="flex items-center gap-2"><User size={14}/> Nombre del Titular</label>
-                <input 
-                  type="text" 
-                  placeholder=""
-                  value={datosBancarios.titular}
-                  onChange={(e) => setDatosBancarios({...datosBancarios, titular: e.target.value})}
-                  className="modal-cancel-input"
-                  required
-                />
+              <div className="input-row">
+                <div className="form-group">
+                  <label className="flex items-center gap-2"><Landmark size={14}/> Banco</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ej: BBVA, Banamex..."
+                    value={datosBancarios.banco}
+                    onChange={(e) => setDatosBancarios({...datosBancarios, banco: e.target.value})}
+                    className="modal-cancel-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="flex items-center gap-2"><User size={14}/> Nombre del Titular</label>
+                  <input 
+                    type="text" 
+                    placeholder=""
+                    value={datosBancarios.titular}
+                    onChange={(e) => setDatosBancarios({...datosBancarios, titular: e.target.value})}
+                    className="modal-cancel-input"
+                    required
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-100 dark:border-yellow-900/30">
             <AlertCircle size={18} className="text-yellow-600 shrink-0" />
