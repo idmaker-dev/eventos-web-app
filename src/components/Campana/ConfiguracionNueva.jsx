@@ -6,7 +6,7 @@ import { useNotifications } from "../../contexts/NotificationContext";
 import clsx from "clsx";
 import RichTextEditor from "./RichTextEditor";
 import EditorHelp from "./EditorHelp";
-import { obtenerFiltrosDisponibles, obtenerMensajeAyuda } from "./filtrosContextuales";
+import { obtenerFiltrosDisponibles, obtenerMensajeAyuda, obtenerFrecuenciaRecomendada, obtenerFiltrosUsuario } from "./filtrosContextuales";
 import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 
 export default function ConfiguracionNueva({ campana, onVolver }) {
@@ -45,11 +45,6 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
       tiene_email: false,
       id_evento: "",
       
-      // Filtros académicos
-      instituto: "",
-      licenciatura: "",
-      escuela: "",
-      
       // Filtros personales
       es_mayor_edad: null,
       rango_edad_min: null,
@@ -78,6 +73,17 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
       
       // Filtros de contrato
       contrato_firmado: null,
+
+      // Filtros de asistencia
+      asistencia_confirmada: null,
+
+      // Tipo de destinatario: "invitados" | "usuarios" | "ambos"
+      destinatarios_tipo: "invitados",
+
+      // Filtros de usuarios del sistema
+      rol_usuario: [],
+      activo_usuario: true,
+      lugar_id_usuario: "",
     };
     
     if (campana?.filtros_destinatarios) {
@@ -104,15 +110,23 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
       tiene_email: false,
       id_evento: prev.id_evento ?? "",
       // Todo lo demás vuelve a defaults
-      instituto: "", licenciatura: "", escuela: "",
       es_mayor_edad: null, rango_edad_min: null, rango_edad_max: null,
       tiene_boletos: false, cantidad_boletos_min: null,
       estado_deuda: [], monto_pendiente_min: null, monto_pendiente_max: null, dias_hasta_vencimiento: null,
       turno_confirmado: null, tiene_turno_asignado: false,
       mesa_seleccionada: null, tiene_restricciones_alimentarias: false,
       tiene_tutor: false, contrato_firmado: null,
+      asistencia_confirmada: null,
+      // Preservar destinatarios_tipo y filtros de usuario
+      destinatarios_tipo: prev.destinatarios_tipo ?? "invitados",
+      rol_usuario: [], activo_usuario: true, lugar_id_usuario: "",
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disparador.tipo, disparador.evento_tipo]);
+  
+  // Frecuencia recomendada según el disparador (para sugerencia en paso 4)
+  const frecuenciaRecomendada = useMemo(() => {
+    return obtenerFrecuenciaRecomendada(disparador.tipo, disparador.evento_tipo);
   }, [disparador.tipo, disparador.evento_tipo]);
   
   // Obtener mensaje de ayuda contextual
@@ -518,6 +532,8 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
                   <PanelFrecuencia
                     frecuencia={frecuencia}
                     setFrecuencia={setFrecuencia}
+                    disparador={disparador}
+                    frecuenciaRecomendada={frecuenciaRecomendada}
                     error={errores.frecuencia}
                   />
                 )}
@@ -618,14 +634,24 @@ function PanelDisparador({ disparador, setDisparador, error }) {
             className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300"
           >
             <option value="">Selecciona un evento...</option>
-            <option value="invitado_creado">Graduado Creado</option>
-            <option value="invitado_actualizado">Graduado Actualizado</option>
-            <option value="pago_completado">Pago Completado</option>
-            <option value="pago_parcial">Pago Parcial</option>
-            <option value="deuda_vencida">Deuda Vencida</option>
-            <option value="turno_asignado">Turno Asignado</option>
-            <option value="turno_confirmado">Turno Confirmado</option>
-            <option value="mesa_seleccionada">Mesa Seleccionada</option>
+            <optgroup label="── Registro del Graduado ──">
+              <option value="registro_iniciado">Registro Iniciado (formulario enviado)</option>
+              <option value="pendiente_firma_contrato">Pendiente de Firma (espera firmar)</option>
+              <option value="registro_completo">Registro Completo (con deuda generada)</option>
+              <option value="contrato_firmado">Contrato Firmado (acto de firma)</option>
+              <option value="asistencia_confirmada">Asistencia Confirmada</option>
+              <option value="invitado_actualizado">Datos Actualizados</option>
+            </optgroup>
+            <optgroup label="── Pagos / Deudas ──">
+              <option value="pago_completado">Pago Completado</option>
+              <option value="pago_parcial">Pago Parcial</option>
+              <option value="deuda_vencida">Deuda Vencida</option>
+            </optgroup>
+            <optgroup label="── Turnos / Mesas ──">
+              <option value="turno_asignado">Turno Asignado</option>
+              <option value="turno_confirmado">Turno Confirmado</option>
+              <option value="mesa_seleccionada">Mesa Seleccionada</option>
+            </optgroup>
           </select>
         </div>
       )}
@@ -703,7 +729,9 @@ function PanelFiltros({ filtros, setFiltros, filtrosRelevantes, mensajeAyuda, di
   // Contar filtros activos
   const contarFiltrosActivos = () => {
     return Object.entries(filtros).filter(([key, value]) => {
-      if (key === 'id_evento') return false; // id_evento no cuenta como filtro activo
+      if (key === 'id_evento') return false;
+      if (key === 'destinatarios_tipo') return false; // No cuenta como filtro
+      if (key === 'activo_usuario') return false; // Es un default, no filtro activo
       if (value === null || value === '' || value === false) return false;
       if (Array.isArray(value) && value.length === 0) return false;
       return true;
@@ -947,8 +975,40 @@ function PanelFiltros({ filtros, setFiltros, filtrosRelevantes, mensajeAyuda, di
         )}
       </p>
 
+      {/* Selector de tipo de destinatario */}
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+          ¿A quién se enviará esta campaña?
+        </label>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { value: "invitados", label: "Invitados / Graduados", desc: "Personas registradas en el evento" },
+            { value: "usuarios", label: "Usuarios del Sistema", desc: "Administradores y organizadores" },
+            { value: "ambos", label: "Ambos", desc: "Envío simultáneo a invitados y usuarios" },
+          ].map((tipo) => (
+            <button
+              key={tipo.value}
+              onClick={() => setFiltros({ ...filtros, destinatarios_tipo: tipo.value })}
+              className={clsx(
+                "p-3 rounded-lg border-2 text-left transition-all",
+                filtros.destinatarios_tipo === tipo.value
+                  ? "border-casal bg-casal/10"
+                  : "border-gray-300 dark:border-gray-600 hover:border-casal/50"
+              )}
+            >
+              <div className="font-semibold text-sm text-gray-800 dark:text-gray-200">
+                {tipo.label}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                {tipo.desc}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Mensaje de ayuda contextual */}
-      {mensajeAyuda && hayDisparadorConfigado && (
+      {mensajeAyuda && hayDisparadorConfigado && filtros.destinatarios_tipo !== "usuarios" && (
         <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex gap-3">
           <Info size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
           <div>
@@ -979,15 +1039,36 @@ function PanelFiltros({ filtros, setFiltros, filtrosRelevantes, mensajeAyuda, di
       )}
 
       {/* Renderizar filtros relevantes */}
-      {Object.keys(filtrosRelevantes).length > 0 ? (
-        <div className="space-y-1">
-          {Object.entries(filtrosRelevantes).map(([key, config]) => 
-            renderizarFiltro(key, config)
+      {/* Filtros de Invitados */}
+      {filtros.destinatarios_tipo !== "usuarios" && (
+        <>
+          {Object.keys(filtrosRelevantes).length > 0 ? (
+            <div className="space-y-1">
+              {Object.entries(filtrosRelevantes).map(([key, config]) =>
+                renderizarFiltro(key, config)
+              )}
+            </div>
+          ) : (
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+              <p>Selecciona un tipo de disparador en el paso 1 para ver los filtros disponibles.</p>
+            </div>
           )}
-        </div>
-      ) : (
-        <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-          <p>Selecciona un tipo de disparador en el paso 1 para ver los filtros disponibles.</p>
+        </>
+      )}
+
+      {/* Filtros de Usuarios del Sistema */}
+      {filtros.destinatarios_tipo !== "invitados" && (
+        <div className={clsx(filtros.destinatarios_tipo === "ambos" && "mt-6 pt-6 border-t border-gray-200 dark:border-gray-700")}>
+          {filtros.destinatarios_tipo === "ambos" && (
+            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+              Filtros para Usuarios del Sistema
+            </h4>
+          )}
+          <div className="space-y-1">
+            {Object.entries(obtenerFiltrosUsuario()).map(([key, config]) =>
+              renderizarFiltro(key, config)
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -1198,7 +1279,12 @@ function PanelAcciones({ acciones, setAcciones, errores }) {
 }
 
 // ========== PANEL 4: FRECUENCIA ==========
-function PanelFrecuencia({ frecuencia, setFrecuencia, error }) {
+function PanelFrecuencia({ frecuencia, setFrecuencia, disparador, frecuenciaRecomendada, error }) {
+  // Nombre legible del disparador para el banner
+  const nombreDisparador = disparador?.evento_tipo
+    ? disparador.evento_tipo.replace(/_/g, " ")
+    : disparador?.tipo?.replace(/_/g, " ") || "";
+
   return (
     <div>
       <h3 className="text-xl font-bold text-casal mb-4">
@@ -1208,6 +1294,26 @@ function PanelFrecuencia({ frecuencia, setFrecuencia, error }) {
         Define con qué frecuencia se puede enviar esta automatización a cada
         destinatario
       </p>
+
+      {/* Banner de recomendación contextual */}
+      {frecuenciaRecomendada && (
+        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">
+            💡 Recomendación para «{nombreDisparador}»
+          </p>
+          <p className="text-xs text-amber-700 dark:text-amber-400 mb-3">
+            {frecuenciaRecomendada.razon}
+          </p>
+          {frecuencia.tipo !== frecuenciaRecomendada.tipo && (
+            <button
+              onClick={() => setFrecuencia({ ...frecuencia, tipo: frecuenciaRecomendada.tipo })}
+              className="text-xs font-semibold text-amber-800 dark:text-amber-300 underline hover:no-underline"
+            >
+              Aplicar recomendación ({frecuenciaRecomendada.tipo})
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Tipo de frecuencia */}
       <div className="mb-6">
