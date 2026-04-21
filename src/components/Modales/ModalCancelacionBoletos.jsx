@@ -174,11 +174,16 @@ export default function ModalCancelacionBoletos({
         }
       });
 
-      // 2. Ordenar globalmente por prioridad (Apartado=1, Abonado=2, Pagado=3) y LIFO (num factura desc)
-      todosLosBoletos.sort((a, b) => a.prioridad - b.prioridad || b.numFactura - a.numFactura);
+      // 1. Filtrar los boletos reales del invitado (Prioridad: Pagado > Abonado > Apartado)
+      // Esto asegura que si hay boletos "fantasma" en las facturas, no se tomen en cuenta
+      todosLosBoletos.sort((a, b) => b.prioridad - a.prioridad || b.numFactura - a.numFactura);
+      const boletosRealesDelInvitado = todosLosBoletos.slice(0, stats.cantidadBoletosTotal);
 
-      // 3. Tomar los primeros n boletos de la lista de prioridad
-      const boletosElegidos = todosLosBoletos.slice(0, n);
+      // 2. Ordenar para procedimiento de cancelación (Prioridad: Apartado > Abonado > Pagado)
+      boletosRealesDelInvitado.sort((a, b) => a.prioridad - b.prioridad || b.numFactura - a.numFactura);
+
+      // 3. Tomar los primeros n boletos a cancelar del conjunto real
+      const boletosElegidos = boletosRealesDelInvitado.slice(0, n);
       montoPagadoInvolucrado = boletosElegidos.reduce((sum, b) => sum + b.monto, 0);
     }
 
