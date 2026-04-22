@@ -446,8 +446,6 @@ class EventService {
       };
     }
   }
-<<<<<<< Updated upstream
-=======
 
   /**
    * Descargar reporte Excel de pagos por alumno para un evento.
@@ -600,7 +598,6 @@ class EventService {
       };
     }
   }
->>>>>>> Stashed changes
 }
 
 // Crear instancia singleton
