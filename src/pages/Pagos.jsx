@@ -153,6 +153,42 @@ export default function Pagos({ darkMode }) {
     }
   };
 
+  // Estado para descarga del reporte Excel
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+
+  // Función para descargar el reporte Excel de pagos por alumno
+  const handleDescargarReporte = async () => {
+    if (!eventoActual?.id) {
+      showError("No hay evento seleccionado");
+      return;
+    }
+    setIsGeneratingReport(true);
+    try {
+      const resultado = await eventService.descargarReportePagosAlumnos(eventoActual.id);
+      if (resultado.success) {
+        const url = window.URL.createObjectURL(resultado.data);
+        const link = document.createElement("a");
+        link.href = url;
+        const nombreEvento = (eventoActual.nombre_evento || eventoActual.nombre || eventoActual.id || "evento")
+          .replace(/[^a-z0-9áéíóúüñ ]/gi, "_");
+        const fecha = new Date().toISOString().split("T")[0];
+        link.download = `reporte_pagos_${nombreEvento}_${fecha}.xlsx`.replace(/\s+/g, "_");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        showSuccess("Reporte Excel descargado exitosamente", { duration: 3000 });
+      } else {
+        showError(resultado.error || "Error al generar el reporte");
+      }
+    } catch (error) {
+      console.error("Error descargando reporte:", error);
+      showError("Error al generar el reporte");
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   // Función para eliminar un alumno
   const handleEliminarAlumno = async () => {
     if (!invitadoToDelete) return;
@@ -302,6 +338,15 @@ export default function Pagos({ darkMode }) {
             onClick={() => setModalExportarOpen(true)}
           >
             Exportar en CSV
+          </button>
+
+          <button
+            className="btn-reporte-excel"
+            onClick={handleDescargarReporte}
+            disabled={isGeneratingReport}
+            title="Descargar reporte completo por alumno en Excel"
+          >
+            {isGeneratingReport ? "Generando..." : "Reporte por Alumno"}
           </button>
         </div>
       </div>

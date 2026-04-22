@@ -60,6 +60,29 @@
   white-space: nowrap;
 }
 
+.btn-reporte-excel {
+  background: #1B4E5E;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 13px;
+  height: 38px;
+  white-space: nowrap;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-reporte-excel:hover:not(:disabled) {
+  background: #246370;
+}
+
+.btn-reporte-excel:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 /* Filtro Firma */
 .filtro-firma-wrapper {
   position: relative;
@@ -291,6 +314,14 @@ body.dark-mode .buscar {
 
 body.dark-mode .btn-csv {
   background: #4b5563;
+}
+
+body.dark-mode .btn-reporte-excel {
+  background: #2E7D8C;
+}
+
+body.dark-mode .btn-reporte-excel:hover:not(:disabled) {
+  background: #4CAF8F;
 }
 
 body.dark-mode .filtro-firma {
