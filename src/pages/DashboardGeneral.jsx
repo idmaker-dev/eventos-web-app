@@ -18,6 +18,8 @@ import { useAuth } from "../hooks/useAuth";
 import DashboardGeneralService from "../services/DashboardGeneralService";
 import { useSelectedEvent } from "../contexts/SelectedEventContext";
 import DetalleEvento from "../components/Modales/DetalleEvento";
+import ModalEditarDevolucion from "../components/Modales/ModalEditarDevolucion";
+import ModalConfirmarDevolucion from "../components/Modales/ModalConfirmarDevolucion";
 
 export default function DashboardGeneral() {
   const [loading, setLoading] = useState(true);
@@ -45,9 +47,13 @@ export default function DashboardGeneral() {
     finanzas: false,
     visualizacion: false,
     tablas: false,
+    devoluciones: false,
   });
   const [eventoSeleccionado, setEventoSeleccionado] = useState(null);
   const [modalDetalleOpen, setModalDetalleOpen] = useState(false);
+  const [modalEditarDevOpen, setModalEditarDevOpen] = useState(false);
+  const [modalConfirmarDevOpen, setModalConfirmarDevOpen] = useState(false);
+  const [cancelacionSeleccionada, setCancelacionSeleccionada] = useState(null);
 
   const toggleCollapse = (section) => {
     setCollapsed((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -1020,6 +1026,113 @@ export default function DashboardGeneral() {
             </div>
           )}
         </section>
+
+        {/* SECCIÓN DE DEVOLUCIONES PENDIENTES Y PROCESADAS */}
+        <section className="space-y-6">
+          <div 
+            onClick={() => toggleCollapse('devoluciones')}
+            className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-3 cursor-pointer group hover:border-[#e76f51] transition-colors"
+          >
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+              Gestión de Devoluciones y Cancelaciones
+            </h2>
+            <div className="text-gray-400 group-hover:text-[#e76f51]">
+              {collapsed.devoluciones ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+            </div>
+          </div>
+
+          {!collapsed.devoluciones && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-white dark:bg-[#1e1e1e] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs sm:text-sm">
+                    <thead className="bg-[#1a4a54] dark:bg-[#23272e]">
+                      <tr>
+                        <Th>Fecha</Th>
+                        <Th>Graduado</Th>
+                        <Th>Evento</Th>
+                        <Th>Cancelados</Th>
+                        <Th>Penalización</Th>
+                        <Th>Monto a Devolver</Th>
+                        <Th>Datos Bancarios</Th>
+                        <Th>Estado</Th>
+                        <Th>Acciones</Th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-[#1e1e1e] divide-y divide-gray-100 dark:divide-gray-800">
+                      {(!data.cancelaciones || data.cancelaciones.length === 0) && (
+                        <tr>
+                          <td colSpan={9} className="p-4 text-center text-gray-500">
+                            No hay cancelaciones registradas
+                          </td>
+                        </tr>
+                      )}
+                      {data.cancelaciones?.map((canc) => (
+                        <tr key={canc.id} className="hover:bg-gray-50 dark:hover:bg-[#23272e] transition">
+                          <Td className="text-xs">
+                            {formatDate(canc.createdAt || canc.fecha_solicitud).split(" ").slice(0, 3).join(" ")}
+                          </Td>
+                          <Td className="font-medium">{canc.nombre_asistente}</Td>
+                          <Td>{canc.nombre_evento}</Td>
+                          <Td>
+                             <div className="text-red-600 dark:text-red-400 font-medium">{canc.cantidad_cancelar} boletos</div>
+                          </Td>
+                          <Td>
+                            <div className="text-gray-500 text-xs">{canc.porcentaje_penalizacion || 0}%</div>
+                            <div className="font-medium">${Number(canc.detalles_calculo?.monto_penalizacion || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</div>
+                          </Td>
+                          <Td>
+                            <div className="text-blue-600 font-bold">${Number(canc.detalles_calculo?.monto_reembolso_neto || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}</div>
+                          </Td>
+                          <Td className="text-[10px]">
+                            {canc.datos_bancarios ? (
+                              <div>
+                                <div className="font-medium text-gray-800 dark:text-gray-200">{canc.datos_bancarios.banco} - {canc.datos_bancarios.titular}</div>
+                                <div className="text-gray-500 font-mono">CLABE: {canc.datos_bancarios.clabe}</div>
+                              </div>
+                            ) : "—"}
+                          </Td>
+                          <Td>
+                            {/* COLOCAR COLOR AMARILLO SI CANC.ESTATUS ES "PENDIENTE_DEVOLUCION" Y VERDE SI ES "COMPLETADA" */}
+                            {canc.estatus === "PENDIENTE_DEVOLUCION" ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                                {canc.estatus}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                                {canc.estatus}
+                              </span>
+                            )}
+                          </Td>
+                          <Td>
+                            {canc.estatus !== "COMPLETADA" ? (
+                              <div className="flex items-center gap-2">
+                                <button 
+                                  onClick={() => { setCancelacionSeleccionada(canc); setModalEditarDevOpen(true); }} 
+                                  className="px-2 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 rounded transition font-medium text-xs border border-indigo-200 dark:border-indigo-800"
+                                >
+                                  Editar
+                                </button>
+                                <button 
+                                  onClick={() => { setCancelacionSeleccionada(canc); setModalConfirmarDevOpen(true); }} 
+                                  className="px-2 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 rounded transition font-medium text-xs border border-emerald-200 dark:border-emerald-800"
+                                >
+                                  Confirmar
+                                </button>
+                              </div>
+                            ) : (
+                               <span className="text-[10px] text-gray-400">Procesada por: {canc.procesada_por || "Admin"}</span>
+                            )}
+                          </Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Definición de gradientes SVG para gráficas */}
@@ -1042,6 +1155,25 @@ export default function DashboardGeneral() {
         onClose={handleCloseDetalle}
         evento={eventoSeleccionado}
       />
+
+      {/* Modales de Devoluciones */}
+      {modalEditarDevOpen && (
+        <ModalEditarDevolucion
+          open={modalEditarDevOpen}
+          onClose={() => { setModalEditarDevOpen(false); setCancelacionSeleccionada(null); }}
+          cancelacion={cancelacionSeleccionada}
+          onSuccess={handleRefresh}
+        />
+      )}
+
+      {modalConfirmarDevOpen && (
+        <ModalConfirmarDevolucion
+          open={modalConfirmarDevOpen}
+          onClose={() => { setModalConfirmarDevOpen(false); setCancelacionSeleccionada(null); }}
+          cancelacion={cancelacionSeleccionada}
+          onSuccess={handleRefresh}
+        />
+      )}
     </div>
   );
 }

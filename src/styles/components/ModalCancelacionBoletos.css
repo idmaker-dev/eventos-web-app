@@ -1,0 +1,278 @@
+.modal-cancel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100; /* Higher than normal modals */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.modal-cancel-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 1.5rem;
+  background: white;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.dark .modal-cancel-container {
+  background: #1f1f1f;
+  border-color: #333;
+  color: #f1f1f1;
+}
+
+.modal-cancel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark .modal-cancel-header {
+  border-bottom-color: #333;
+}
+
+.modal-cancel-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dark .modal-cancel-title {
+  color: #fff;
+}
+
+/* Info Grid */
+.modal-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dark .modal-info-grid {
+  background: #252525;
+  border-bottom-color: #333;
+}
+
+.info-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid #edf2f7;
+}
+
+.dark .info-card {
+  background: #2a2a2a;
+  border-color: #3a3a3a;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-bottom: 0.25rem;
+}
+
+.info-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.dark .info-value {
+  color: #e2e8f0;
+}
+
+/* Form Sections */
+.modal-cancel-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 0.5rem;
+}
+
+.dark .section-title {
+  color: #cbd5e1;
+  border-bottom-color: #333;
+}
+
+.input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  margin-left: 0.1rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.dark .form-group label {
+  color: #94a3b8;
+}
+
+.modal-cancel-input {
+  padding: 0.625rem 1rem;
+  border-radius: 0.75rem;
+  border: 1.5px solid #e2e8f0;
+  font-size: 1rem;
+  transition: all 0.2s;
+  background: #fff;
+}
+
+.dark .modal-cancel-input {
+  background: #2a2a2a;
+  border-color: #3a3a3a;
+  color: white;
+}
+
+.modal-cancel-input:focus {
+  outline: none;
+  border-color: #206a73;
+  box-shadow: 0 0 0 3px rgba(32, 106, 115, 0.15);
+}
+
+/* Calculator Summary */
+.calc-summary {
+  background: #fff5f5;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border: 1px dashed #feb2b2;
+}
+
+.dark .calc-summary {
+  background: #2d1a1a;
+  border-color: #552727;
+}
+
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.calc-row.total {
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #feb2b2;
+  font-weight: 800;
+  font-size: 1.125rem;
+  color: #c53030;
+}
+
+.dark .calc-row.total {
+  border-top-color: #552727;
+  color: #fc8181;
+}
+
+.calc-text {
+  font-size: 0.85rem;
+  color: #742a2a;
+  line-height: 1.4;
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+.dark .calc-text {
+  color: #feb2b2;
+}
+
+/* Footer */
+.modal-cancel-footer {
+  padding: 1.25rem 1.5rem;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.dark .modal-cancel-footer {
+  background: #252525;
+  border-top-color: #333;
+}
+
+.btn-cancel-modal {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel-modal.secondary {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+}
+
+.dark .btn-cancel-modal.secondary {
+  border-color: #3a3a3a;
+  color: #94a3b8;
+}
+
+.btn-cancel-modal.primary {
+  background: #dc2626;
+  color: white;
+  border: none;
+  font-weight: 600;
+}
+
+.btn-cancel-modal.primary:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.btn-cancel-modal.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}

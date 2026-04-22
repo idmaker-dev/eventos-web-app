@@ -393,18 +393,9 @@ class EventService {
         nombre_solicitante: nombreSolicitante,
       });
       return response?.data || response;
-      // return {
-      //   success: true,
-      //   data: response?.data || response,
-      //   message: "Se ha iniciado el proceso de devolución correctamente",
-      // };
     } catch (error) {
       console.error("Error al aplicar devolución:", error);
       throw error;
-      // return {
-      //   success: false,
-      //   error: error?.data?.error || "Error al aplicar devolución",
-      // };
     }
   }
 

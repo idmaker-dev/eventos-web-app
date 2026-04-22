@@ -37,6 +37,8 @@ import { useNotifications } from "../../../contexts/NotificationContext";
 import ModalComprobantes from "./ModalComprobantes";
 import ModalReciboPdf from "./ModalReciboPdf";
 import ModalDevolucion from "./ModalDevolucion";
+import ModalCancelacionBoletos from "../../Modales/ModalCancelacionBoletos";
+import { TicketX } from "lucide-react";
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -50,10 +52,13 @@ function useIsMobile() {
 }
 
 export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
+  const { showSuccess, showError } = useNotifications();
   const [tabActivo, setTabActivo] = useState("cliente");
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [deudaForCancel, setDeudaForCancel] = useState(null);
   const isMobile = useIsMobile();
 
-  console.log(ticket, "*******************************************");
+  // console.log(ticket, "*******************************************");
 
   // Estados para modificación de boletos
   const [modificandoBoletos, setModificandoBoletos] = useState(false);
@@ -63,7 +68,6 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
   const [showRefundModal, setShowRefundModal] = useState(false);
 
   const { eventoActual } = useSelectedEvent();
-  const { showError, showSuccess } = useNotifications();
 
   // Estados para los nuevos modals
   const [showComprobantesModal, setShowComprobantesModal] = useState(false);
@@ -165,6 +169,30 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
     } catch (error) {
       console.error("Error al actualizar boletos:", error);
       showError(error.response?.data?.message || "Error al actualizar boletos");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const handleOpenCancelModal = async () => {
+    try {
+      setCargando(true);
+      const invitadoId = ticket?.cliente?.invitado_id || ticket?.invitado_id;
+      const resultado = await eventService.getEventDebts(eventoActual.id);
+      
+      if (resultado.success) {
+        const d = resultado.data.deudas.find(d => d.invitado_id === invitadoId);
+        if (d) {
+          setDeudaForCancel(d);
+          setIsCancelModalOpen(true);
+        } else {
+          showError("No se encontró información financiera para este graduado");
+        }
+      } else {
+        showError("Error al cargar datos financieros");
+      }
+    } catch (error) {
+      showError("Error al abrir el módulo de cancelación");
     } finally {
       setCargando(false);
     }
@@ -703,6 +731,19 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                               boletos
                             </div>
                           </div>
+                          
+                          {/* DESCOMENTAR AL TERMINAR CANCELACION */}
+                          {!modificandoBoletos && (
+                            <Tooltip content="Cancelar boletos (vía administrativa)">
+                              <Button
+                                onClick={handleOpenCancelModal}
+                                disabled={cargando}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors text-xs font-semibold"
+                              >
+                                <TicketX size={14} /> Cancelar Boletos
+                              </Button>
+                            </Tooltip>
+                          )}
                         </div>
 
                         {/* Panel de confirmación inline */}
@@ -1194,6 +1235,16 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
         isOpen={showPdfModal}
         onClose={() => setShowPdfModal(false)}
         ticket={ticket}
+      />
+
+      <ModalCancelacionBoletos
+        open={isCancelModalOpen}
+        onClose={() => {
+          setIsCancelModalOpen(false);
+          setDeudaForCancel(null);
+        }}
+        deuda={deudaForCancel}
+        onSuccess={onRefresh}
       />
     </div>
   );
