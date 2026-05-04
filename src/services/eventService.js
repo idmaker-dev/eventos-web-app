@@ -576,6 +576,26 @@ class EventService {
       };
     }
   }
+
+  /**
+   * Verificar pagos duplicados para un evento
+   */
+  async verificarPagosDuplicados(eventId) {
+    try {
+      const response = await httpService.get(`/conciliacion/pagos-duplicados?evento_id=${eventId}`);
+      return {
+        success: true,
+        data: response.data || response,
+      };
+    } catch (error) {
+      console.error("Error al verificar pagos duplicados:", error);
+      return {
+        success: false,
+        error: error.userMessage || "Error al verificar pagos duplicados",
+        data: []
+      };
+    }
+  }
 }
 
 // Crear instancia singleton

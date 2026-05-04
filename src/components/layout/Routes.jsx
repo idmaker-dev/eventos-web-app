@@ -37,6 +37,7 @@ import Campanas from "../../pages/Campanas"
 import Resumen from "../../pages/resumen"
 import ImportacionIndividualPage from "../../pages/admin/ImportacionIndividualPage"
 import DashboardGeneral from "../../pages/DashboardGeneral"
+import ConciliacionPagos from "../../pages/ConciliacionPagos"
 
 /* Componentes de protección de rutas */
 import { 
@@ -107,6 +108,7 @@ export default function AppRoutes() {
         <Route path="importacion-individual" element={<ImportacionIndividualPage />} />
         <Route path="Resumen" element={<Resumen />} />
         <Route path="Dashboard-General" element={<DashboardGeneral />} />
+        <Route path="conciliacion" element={<ConciliacionPagos />} />
       </Route>
 
       {/* Ruta pública - Accesible sin autenticación */}
