@@ -436,6 +436,35 @@ class TurnosService {
       };
     }
   }
+
+  /**
+   * Importar turnos desde un archivo Excel (.xlsx)
+   * @param {string} eventoId
+   * @param {File} file
+   * @param {boolean} apply
+   * @param {boolean} overrideConflicts
+   * @param {function} onUploadProgress
+   */
+  async importarTurnos(eventoId, file, apply = false, overrideConflicts = false, onUploadProgress = null) {
+    try {
+      const params = {};
+      if (apply) params.apply = 'true';
+      if (overrideConflicts) params.overrideConflicts = 'true';
+
+      const url = `/eventos/${eventoId}/seleccion-mesas/importar-turnos${Object.keys(params).length ? '?' + new URLSearchParams(params).toString() : ''}`;
+
+      const response = await httpService.upload(url, file, onUploadProgress);
+      return {
+        success: true,
+        data: response || {},
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.userMessage || 'Error al importar turnos',
+      };
+    }
+  }
 }
 
 const turnosService = new TurnosService();

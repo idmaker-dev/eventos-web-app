@@ -4,7 +4,7 @@ import {
   DialogPanel,
   DialogTitle,
 } from '@headlessui/react';
-import { X, GripVertical, Loader2, AlertCircle, CheckCircle2, Sparkles, Users, ArrowLeft, Calendar } from 'lucide-react';
+import { X, GripVertical, Loader2, AlertCircle, CheckCircle2, Sparkles, Users, Calendar } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -30,74 +30,72 @@ import { useNotifications } from '../../contexts/NotificationContext';
  * Modal para ordenar manualmente los invitados para la generación de turnos
  */
 const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
-  const { showSuccess, showError, showInfo } = useNotifications();
+  const { showSuccess, showError } = useNotifications();
   const [invitados, setInvitados] = useState([]);
   const [invitadosOrdenados, setInvitadosOrdenados] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [modoSeleccion, setModoSeleccion] = useState(null); // null, 'automatico', 'manual'
+  
+  const [dryRunResult, setDryRunResult] = useState(null);
+  const [lastUploadedFile, setLastUploadedFile] = useState(null);
+  const [isApplying, setIsApplying] = useState(false);
+  const [overrideConflicts, setOverrideConflicts] = useState(false);
+  const [showSampleAssignments, setShowSampleAssignments] = useState(false);
 
   /**
    * Cargar invitados del evento
    */
   useEffect(() => {
-    if (isOpen && eventoId) {
-      cargarInvitados();
-    }
-  }, [isOpen, eventoId]);
+    if (!(isOpen && eventoId)) return;
 
-  const cargarInvitados = async () => {
-    setIsLoading(true);
-    try {
-      const response = await guestService.getGuests(eventoId);
-      if (response.success && response.guests) {
-        // Para ordenamiento manual, mostrar TODOS los invitados
-        // El backend se encargará de validar cuáles tienen deuda liquidada
-        const todosInvitados = response.guests;
-        
-        if (todosInvitados.length === 0) {
-          showError('No hay graduados en este evento');
+    const cargarInvitados = async () => {
+      setIsLoading(true);
+      try {
+        const response = await guestService.getGuests(eventoId);
+        if (response.success && response.guests) {
+          const todosInvitados = response.guests;
+
+          if (todosInvitados.length === 0) {
+            showError('No hay graduados en este evento');
+            setInvitados([]);
+            setInvitadosOrdenados([]);
+          } else {
+            const ordenados = [...todosInvitados].sort((a, b) => {
+              if (a.deuda_liquidada && !b.deuda_liquidada) return -1;
+              if (!a.deuda_liquidada && b.deuda_liquidada) return 1;
+
+              if (a.deuda_liquidada && b.deuda_liquidada) {
+                const fechaA = a.fecha_liquidacion || '';
+                const fechaB = b.fecha_liquidacion || '';
+                if (fechaA && fechaB) return new Date(fechaA) - new Date(fechaB);
+              }
+
+              return (a.nombre_completo || a.nombre || '').localeCompare(
+                b.nombre_completo || b.nombre || ''
+              );
+            });
+
+            setInvitados(ordenados);
+            setInvitadosOrdenados(ordenados);
+          }
+        } else {
+          showError('Error al cargar graduados');
           setInvitados([]);
           setInvitadosOrdenados([]);
-        } else {
-          // Ordenar por fecha de liquidación primero (liquidados primero), luego por nombre
-          const ordenados = [...todosInvitados].sort((a, b) => {
-            // Liquidados primero
-            if (a.deuda_liquidada && !b.deuda_liquidada) return -1;
-            if (!a.deuda_liquidada && b.deuda_liquidada) return 1;
-            
-            // Entre liquidados, por fecha de liquidación
-            if (a.deuda_liquidada && b.deuda_liquidada) {
-              const fechaA = a.fecha_liquidacion || '';
-              const fechaB = b.fecha_liquidacion || '';
-              if (fechaA && fechaB) {
-                return new Date(fechaA) - new Date(fechaB);
-              }
-            }
-            
-            // Si no están liquidados, por nombre
-            return (a.nombre_completo || a.nombre || '').localeCompare(
-              b.nombre_completo || b.nombre || ''
-            );
-          });
-          
-          setInvitados(ordenados);
-          setInvitadosOrdenados(ordenados);
         }
-      } else {
-        showError('Error al cargar graduados');
+      } catch (error) {
+        console.error('Error al cargar invitados:', error);
+        showError('Error al cargar graduados del evento');
         setInvitados([]);
         setInvitadosOrdenados([]);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error al cargar invitados:', error);
-      showError('Error al cargar graduados del evento');
-      setInvitados([]);
-      setInvitadosOrdenados([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    cargarInvitados();
+  }, [isOpen, eventoId, showError]);
 
   /**
    * Configurar sensores para drag & drop
@@ -158,6 +156,49 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
       setIsGenerating(false);
     }
   };
+
+    /**
+     * Importar Excel con columna Turnos (dry-run)
+     */
+    const handleFileSelected = async (file) => {
+      if (!file) return;
+      setDryRunResult(null);
+      setLastUploadedFile(file);
+      setShowSampleAssignments(false);
+
+      try {
+        const response = await turnosService.importarTurnos(eventoId, file);
+        if (response.success) {
+          setDryRunResult(response.data?.dryRun || response.data);
+          showSuccess('Dry-run realizado. Revisa el resumen antes de aplicar.');
+        } else {
+          showError(response.error || 'Error realizando dry-run');
+        }
+      } catch (err) {
+        console.error('Error importando archivo:', err);
+        showError('Error importando archivo');
+      }
+    };
+
+    const handleApply = async () => {
+      if (!lastUploadedFile) return showError('No hay archivo para aplicar.');
+      setIsApplying(true);
+      try {
+        const response = await turnosService.importarTurnos(eventoId, lastUploadedFile, true, overrideConflicts, (p) => {});
+        if (response.success) {
+          showSuccess('Asignaciones aplicadas correctamente');
+          // cerrar modal indicando cambios
+          onClose(true);
+        } else {
+          showError(response.error || 'Error aplicando asignaciones');
+        }
+      } catch (err) {
+        console.error('Error aplicando asignaciones:', err);
+        showError('Error aplicando asignaciones');
+      } finally {
+        setIsApplying(false);
+      }
+    };
 
   /**
    * Generar turnos con orden manual
@@ -281,7 +322,7 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
       <Dialog open={isOpen} onClose={handleClose} className="relative z-50">
         <div className="fixed inset-0 bg-black/50" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <DialogPanel className="w-full max-w-2xl rounded-xl bg-white dark:bg-gray-800 p-6 shadow-2xl">
+          <DialogPanel className="relative w-full max-w-2xl rounded-xl bg-white dark:bg-gray-800 p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <Users className="w-7 h-7 text-casal" />
@@ -293,7 +334,13 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
               >
                 <X className="w-6 h-6" />
               </button>
+
+              
+
+              
             </div>
+
+            
 
             <div className="space-y-4">
               <p className="text-gray-600 dark:text-gray-300 text-center mb-6">
@@ -350,6 +397,70 @@ const ModalOrdenManualTurnos = ({ isOpen, onClose, eventoId }) => {
                   </div>
                 </div>
               </button>
+
+              {/* Opción Importar: se inserta al final del contenedor de opciones */}
+              <div>
+                <input id="import-turnos-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="hidden" onChange={(e) => handleFileSelected(e.target.files[0])} />
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => document.getElementById('import-turnos-file')?.click()}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.getElementById('import-turnos-file')?.click(); } }}
+                  className="w-full p-6 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/5 transition-all duration-200 group"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors">
+                      <Users className="w-8 h-8 text-green-600" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Importar Turnos desde Excel</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Sube el archivo generado previamente con la columna <strong>Turnos</strong>. Se realizará un dry-run antes de aplicar.</p>
+                      {dryRunResult ? (
+                        <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                          <div>Dry-run: <strong>{dryRunResult.assignmentsCount}</strong> asignaciones, <strong>{dryRunResult.conflicts?.length || 0}</strong> conflictos</div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setShowSampleAssignments(s => !s); }}
+                              className="text-xs text-casal hover:underline"
+                            >
+                              {showSampleAssignments ? 'Ocultar ejemplo' : 'Ver ejemplo de asignaciones'}
+                            </button>
+                            <label className="text-xs text-gray-500 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <input type="checkbox" checked={overrideConflicts} onChange={(e) => setOverrideConflicts(e.target.checked)} />
+                              Forzar conflictos
+                            </label>
+                          </div>
+                          <div className="pt-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleApply(); }}
+                              disabled={isApplying}
+                              className="px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded disabled:opacity-50"
+                            >
+                              {isApplying ? 'Aplicando...' : 'Aplicar asignaciones'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500">Dry-run automático al subir el archivo</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {showSampleAssignments && dryRunResult?.sampleAssignments && (
+                <div className="mt-3 p-3 border rounded bg-gray-50 dark:bg-gray-900 text-sm">
+                  <div className="font-semibold mb-2">Asignaciones de ejemplo (filas)</div>
+                  <ul className="space-y-2 max-h-44 overflow-auto">
+                    {dryRunResult.sampleAssignments.map(s => (
+                      <li key={s.row} className="flex justify-between">
+                        <div>{s.row} — {s.invitado_nombre}</div>
+                        <div className="text-gray-600">{s.parsed.type === 'number' ? `#${s.parsed.numero}` : new Date(s.parsed.fecha_hora_inicio).toLocaleString()}</div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {isLoading && (
                 <div className="text-center py-4">
