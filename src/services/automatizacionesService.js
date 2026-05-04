@@ -115,6 +115,10 @@ class AutomatizacionesService {
     try {
       const response = await httpService.put(`/automatizaciones/${id}`, datos);
 
+      console.log('📡 Respuesta del backend (actualizarAutomatizacion):', response);
+      console.log('📦 response.data:', response.data);
+      console.log('⚡ Acciones en response.data:', response.data?.acciones);
+
       return {
         success: true,
         automatizacion: response.data || response,

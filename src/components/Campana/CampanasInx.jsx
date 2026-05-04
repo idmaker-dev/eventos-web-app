@@ -91,7 +91,8 @@ export default function CampanasInx() {
     error, 
     duplicarAutomatizacion,
     cambiarEstado,
-    eliminarAutomatizacion 
+    eliminarAutomatizacion,
+    obtenerAutomatizaciones  // 🆕 Agregar para poder recargar datos
   } = useAutomatizaciones();
 
   // Mapear automatizaciones a formato de tarjetas
@@ -121,8 +122,13 @@ export default function CampanasInx() {
   };
 
   const handleVolverALista = () => {
+    console.log('⬅️ Volviendo a la lista');
     setVistaActual("lista");
     setCampanaActual(null);
+    
+    // 🆕 SOLUCIÓN ADICIONAL: Recargar automatizaciones para asegurar sincronización
+    console.log('🔄 Recargando lista de automatizaciones...');
+    obtenerAutomatizaciones();
   };
 
   const handleDuplicar = async (campana) => {
@@ -150,8 +156,15 @@ export default function CampanasInx() {
   };
 
   const handleEditar = (campana) => {
+    console.log('✏️ Abriendo editor para campana:', campana);
+    console.log('📋 Estado actual de automatizaciones:', automatizaciones);
+    
     // Encontrar automatización completa del backend
     const automatizacionCompleta = automatizaciones.find(a => a.id === campana.id);
+    
+    console.log('🔍 Automatización completa encontrada:', automatizacionCompleta);
+    console.log('⚡ Acciones en automatización completa:', automatizacionCompleta?.acciones);
+    
     if (automatizacionCompleta) {
       setCampanaActual(automatizacionCompleta);
       setVistaActual("configuracion");

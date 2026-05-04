@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { ChevronLeft, Check, AlertCircle, CircleCheckBig, MoreHorizontal } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { ChevronLeft, Check, AlertCircle, CircleCheckBig, MoreHorizontal, Info } from "lucide-react";
 import { Button } from "@headlessui/react";
 import useAutomatizaciones from "../../hooks/useAutomatizaciones";
 import { useNotifications } from "../../contexts/NotificationContext";
 import clsx from "clsx";
+import RichTextEditor from "./RichTextEditor";
+import EditorHelp from "./EditorHelp";
+import { obtenerFiltrosDisponibles, obtenerMensajeAyuda, obtenerFrecuenciaRecomendada, obtenerFiltrosUsuario } from "./filtrosContextuales";
+import { useSelectedEvent } from "../../contexts/SelectedEventContext";
 
 export default function ConfiguracionNueva({ campana, onVolver }) {
-  const { actualizarAutomatizacion, loading } = useAutomatizaciones();
+  const { actualizarAutomatizacion, obtenerAutomatizacionPorId, loading } = useAutomatizaciones();
   const { showSuccess, showError, showWarning } = useNotifications();
+  const { eventos } = useSelectedEvent();
 
   // Estado para los 4 paneles de configuración
   const [panelActual, setPanelActual] = useState(1);
@@ -32,45 +37,121 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
     };
   });
 
-  // Panel 2: Filtros de destinatarios
+  // Panel 2: Filtros de destinatarios (expandido con nuevos campos)
   const [filtros, setFiltros] = useState(() => {
+    const defaultFiltros = {
+      // Filtros básicos
+      tiene_telefono: true,
+      tiene_email: false,
+      id_evento: "",
+      
+      // Filtros personales
+      es_mayor_edad: null,
+      rango_edad_min: null,
+      rango_edad_max: null,
+      
+      // Filtros de boletos
+      tiene_boletos: false,
+      cantidad_boletos_min: null,
+      
+      // Filtros de deuda
+      estado_deuda: [],
+      monto_pendiente_min: null,
+      monto_pendiente_max: null,
+      dias_hasta_vencimiento: null,
+      
+      // Filtros de turnos
+      turno_confirmado: null,
+      tiene_turno_asignado: false,
+      
+      // Filtros de mesas
+      mesa_seleccionada: null,
+      tiene_restricciones_alimentarias: false,
+      
+      // Filtros de tutor
+      tiene_tutor: false,
+      
+      // Filtros de contrato
+      contrato_firmado: null,
+
+      // Filtros de asistencia
+      asistencia_confirmada: null,
+
+      // Tipo de destinatario: "invitados" | "usuarios" | "ambos"
+      destinatarios_tipo: "invitados",
+
+      // Filtros de usuarios del sistema
+      rol_usuario: [],
+      activo_usuario: true,
+      lugar_id_usuario: "",
+    };
+    
     if (campana?.filtros_destinatarios) {
       return {
-        tiene_telefono: campana.filtros_destinatarios.tiene_telefono !== undefined 
-          ? campana.filtros_destinatarios.tiene_telefono 
-          : true,
-        estado_deuda: Array.isArray(campana.filtros_destinatarios.estado_deuda) 
-          ? campana.filtros_destinatarios.estado_deuda 
-          : [],
-        turno_confirmado: campana.filtros_destinatarios.turno_confirmado !== undefined
-          ? campana.filtros_destinatarios.turno_confirmado
-          : null,
-        mesa_seleccionada: campana.filtros_destinatarios.mesa_seleccionada !== undefined
-          ? campana.filtros_destinatarios.mesa_seleccionada
-          : null,
+        ...defaultFiltros,
+        ...campana.filtros_destinatarios,
         id_evento: campana.filtros_destinatarios.id_evento || campana.id_evento || "",
       };
     }
-    return {
-      tiene_telefono: true,
-      estado_deuda: [],
-      turno_confirmado: null,
-      mesa_seleccionada: null,
-      id_evento: "",
-    };
+    
+    return defaultFiltros;
   });
+  
+  // Calcular filtros relevantes según el disparador
+  const filtrosRelevantes = useMemo(() => {
+    return obtenerFiltrosDisponibles(disparador.tipo, disparador.evento_tipo);
+  }, [disparador.tipo, disparador.evento_tipo]);
+
+  // Resetear todos los filtros cuando cambia el tipo de disparador/evento
+  useEffect(() => {
+    setFiltros(prev => ({
+      // Solo conservar los básicos con sus valores actuales
+      tiene_telefono: prev.tiene_telefono ?? true,
+      tiene_email: false,
+      id_evento: prev.id_evento ?? "",
+      // Todo lo demás vuelve a defaults
+      es_mayor_edad: null, rango_edad_min: null, rango_edad_max: null,
+      tiene_boletos: false, cantidad_boletos_min: null,
+      estado_deuda: [], monto_pendiente_min: null, monto_pendiente_max: null, dias_hasta_vencimiento: null,
+      turno_confirmado: null, tiene_turno_asignado: false,
+      mesa_seleccionada: null, tiene_restricciones_alimentarias: false,
+      tiene_tutor: false, contrato_firmado: null,
+      asistencia_confirmada: null,
+      // Preservar destinatarios_tipo y filtros de usuario
+      destinatarios_tipo: prev.destinatarios_tipo ?? "invitados",
+      rol_usuario: [], activo_usuario: true, lugar_id_usuario: "",
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [disparador.tipo, disparador.evento_tipo]);
+  
+  // Frecuencia recomendada según el disparador (para sugerencia en paso 4)
+  const frecuenciaRecomendada = useMemo(() => {
+    return obtenerFrecuenciaRecomendada(disparador.tipo, disparador.evento_tipo);
+  }, [disparador.tipo, disparador.evento_tipo]);
+  
+  // Obtener mensaje de ayuda contextual
+  const mensajeAyudaFiltros = useMemo(() => {
+    return obtenerMensajeAyuda(disparador.tipo, disparador.evento_tipo);
+  }, [disparador.tipo, disparador.evento_tipo]);
 
   // Panel 3: Acciones
   const [acciones, setAcciones] = useState(() => {
+    console.log('🔧 Inicializando estado de acciones desde campana:', campana);
+    console.log('⚡ campana.acciones:', campana?.acciones);
+    
     if (campana?.acciones && campana.acciones.length > 0) {
-      return campana.acciones.map(accion => ({
+      const accionesMapeadas = campana.acciones.map(accion => ({
         tipo: accion.tipo || "whatsapp",
         plantilla: accion.plantilla || "",
         mensaje: accion.mensaje || "",
         asunto: accion.asunto || "",
         activa: accion.activa !== undefined ? accion.activa : true,
       }));
+      console.log('✅ Acciones mapeadas:', accionesMapeadas);
+      return accionesMapeadas;
     }
+    
+    console.log('⚠️ No hay acciones en campana, usando default (WhatsApp)');
     return [
       {
         tipo: "whatsapp",
@@ -217,12 +298,24 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
 
     setGuardando(true);
     try {
-      await actualizarAutomatizacion(campana.id, {
+      console.log('💾 Guardando configuración...');
+      console.log('⚡ Acciones a guardar:', acciones);
+      
+      const automatizacionActualizada = await actualizarAutomatizacion(campana.id, {
         disparador,
         filtros_destinatarios: filtros,
         acciones,
         frecuencia,
       });
+      
+      console.log('✅ Automatización guardada:', automatizacionActualizada);
+      console.log('⚡ Acciones en automatización guardada:', automatizacionActualizada?.acciones);
+      
+      // 🆕 SOLUCIÓN: Recargar datos frescos del backend antes de volver
+      console.log('🔄 Recargando datos actualizados del backend...');
+      const automatizacionFresca = await obtenerAutomatizacionPorId(campana.id);
+      console.log('✨ Automatización fresca del backend:', automatizacionFresca);
+      console.log('⚡ Acciones en automatización fresca:', automatizacionFresca?.acciones);
       
       showSuccess("Configuración guardada exitosamente");
       onVolver();
@@ -422,6 +515,10 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
                   <PanelFiltros
                     filtros={filtros}
                     setFiltros={setFiltros}
+                    filtrosRelevantes={filtrosRelevantes}
+                    mensajeAyuda={mensajeAyudaFiltros}
+                    disparador={disparador}
+                    eventos={eventos}
                   />
                 )}
                 {panelActual === 3 && (
@@ -435,6 +532,8 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
                   <PanelFrecuencia
                     frecuencia={frecuencia}
                     setFrecuencia={setFrecuencia}
+                    disparador={disparador}
+                    frecuenciaRecomendada={frecuenciaRecomendada}
                     error={errores.frecuencia}
                   />
                 )}
@@ -471,6 +570,9 @@ export default function ConfiguracionNueva({ campana, onVolver }) {
           </div>
         </div>
       </div>
+      
+      {/* Ayuda flotante del editor */}
+      {(panelActual === 3) && <EditorHelp />}
     </div>
   );
 }
@@ -532,14 +634,24 @@ function PanelDisparador({ disparador, setDisparador, error }) {
             className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300"
           >
             <option value="">Selecciona un evento...</option>
-            <option value="invitado_creado">Graduado Creado</option>
-            <option value="invitado_actualizado">Graduado Actualizado</option>
-            <option value="pago_completado">Pago Completado</option>
-            <option value="pago_parcial">Pago Parcial</option>
-            <option value="deuda_vencida">Deuda Vencida</option>
-            <option value="turno_asignado">Turno Asignado</option>
-            <option value="turno_confirmado">Turno Confirmado</option>
-            <option value="mesa_seleccionada">Mesa Seleccionada</option>
+            <optgroup label="── Registro del Graduado ──">
+              <option value="registro_iniciado">Registro Iniciado (formulario enviado)</option>
+              <option value="pendiente_firma_contrato">Pendiente de Firma (espera firmar)</option>
+              <option value="registro_completo">Registro Completo (con deuda generada)</option>
+              <option value="contrato_firmado">Contrato Firmado (acto de firma)</option>
+              <option value="asistencia_confirmada">Asistencia Confirmada</option>
+              <option value="invitado_actualizado">Datos Actualizados</option>
+            </optgroup>
+            <optgroup label="── Pagos / Deudas ──">
+              <option value="pago_completado">Pago Completado</option>
+              <option value="pago_parcial">Pago Parcial</option>
+              <option value="deuda_vencida">Deuda Vencida</option>
+            </optgroup>
+            <optgroup label="── Turnos / Mesas ──">
+              <option value="turno_asignado">Turno Asignado</option>
+              <option value="turno_confirmado">Turno Confirmado</option>
+              <option value="mesa_seleccionada">Mesa Seleccionada</option>
+            </optgroup>
           </select>
         </div>
       )}
@@ -608,131 +720,357 @@ function PanelDisparador({ disparador, setDisparador, error }) {
 }
 
 // ========== PANEL 2: FILTROS ==========
-function PanelFiltros({ filtros, setFiltros }) {
+function PanelFiltros({ filtros, setFiltros, filtrosRelevantes, mensajeAyuda, disparador, eventos }) {
+  // Función auxiliar para actualizar filtro
+  const actualizarFiltro = (key, value) => {
+    setFiltros({ ...filtros, [key]: value });
+  };
+
+  // Contar filtros activos
+  const contarFiltrosActivos = () => {
+    return Object.entries(filtros).filter(([key, value]) => {
+      if (key === 'id_evento') return false;
+      if (key === 'destinatarios_tipo') return false; // No cuenta como filtro
+      if (key === 'activo_usuario') return false; // Es un default, no filtro activo
+      if (value === null || value === '' || value === false) return false;
+      if (Array.isArray(value) && value.length === 0) return false;
+      return true;
+    }).length;
+  };
+
+  const filtrosActivos = contarFiltrosActivos();
+
+  // Renderizar filtro según su tipo
+  const renderizarFiltro = (key, config) => {
+    switch (config.tipo) {
+      case 'boolean':
+        return (
+          <div key={key} className="mb-6">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filtros[key] || false}
+                onChange={(e) => actualizarFiltro(key, e.target.checked)}
+                className="w-5 h-5 text-casal border-gray-300 rounded focus:ring-casal cursor-pointer"
+              />
+              <span className="ml-3 text-gray-700 dark:text-gray-300 font-medium">
+                {config.label}
+                {config.es_recomendado && (
+                  <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                    Recomendado
+                  </span>
+                )}
+              </span>
+            </label>
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-8">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+
+      case 'text':
+        return (
+          <div key={key} className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {config.label}
+              {config.es_recomendado && (
+                <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                  Recomendado
+                </span>
+              )}
+            </label>
+            <input
+              type="text"
+              value={filtros[key] || ''}
+              onChange={(e) => actualizarFiltro(key, e.target.value)}
+              placeholder={config.placeholder || ''}
+              className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300"
+            />
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+
+      case 'select': {
+        // Resolver opciones dinámicas
+        let opciones = config.opciones || [];
+        if (config.opciones_dinamicas === 'eventos' && eventos?.length > 0) {
+          opciones = eventos.map(ev => ({ value: ev.id, label: ev.nombreEvento || ev.nombre_evento || ev.nombre || ev.id }));
+        }
+        return (
+          <div key={key} className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {config.label}
+              {config.es_recomendado && (
+                <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                  Recomendado
+                </span>
+              )}
+            </label>
+            <select
+              value={filtros[key] || ''}
+              onChange={(e) => actualizarFiltro(key, e.target.value)}
+              className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 cursor-pointer"
+            >
+              <option value="">{config.placeholder || 'Seleccionar...'}</option>
+              {opciones.map((op) => (
+                <option key={op.value} value={op.value}>
+                  {op.label}
+                </option>
+              ))}
+            </select>
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+      }
+
+      case 'number':
+        return (
+          <div key={key} className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {config.label}
+              {config.es_recomendado && (
+                <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                  Recomendado
+                </span>
+              )}
+            </label>
+            <div className="relative">
+              {config.prefix && (
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                  {config.prefix}
+                </span>
+              )}
+              <input
+                type="number"
+                value={filtros[key] || ''}
+                onChange={(e) => actualizarFiltro(key, e.target.value ? parseInt(e.target.value) : null)}
+                min={config.min}
+                max={config.max}
+                placeholder={config.placeholder || ''}
+                className={clsx(
+                  "w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300",
+                  config.prefix && "pl-8"
+                )}
+              />
+            </div>
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+
+      case 'tristate':
+        return (
+          <div key={key} className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {config.label}
+              {config.es_recomendado && (
+                <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                  Recomendado
+                </span>
+              )}
+            </label>
+            <div className="flex gap-4">
+              {config.opciones.map((opcion) => (
+                <button
+                  key={String(opcion.value)}
+                  onClick={() => actualizarFiltro(key, opcion.value)}
+                  className={clsx(
+                    "flex-1 py-2 px-4 rounded-lg border-2 font-medium transition-all",
+                    filtros[key] === opcion.value
+                      ? "border-casal bg-casal text-white"
+                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-casal/50"
+                  )}
+                >
+                  {opcion.label}
+                </button>
+              ))}
+            </div>
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+
+      case 'multiselect':
+        return (
+          <div key={key} className="mb-6">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              {config.label}
+              {config.es_recomendado && (
+                <span className="ml-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
+                  Recomendado
+                </span>
+              )}
+            </label>
+            <div className="space-y-2">
+              {config.opciones.map((opcion) => {
+                const valor = typeof opcion === 'string' ? opcion : opcion.value;
+                const etiqueta = typeof opcion === 'string' ? opcion : opcion.label;
+                const estaSeleccionado = Array.isArray(filtros[key]) && filtros[key].includes(valor);
+
+                return (
+                  <label key={valor} className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={estaSeleccionado}
+                      onChange={(e) => {
+                        const valoresActuales = Array.isArray(filtros[key]) ? filtros[key] : [];
+                        const nuevosValores = e.target.checked
+                          ? [...valoresActuales, valor]
+                          : valoresActuales.filter((v) => v !== valor);
+                        actualizarFiltro(key, nuevosValores);
+                      }}
+                      className="w-4 h-4 text-casal border-gray-300 rounded focus:ring-casal cursor-pointer"
+                    />
+                    <span className="ml-2 text-gray-700 dark:text-gray-300">
+                      {etiqueta}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {config.descripcion && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                {config.descripcion}
+              </p>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // Verificar si hay disparador configurado
+  const hayDisparadorConfigado = disparador.tipo && 
+    (disparador.tipo !== 'evento' || disparador.evento_tipo);
+
   return (
     <div>
       <h3 className="text-xl font-bold text-casal mb-4">
         2. Filtros de Destinatarios
       </h3>
       <p className="text-gray-600 dark:text-gray-400 mb-6">
-        Define qué usuarios recibirán esta automatización
+        Define qué usuarios recibirán esta automatización. 
+        {filtrosActivos > 0 && (
+          <span className="ml-2 text-sm font-semibold text-casal">
+            ({filtrosActivos} {filtrosActivos === 1 ? 'filtro activo' : 'filtros activos'})
+          </span>
+        )}
       </p>
 
-      {/* Tiene teléfono */}
+      {/* Selector de tipo de destinatario */}
       <div className="mb-6">
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={filtros.tiene_telefono}
-            onChange={(e) =>
-              setFiltros({ ...filtros, tiene_telefono: e.target.checked })
-            }
-            className="w-5 h-5 text-casal border-gray-300 rounded focus:ring-casal"
-          />
-          <span className="ml-3 text-gray-700 dark:text-gray-300 font-medium">
-            Solo usuarios con teléfono registrado
-          </span>
+        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+          ¿A quién se enviará esta campaña?
         </label>
-      </div>
-
-      {/* ID de Evento */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          ID del Evento (Opcional)
-        </label>
-        <input
-          type="text"
-          value={filtros.id_evento || ""}
-          onChange={(e) => setFiltros({ ...filtros, id_evento: e.target.value })}
-          placeholder="Deja vacío para todos los eventos"
-          className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300"
-        />
-      </div>
-
-      {/* Estado de Deuda */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          Estado de Deuda
-        </label>
-        <div className="space-y-2">
-          {["PENDIENTE", "PAGADA", "VENCIDA", "PARCIAL"].map((estado) => (
-            <label key={estado} className="flex items-center">
-              <input
-                type="checkbox"
-                checked={filtros.estado_deuda?.includes(estado)}
-                onChange={(e) => {
-                  const nuevosEstados = e.target.checked
-                    ? [...(filtros.estado_deuda || []), estado]
-                    : (filtros.estado_deuda || []).filter((e) => e !== estado);
-                  setFiltros({ ...filtros, estado_deuda: nuevosEstados });
-                }}
-                className="w-4 h-4 text-casal border-gray-300 rounded focus:ring-casal"
-              />
-              <span className="ml-2 text-gray-700 dark:text-gray-300">
-                {estado}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Turno Confirmado */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          Turno Confirmado
-        </label>
-        <div className="flex gap-4">
+        <div className="grid grid-cols-3 gap-3">
           {[
-            { value: null, label: "Ambos" },
-            { value: true, label: "Sí" },
-            { value: false, label: "No" },
-          ].map((opcion) => (
+            { value: "invitados", label: "Invitados / Graduados", desc: "Personas registradas en el evento" },
+            { value: "usuarios", label: "Usuarios del Sistema", desc: "Administradores y organizadores" },
+            { value: "ambos", label: "Ambos", desc: "Envío simultáneo a invitados y usuarios" },
+          ].map((tipo) => (
             <button
-              key={String(opcion.value)}
-              onClick={() =>
-                setFiltros({ ...filtros, turno_confirmado: opcion.value })
-              }
+              key={tipo.value}
+              onClick={() => setFiltros({ ...filtros, destinatarios_tipo: tipo.value })}
               className={clsx(
-                "flex-1 py-2 px-4 rounded-lg border-2 font-medium transition-all",
-                filtros.turno_confirmado === opcion.value
-                  ? "border-casal bg-casal text-white"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-casal/50"
+                "p-3 rounded-lg border-2 text-left transition-all",
+                filtros.destinatarios_tipo === tipo.value
+                  ? "border-casal bg-casal/10"
+                  : "border-gray-300 dark:border-gray-600 hover:border-casal/50"
               )}
             >
-              {opcion.label}
+              <div className="font-semibold text-sm text-gray-800 dark:text-gray-200">
+                {tipo.label}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                {tipo.desc}
+              </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Mesa Seleccionada */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          Mesa Seleccionada
-        </label>
-        <div className="flex gap-4">
-          {[
-            { value: null, label: "Ambos" },
-            { value: true, label: "Sí" },
-            { value: false, label: "No" },
-          ].map((opcion) => (
-            <button
-              key={String(opcion.value)}
-              onClick={() =>
-                setFiltros({ ...filtros, mesa_seleccionada: opcion.value })
-              }
-              className={clsx(
-                "flex-1 py-2 px-4 rounded-lg border-2 font-medium transition-all",
-                filtros.mesa_seleccionada === opcion.value
-                  ? "border-casal bg-casal text-white"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-casal/50"
-              )}
-            >
-              {opcion.label}
-            </button>
-          ))}
+      {/* Mensaje de ayuda contextual */}
+      {mensajeAyuda && hayDisparadorConfigado && filtros.destinatarios_tipo !== "usuarios" && (
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex gap-3">
+          <Info size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-blue-800 dark:text-blue-200 font-medium mb-1">
+              Filtros contextuales
+            </p>
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              {mensajeAyuda}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Advertencia si no hay disparador configurado */}
+      {!hayDisparadorConfigado && (
+        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex gap-3">
+          <AlertCircle size={20} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm text-amber-800 dark:text-amber-200 font-medium mb-1">
+              Configura el disparador primero
+            </p>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              Los filtros disponibles dependen del tipo de disparador que selecciones. 
+              Vuelve al paso 1 para configurar el disparador.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Renderizar filtros relevantes */}
+      {/* Filtros de Invitados */}
+      {filtros.destinatarios_tipo !== "usuarios" && (
+        <>
+          {Object.keys(filtrosRelevantes).length > 0 ? (
+            <div className="space-y-1">
+              {Object.entries(filtrosRelevantes).map(([key, config]) =>
+                renderizarFiltro(key, config)
+              )}
+            </div>
+          ) : (
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+              <p>Selecciona un tipo de disparador en el paso 1 para ver los filtros disponibles.</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Filtros de Usuarios del Sistema */}
+      {filtros.destinatarios_tipo !== "invitados" && (
+        <div className={clsx(filtros.destinatarios_tipo === "ambos" && "mt-6 pt-6 border-t border-gray-200 dark:border-gray-700")}>
+          {filtros.destinatarios_tipo === "ambos" && (
+            <h4 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+              Filtros para Usuarios del Sistema
+            </h4>
+          )}
+          <div className="space-y-1">
+            {Object.entries(obtenerFiltrosUsuario()).map(([key, config]) =>
+              renderizarFiltro(key, config)
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -817,26 +1155,13 @@ function PanelAcciones({ acciones, setAcciones, errores }) {
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Mensaje
                 </label>
-                <textarea
+                <RichTextEditor
                   value={accion.mensaje}
-                  onChange={(e) =>
-                    actualizarAccion(index, "mensaje", e.target.value)
+                  onChange={(contenido) =>
+                    actualizarAccion(index, "mensaje", contenido)
                   }
                   placeholder="Hola {{nombre}}, este es tu mensaje..."
-                  rows={4}
-                  className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 resize-none"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Variables disponibles: {"{"}
-                  {"{"}nombre{"}"}
-                  {"}"}, {"{"}
-                  {"{"}telefono{"}"}
-                  {"}"}, {"{"}
-                  {"{"}evento_nombre{"}"}
-                  {"}"}, {"{"}
-                  {"{"}monto_pendiente{"}"}
-                  {"}"}
-                </p>
               </div>
             )}
 
@@ -870,16 +1195,14 @@ function PanelAcciones({ acciones, setAcciones, errores }) {
                 />
 
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  Contenido (opcional)
+                  Contenido del Email
                 </label>
-                <textarea
+                <RichTextEditor
                   value={accion.mensaje}
-                  onChange={(e) =>
-                    actualizarAccion(index, "mensaje", e.target.value)
+                  onChange={(contenido) =>
+                    actualizarAccion(index, "mensaje", contenido)
                   }
-                  placeholder="Contenido adicional del email..."
-                  rows={4}
-                  className="w-full p-3 border rounded-lg bg-white dark:bg-[#2a2a2a] text-gray-700 dark:text-gray-300 resize-none"
+                  placeholder="Escribe el contenido del correo aquí..."
                 />
               </div>
             )}
@@ -956,7 +1279,12 @@ function PanelAcciones({ acciones, setAcciones, errores }) {
 }
 
 // ========== PANEL 4: FRECUENCIA ==========
-function PanelFrecuencia({ frecuencia, setFrecuencia, error }) {
+function PanelFrecuencia({ frecuencia, setFrecuencia, disparador, frecuenciaRecomendada, error }) {
+  // Nombre legible del disparador para el banner
+  const nombreDisparador = disparador?.evento_tipo
+    ? disparador.evento_tipo.replace(/_/g, " ")
+    : disparador?.tipo?.replace(/_/g, " ") || "";
+
   return (
     <div>
       <h3 className="text-xl font-bold text-casal mb-4">
@@ -966,6 +1294,26 @@ function PanelFrecuencia({ frecuencia, setFrecuencia, error }) {
         Define con qué frecuencia se puede enviar esta automatización a cada
         destinatario
       </p>
+
+      {/* Banner de recomendación contextual */}
+      {frecuenciaRecomendada && (
+        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">
+            💡 Recomendación para «{nombreDisparador}»
+          </p>
+          <p className="text-xs text-amber-700 dark:text-amber-400 mb-3">
+            {frecuenciaRecomendada.razon}
+          </p>
+          {frecuencia.tipo !== frecuenciaRecomendada.tipo && (
+            <button
+              onClick={() => setFrecuencia({ ...frecuencia, tipo: frecuenciaRecomendada.tipo })}
+              className="text-xs font-semibold text-amber-800 dark:text-amber-300 underline hover:no-underline"
+            >
+              Aplicar recomendación ({frecuenciaRecomendada.tipo})
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Tipo de frecuencia */}
       <div className="mb-6">

@@ -520,11 +520,11 @@ export default function Cuestionario() {
         }, 1500);
       } else {
         console.error("Error al guardar:", res.error);
-        showError("Error al completar el registro. Intenta nuevamente.");
+        showError(res.error || "Error al completar el registro. Intenta nuevamente.");
       }
     } catch (error) {
       console.error("Error al crear invitado:", error);
-      showError("Error al completar el registro. Intenta nuevamente.");
+      showError(error.message || "Error al completar el registro. Intenta nuevamente.");
     } finally {
       setIsEnviandoFormulario(false);
     }
