@@ -459,56 +459,156 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
   );
 
   const ticket = ticketDetail.ticket;
-  const invitado = ticketDetail.invitado || {};
   const historialAcciones = ticketDetail.historial_acciones || [];
   const conversacion = ticketDetail.conversacion || {};
+  const eventosBackend = ticketDetail.eventos_asociados || clientInfo?.eventos_asociados || [];
 
-  const datosPersonales = clientInfo?.datos_personales || {};
-  const evento = clientInfo?.evento || {};
-  const lugar = evento?.lugar || {};
-  const informacionPago = clientInfo?.informacion_pago || {};
-  const informacionBoletos = clientInfo?.informacion_boletos || {};
-  const historialAccionesCliente =
-    clientInfo?.historial_acciones?.acciones || [];
-  const historialTickets = clientInfo?.tickets?.lista || [];
+  // Función auxiliar para transformar un evento individual
+  const transformarEventoIndividual = (eventoData) => {
+    const { invitado_id, datos_personales, evento, informacion_pago, informacion_boletos } = eventoData;
+    const lugar = evento?.lugar || {};
 
-  // Formatear boletos para la UI
-  let boletosFormateados = (informacionBoletos.boletos || []).map((boleto) => ({
-    codigo: boleto.codigo,
-    asiento: boleto.mesa_numero ? `Mesa ${boleto.mesa_numero}` : "Sin asignar",
-    menu: boleto.menu || "No especificado",
-    status: true,
-    retriciones: boleto.restricciones
-      ? boleto.restricciones.map((r) => ({ item: r }))
-      : [],
-  }));
+    // Formatear boletos
+    let boletosFormateados = (informacion_boletos?.boletos || []).map((boleto) => ({
+      codigo: boleto.codigo,
+      asiento: boleto.mesa_numero ? `Mesa ${boleto.mesa_numero}` : "Sin asignar",
+      menu: boleto.menu || "No especificado",
+      status: true,
+      retriciones: boleto.restricciones
+        ? boleto.restricciones.map((r) => ({ item: r }))
+        : [],
+    }));
 
-  // Ajustar la cantidad de boletos para coincidir con la cantidad solicitada
-  // Esto maneja el caso donde el backend actualiza el contador pero aún no genera los registros individuales
-  const cantidadSolicitada =
-    parseInt(informacionBoletos.cantidad_solicitada) ||
-    boletosFormateados.length;
+    const cantidadSolicitada = parseInt(informacion_boletos?.cantidad_solicitada) || boletosFormateados.length;
 
-  if (boletosFormateados.length < cantidadSolicitada) {
-    // Faltan boletos (recién agregados), agregar placeholders
-    const faltantes = cantidadSolicitada - boletosFormateados.length;
-    for (let i = 0; i < faltantes; i++) {
-      boletosFormateados.push({
-        codigo: `Pendiente-${Date.now()}-${i}`, // ID temporal único
-        asiento: "Procesando...",
-        menu: "No especificado",
-        status: false, // Marcar como incompleto/pendiente
-        retriciones: [],
-      });
+    if (boletosFormateados.length < cantidadSolicitada) {
+      const faltantes = cantidadSolicitada - boletosFormateados.length;
+      for (let i = 0; i < faltantes; i++) {
+        boletosFormateados.push({
+          codigo: `Pendiente-${Date.now()}-${i}`,
+          asiento: "Procesando...",
+          menu: "No especificado",
+          status: false,
+          retriciones: [],
+        });
+      }
+    } else if (boletosFormateados.length > cantidadSolicitada) {
+      boletosFormateados = boletosFormateados.slice(0, cantidadSolicitada);
     }
-  } else if (boletosFormateados.length > cantidadSolicitada) {
-    // Sobran boletos (recién eliminados), recortar la lista
-    // Asumimos que se eliminan los últimos (o el backend los eliminará pronto)
-    boletosFormateados = boletosFormateados.slice(0, cantidadSolicitada);
+
+    return {
+      invitado_id,
+      evento_id: evento.id,
+      nombre_evento: evento.nombre || evento.nombre_evento,
+      detalle: {
+        fechaTicket: formatearFecha(ticket.fecha_creacion),
+        nombreAsistente: datos_personales?.nombre_completo || ticket.nombre,
+        nombreEvento: evento.nombre || evento.nombre_evento || "Evento principal",
+        estadoDelTicket: ticket.estatus,
+        movimiento: ticket.mensaje,
+        escuela: evento.instituto || "N/A",
+        descripcion: ticket.ultimo_mensaje || ticket.mensaje,
+        boletos: {
+          anteriores: boletosFormateados.slice(0, Math.floor(boletosFormateados.length / 2)),
+          adicionales: boletosFormateados.slice(Math.floor(boletosFormateados.length / 2)),
+        },
+        cantidadPagada: `$${informacion_pago?.progreso?.monto_pagado || 0} MXN`,
+        formaPago: informacion_pago?.detalle_transacciones?.at(-1)?.tipo || "Tarjeta vinculada - Toku",
+        responsableCambio: ticket.nombre_promotor || "Sin asignar",
+        fechaPago: informacion_pago?.ultima_actualizacion ? formatearFecha(informacion_pago.ultima_actualizacion) : "N/A",
+        lugarPago: lugar.nombre || "Portal de pagos",
+        fechaEvento: evento.fecha_evento ? formatearFechaHora(evento.fecha_evento) : "N/A",
+        boletosTotales: informacion_boletos?.cantidad_solicitada || 0,
+        precioBoleto: informacion_pago?.progreso?.monto_total
+          ? `$${Math.floor(informacion_pago.progreso.monto_total / (informacion_boletos?.cantidad_solicitada || 1))} MXN`
+          : "$0 MXN",
+        fechaDePagos: informacion_pago?.cuotas?.lista_cuotas?.[0]?.fecha_vencimiento
+          ? formatearFecha(informacion_pago.cuotas.lista_cuotas[0].fecha_vencimiento)
+          : "N/A",
+        coordinadorEvento: lugar.numero_contacto || "N/A",
+      },
+      cliente: {
+        nombre: datos_personales?.nombre_completo || ticket.nombre,
+        estudios: datos_personales?.estudios?.licenciatura || "N/A",
+        institución: datos_personales?.estudios?.instituto || "N/A",
+        boletos: boletosFormateados,
+        responsable: ticket.nombre_promotor || "Sin asignar",
+        catidadPedido: String(informacion_boletos?.cantidad_solicitada || 0),
+        contactoErme: {
+          telefonoER: datos_personales?.contacto_emergencia?.telefono || "",
+          tutorER: datos_personales?.tutor?.nombre_completo || "",
+        },
+        contacto: {
+          telefono: datos_personales?.numero_telefono || ticket.telefono,
+          tutor: datos_personales?.tutor?.nombre_completo || "",
+        },
+      },
+      pago: {
+        estadoGeneral: informacion_pago?.cuotas?.vencidas > 0
+          ? "Con cuotas vencidas"
+          : informacion_pago?.cuotas?.pendientes > 0
+            ? "Pago pendiente"
+            : "Al corriente",
+        totalBoletos: informacion_boletos?.cantidad_asignada || 0,
+        totalPagado: formatearMonto(informacion_pago?.progreso?.monto_pagado || 0),
+        formaPago: informacion_pago?.detalle_transacciones?.at(-1)?.tipo || "Tarjeta vinculada - Toku",
+        fechaDePago: informacion_pago?.ultima_actualizacion ? formatearFecha(informacion_pago.ultima_actualizacion) : "N/A",
+        fechaVencimiento: informacion_pago?.cuotas?.lista_cuotas?.[0]?.fecha_vencimiento
+          ? formatearFecha(informacion_pago.cuotas.lista_cuotas[0].fecha_vencimiento)
+          : "N/A",
+        transacciones: (informacion_pago?.detalle_transacciones || []).map((tx) => ({
+          fecha: formatearFecha(tx.fecha),
+          monto: formatearMonto(tx.monto),
+          método: tx.tipo || "Tarjeta",
+          estado: tx.estado || "Pendiente",
+        })),
+        adicional: {
+          devoluciones: Array.isArray(informacion_pago?.devoluciones)
+            ? informacion_pago.devoluciones.map((d) => ({ ...d, fecha: formatearFecha(d.date) }))
+            : informacion_pago?.devoluciones || "No registradas",
+          progresoPago: `${informacion_pago?.progreso?.porcentaje || 0}%`,
+          últimaActualización: informacion_pago?.ultima_actualizacion ? formatearFechaHora(informacion_pago.ultima_actualizacion) : "N/A",
+          responsableRegistro: informacion_pago?.responsable_registro || "Sistema automático",
+        },
+        detalleExtra: (informacion_pago?.cuotas?.lista_cuotas || []).map((cuota) => ({
+          fecha: formatearFecha(cuota.fecha_vencimiento),
+          detalle: `${cuota.descripcion} - ${cuota.estado_display}`,
+        })),
+        estado: informacion_pago?.estado_deuda || "PENDIENTE",
+        progreso: informacion_pago?.progreso?.porcentaje || 0,
+        monto_pagado: informacion_pago?.progreso?.monto_pagado || 0,
+        monto_total: informacion_pago?.progreso?.monto_total || 0,
+        monto_pendiente: informacion_pago?.progreso?.monto_pendiente || 0,
+        cuotas: informacion_pago?.cuotas || {},
+      }
+    };
+  };
+
+  // Transformar todos los eventos
+  let eventosAsociadosFormateados = [];
+  if (eventosBackend.length > 0) {
+    eventosAsociadosFormateados = eventosBackend.map(transformarEventoIndividual);
+  } else {
+    // Fallback para mantener compatibilidad si no viene el array
+    eventosAsociadosFormateados = [transformarEventoIndividual({
+      invitado_id: clientInfo?.invitado_id,
+      datos_personales: clientInfo?.datos_personales,
+      evento: clientInfo?.evento || {},
+      informacion_pago: clientInfo?.informacion_pago,
+      informacion_boletos: clientInfo?.informacion_boletos
+    })];
   }
 
-  // Formatear historial de tickets del cliente (endpoint 3)
-  const historialTicketsFormateado = historialTickets.map((t) => ({
+  const primerEvento = eventosAsociadosFormateados[0] || {
+    detalle: {},
+    cliente: { contacto: {}, contactoErme: {}, boletos: [] },
+    pago: { transacciones: [], adicional: {}, detalleExtra: [] },
+    invitado_id: null,
+    evento_id: null
+  };
+
+  // Historiales (comunes al ticket o al cliente)
+  const historialTickets = (clientInfo?.tickets?.lista || []).map((t) => ({
     motivo: t.mensaje || "Sin descripción",
     fecha: formatearFecha(t.fecha_creacion),
     estado: mapearEstadoTicket(t.estatus),
@@ -516,19 +616,17 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
     responsable: t.nombre_promotor || "Sin asignar",
   }));
 
-  // Formatear historial de acciones
   const historialFormateado = [
     ...historialAcciones,
-    ...historialAccionesCliente,
+    ...(clientInfo?.historial_acciones?.acciones || [])
   ].map((accion) => ({
-    fecha: formatearFecha(accion.fecha_accion),
-    hora: formatearHora(accion.fecha_accion),
-    evento: mapearTipoAccion(accion.tipo_accion),
+    fecha: formatearFecha(accion.fecha_accion || accion.created_at),
+    hora: formatearHora(accion.fecha_accion || accion.created_at),
+    evento: mapearTipoAccion(accion.tipo_accion || accion.accion),
     detalle: accion.descripcion || "Sin detalles",
     responsable: accion.responsable || "Sistema",
   }));
 
-  // Formatear mensajes del chat
   const mensajesFormateados = (conversacion.mensajes || []).map((msg) => ({
     id: msg.id,
     remitente: msg.from === "usuario" ? "Cliente" : "Soporte",
@@ -539,19 +637,6 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
     leido: msg.leido,
   }));
 
-  // Simulación: Agregar un mensaje con imagen si hay mensajes
-  // if (mensajesFormateados.length > 0) {
-  //   mensajesFormateados.push({
-  //     id: "simulated-img-1",
-  //     remitente: "Cliente",
-  //     from: "usuario",
-  //     texto: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-  //     hora: formatearFechaHora(new Date().toISOString()),
-  //     timestamp: new Date().toISOString(),
-  //     leido: true,
-  //   });
-  // }
-
   return {
     id: ticket.id,
     ticket: ticket.ticket,
@@ -559,123 +644,17 @@ export function transformarTicketCompletoParaUI(ticketDetail, clientInfo) {
     tiempo: calcularTiempoTranscurrido(ticket.fecha_creacion),
     estado: mapearEstadoTicket(ticket.estatus),
     color: getColorEstado(ticket.estatus),
-    detalle: {
-      fechaTicket: formatearFecha(ticket.fecha_creacion),
-      nombreAsistente: invitado.nombre_completo || ticket.nombre,
-      nombreEvento: evento.descripcion || "Evento principal",
-      estadoDelTicket: ticket.estatus,
-      movimiento: ticket.mensaje,
-      escuela: evento.instituto || "N/A",
-      descripcion: ticket.ultimo_mensaje || ticket.mensaje,
-      boletos: {
-        anteriores: boletosFormateados.slice(
-          0,
-          Math.floor(boletosFormateados.length / 2)
-        ),
-        adicionales: boletosFormateados.slice(
-          Math.floor(boletosFormateados.length / 2)
-        ),
-      },
-      cantidadPagada: `$${informacionPago.progreso?.monto_pagado || 0} MXN`,
-      formaPago: "Tarjeta vinculada - Toku",
-      responsableCambio: ticket.nombre_promotor || "Sin asignar",
-      fechaPago: informacionPago.ultima_actualizacion
-        ? formatearFecha(informacionPago.ultima_actualizacion)
-        : "N/A",
-      lugarPago: lugar.nombre || "Portal de pagos",
-      fechaEvento: evento.fecha_evento
-        ? formatearFechaHora(evento.fecha_evento)
-        : "N/A",
-      boletosTotales: informacionBoletos.cantidad_solicitada || 0,
-      precioBoleto: informacionPago.progreso?.monto_total
-        ? `$${Math.floor(
-          informacionPago.progreso.monto_total /
-          (informacionBoletos.cantidad_solicitada || 1)
-        )} MXN`
-        : "$0 MXN",
-      fechaDePagos: informacionPago.cuotas?.lista_cuotas?.[0]?.fecha_vencimiento
-        ? formatearFecha(
-          informacionPago.cuotas.lista_cuotas[0].fecha_vencimiento
-        )
-        : "N/A",
-      coordinadorEvento: lugar.numero_contacto || "N/A",
-    },
-    cliente: {
-      nombre: datosPersonales.nombre_completo || ticket.nombre,
-      estudios: datosPersonales.estudios?.licenciatura || "N/A",
-      institución: datosPersonales.estudios?.instituto || "N/A",
-      boletos: boletosFormateados,
-      responsable: ticket.nombre_promotor || "Sin asignar",
-      catidadPedido: String(informacionBoletos.cantidad_solicitada || 0),
-      contactoErme: {
-        telefonoER: datosPersonales.contacto_emergencia?.telefono || "",
-        tutorER: datosPersonales.tutor?.nombre_completo || "",
-      },
-      contacto: {
-        telefono: datosPersonales.numero_telefono || ticket.telefono,
-        tutor: datosPersonales.tutor?.nombre_completo || "",
-      },
-    },
-    ticketHistorial: historialTicketsFormateado, // Historial de tickets del cliente
-    historialSecuencial: historialFormateado, // Historial de acciones
+    eventos_asociados: eventosAsociadosFormateados,
+    // Propiedades del primer evento (para compatibilidad)
+    detalle: primerEvento.detalle,
+    cliente: primerEvento.cliente,
+    pago: primerEvento.pago,
+    invitado_id: primerEvento.invitado_id,
+    evento_id: primerEvento.evento_id,
+    // Historiales y chat
+    ticketHistorial: historialTickets,
+    historialSecuencial: historialFormateado,
     chat: mensajesFormateados,
-    pago: {
-      estadoGeneral:
-        informacionPago.cuotas?.vencidas > 0
-          ? "Con cuotas vencidas"
-          : informacionPago.cuotas?.pendientes > 0
-            ? "Pago pendiente"
-            : "Al corriente",
-      totalBoletos: informacionBoletos.cantidad_asignada || 0,
-      totalPagado: formatearMonto(informacionPago.progreso?.monto_pagado || 0),
-      formaPago: informacionPago.detalle_transacciones?.at(-1)?.tipo || "Tarjeta vinculada - Toku",
-      fechaDePago: informacionPago.ultima_actualizacion
-        ? formatearFecha(informacionPago.ultima_actualizacion)
-        : "N/A",
-      fechaVencimiento: informacionPago.cuotas?.lista_cuotas?.[0]
-        ?.fecha_vencimiento
-        ? formatearFecha(
-          informacionPago.cuotas.lista_cuotas[0].fecha_vencimiento
-        )
-        : "N/A",
-      transacciones: (informacionPago.detalle_transacciones || []).map(
-        (tx) => ({
-          fecha: formatearFecha(tx.fecha),
-          monto: formatearMonto(tx.monto),
-          método: tx.tipo || "Tarjeta",
-          estado: tx.estado || "Pendiente",
-        })
-      ),
-      adicional: {
-        devoluciones: Array.isArray(informacionPago.devoluciones)
-          ? informacionPago.devoluciones.map((d) => ({
-            ...d,
-            fecha: formatearFecha(d.date),
-          }))
-          : informacionPago.devoluciones || "No registradas",
-        opcionesDevolucion: [],
-        progresoPago: `${informacionPago.progreso?.porcentaje || 0}%`,
-        últimaActualización: informacionPago.ultima_actualizacion
-          ? formatearFechaHora(informacionPago.ultima_actualizacion)
-          : "N/A",
-        responsableRegistro:
-          informacionPago.responsable_registro || "Sistema automático",
-      },
-      detalleExtra: (informacionPago.cuotas?.lista_cuotas || []).map(
-        (cuota) => ({
-          fecha: formatearFecha(cuota.fecha_vencimiento),
-          detalle: `${cuota.descripcion} - ${cuota.estado_display}`,
-        })
-      ),
-      // Datos originales para uso interno
-      estado: informacionPago.estado_deuda || "PENDIENTE",
-      progreso: informacionPago.progreso?.porcentaje || 0,
-      monto_pagado: informacionPago.progreso?.monto_pagado || 0,
-      monto_total: informacionPago.progreso?.monto_total || 0,
-      monto_pendiente: informacionPago.progreso?.monto_pendiente || 0,
-      cuotas: informacionPago.cuotas || {},
-    },
-    invitado_id: clientInfo?.invitado_id || null,
-    evento_id: evento?.id || null,
   };
 }
+

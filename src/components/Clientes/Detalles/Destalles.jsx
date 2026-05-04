@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   User,
   Clock,
@@ -56,7 +56,37 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
   const [tabActivo, setTabActivo] = useState("cliente");
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [deudaForCancel, setDeudaForCancel] = useState(null);
+  const [indexEventoSeleccionado, setIndexEventoSeleccionado] = useState(0);
   const isMobile = useIsMobile();
+
+  // Resetear evento seleccionado si cambia el ticket
+  useEffect(() => {
+    setIndexEventoSeleccionado(0);
+    setModificandoBoletos(false);
+    setNuevaCantidad(0);
+  }, [ticket?.id]);
+
+  // Resetear estado de modificación si cambian de pestaña de evento
+  useEffect(() => {
+    setModificandoBoletos(false);
+    setNuevaCantidad(0);
+  }, [indexEventoSeleccionado]);
+
+  // Si no hay ticket, el componente retorna temprano más abajo
+
+  // Obtener datos del evento seleccionado
+  const eventosAsociados = ticket?.eventos_asociados || [];
+  const hayMultiplesEventos = eventosAsociados.length > 1;
+  const eventoActivo = hayMultiplesEventos ? eventosAsociados[indexEventoSeleccionado] : {
+    detalle: ticket.detalle,
+    cliente: ticket.cliente,
+    pago: ticket.pago,
+    invitado_id: ticket.invitado_id,
+    evento_id: ticket.evento_id
+  };
+
+  // Desestructuramos del evento activo para usar en el resto del componente
+  const { detalle, cliente, pago, invitado_id } = eventoActivo;
 
   // console.log(ticket, "*******************************************");
 
@@ -73,9 +103,9 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
   const [showComprobantesModal, setShowComprobantesModal] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
 
-  // Obtener cantidad actual de boletos del ticket
+  // Obtener cantidad actual de boletos del cliente del evento seleccionado
   const cantidadActual =
-    ticket?.cliente?.catidadPedido || ticket?.cliente?.boletos?.length || 2;
+    cliente?.catidadPedido || cliente?.boletos?.length || 0;
 
   const handleIniciarModificacion = (incremento) => {
     if (!modificandoBoletos) {
@@ -129,8 +159,8 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
     try {
       setCargando(true);
 
-      // Obtener invitado_id del ticket
-      const invitadoId = ticket?.cliente?.invitado_id || ticket?.invitado_id;
+      // Obtener invitado_id del evento seleccionado
+      const invitadoId = invitado_id || ticket?.cliente?.invitado_id || ticket?.invitado_id;
 
       if (!invitadoId) {
         showError("No se encontró el ID del graduado");
@@ -177,7 +207,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
   const handleOpenCancelModal = async () => {
     try {
       setCargando(true);
-      const invitadoId = ticket?.cliente?.invitado_id || ticket?.invitado_id;
+      const invitadoId = invitado_id || ticket?.cliente?.invitado_id || ticket?.invitado_id;
       const resultado = await eventService.getEventDebts(eventoActual.id);
       
       if (resultado.success) {
@@ -345,6 +375,31 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
             </div>
           </div>
         )}
+        
+        {/* Selector de Eventos (Solo si hay múltiples) */}
+        {hayMultiplesEventos && (
+          <div className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-2 overflow-x-auto">
+            <div className="flex gap-2 min-w-max">
+              <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center px-2">
+                Eventos:
+              </span>
+              {eventosAsociados?.map((ev, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setIndexEventoSeleccionado(idx)}
+                  className={clsx(
+                    "px-3 py-1.5 rounded-full text-xs font-semibold transition-all border",
+                    indexEventoSeleccionado === idx
+                      ? "bg-casal text-white border-casal shadow-sm"
+                      : "bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700 hover:border-casal/50"
+                  )}
+                >
+                  {ev.nombre_evento}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Contenido principal con scroll */}
@@ -380,8 +435,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {ticket.ticketHistorial &&
-                      ticket.ticketHistorial.length > 0 ? (
+                      {ticket.ticketHistorial?.length > 0 ? (
                         ticket.ticketHistorial.map((item, index) => (
                           <tr
                             key={index}
@@ -431,7 +485,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                     <span className="font-semibold">Fecha de Ticket:</span>{" "}
                     <br />{" "}
                     <span className="text-gray-500 font-semibold">
-                      {ticket.detalle.fechaTicket}
+                      {detalle.fechaTicket}
                     </span>{" "}
                     <br />
                   </div>
@@ -439,7 +493,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                     <span className="font-semibold">Nombre del asistente:</span>{" "}
                     <br />{" "}
                     <span className="text-gray-500 font-semibold">
-                      {ticket.detalle.nombreAsistente}
+                      {detalle.nombreAsistente}
                     </span>{" "}
                     <br />
                   </div>
@@ -447,7 +501,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                     <span className="font-semibold">Nombre del evento:</span>{" "}
                     <br />{" "}
                     <span className="text-gray-500 font-semibold">
-                      {ticket.detalle.nombreEvento}
+                      {detalle.nombreEvento}
                     </span>{" "}
                     <br />
                   </div>
@@ -467,23 +521,22 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                   <div className="text-xs text-casal dark:text-Acapulco leading-5 mt-2">
                     <span className="font-semibold">Movimiento:</span> <br />
                     <span className="text-gray-500 font-semibold">
-                      {ticket.detalle.movimiento}
+                      {detalle.movimiento}
                     </span>{" "}
                     <br />
                   </div>
                   <div className="text-xs text-casal dark:text-Acapulco leading-5 mt-2">
                     <span className="font-semibold">Descripción:</span> <br />{" "}
                     <span className="text-gray-500 font-semibold">
-                      {ticket.detalle.descripcion}
+                      {detalle.descripcion}
                     </span>{" "}
                     <br />
                   </div>
                   <div className="text-xs text-casal dark:text-Acapulco leading-5 mt-2">
                     <span className="font-semibold">Boletos anteriores:</span>
                     <div className="text-gray-500 font-semibold">
-                      {ticket.detalle.boletos?.anteriores &&
-                      ticket.detalle.boletos.anteriores.length > 0 ? (
-                        ticket.detalle.boletos.anteriores.map(
+                      {detalle.boletos?.anteriores?.length > 0 ? (
+                        detalle.boletos.anteriores.map(
                           (boleto, index) => (
                             <span key={index} className="mr-2">
                               {boleto.codigo}
@@ -500,9 +553,8 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                   <div className="text-xs text-casal dark:text-Acapulco leading-5 mt-2">
                     <span className="font-semibold">Boletos adicionales:</span>
                     <div className="text-gray-500 font-semibold">
-                      {ticket.detalle.boletos?.adicionales &&
-                      ticket.detalle.boletos.adicionales.length > 0 ? (
-                        ticket.detalle.boletos.adicionales.map(
+                      {detalle.boletos?.adicionales?.length > 0 ? (
+                        detalle.boletos.adicionales.map(
                           (boleto, index) => (
                             <span key={index} className="mr-2">
                               {boleto.codigo}
@@ -520,13 +572,13 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                     <span className="font-semibold">Cantidad pagada:</span>{" "}
                     <br />{" "}
                     <span className="text-gray-500 font-semibold">
-                      {ticket.detalle.cantidadPagada}
+                      {detalle.cantidadPagada}
                     </span>
                   </div>
                   <div className="text-xs text-casal dark:text-Acapulco leading-5 mt-2">
                     <span className="font-semibold">Forma de pago:</span> <br />{" "}
                     <span className="text-gray-500 font-semibold">
-                      {ticket.detalle.formaPago}
+                      {detalle.formaPago}
                     </span>
                   </div>
                   <div className="text-xs text-casal dark:text-Acapulco leading-5 mt-2">
@@ -535,21 +587,21 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                     </span>{" "}
                     <br />{" "}
                     <span className="text-gray-500 font-semibold">
-                      {ticket.detalle.responsableCambio}
+                      {detalle.responsableCambio}
                     </span>
                   </div>
                   <div className="text-xs text-casal dark:text-Acapulco leading-5 mt-2">
                     <span className="font-semibold">Fecha de cambio:</span>{" "}
                     <br />{" "}
                     <span className="text-gray-500 font-semibold">
-                      {ticket.detalle.fechaPago}
+                      {detalle.fechaPago}
                     </span>
                   </div>
                   <div className="text-xs text-casal dark:text-Acapulco leading-5 mt-2">
                     <span className="font-semibold">Última actualización:</span>{" "}
                     <br />{" "}
                     <span className="text-gray-500 font-semibold">
-                      {ticket.detalle.fechaDePagos}
+                      {detalle.fechaDePagos}
                     </span>
                   </div>
                   <div className="text-xs text-casal dark:text-Acapulco leading-5 mt-2">
@@ -599,7 +651,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                 <div className="text-xs text-casal flex flex-grow gap-1 dark:text-Acapulco leading-5 mt-2">
                   <div className="font-semibold">Evento:</div> <br />{" "}
                   <div className="font-normal">
-                    {ticket.detalle.nombreEvento}
+                    {detalle.nombreEvento}
                   </div>
                 </div>
                 <div className="text-xs text-casal flex flex-grow gap-1 dark:text-Acapulco leading-5 mt-2">
@@ -608,7 +660,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                   </div>{" "}
                   <br />{" "}
                   <div className="font-normal">
-                    {ticket.detalle.fechaEvento}
+                    {detalle.fechaEvento}
                   </div>
                 </div>
                 <div className="h-1 my-3 border-b border-gray-200 dark:border-gray-700"></div>
@@ -619,8 +671,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                   <div className="relative ml-3">
                     {/* Línea vertical */}
                     <div className="absolute left-2 top-0 w-0.5 h-full bg-gray-300"></div>
-                    {ticket.historialSecuencial &&
-                    ticket.historialSecuencial.length > 0 ? (
+                    {ticket.historialSecuencial?.length > 0 ? (
                       ticket.historialSecuencial.map((item, idx) => (
                         <div
                           key={idx}
@@ -686,19 +737,19 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                         <span className="font-semibold text-casal">
                           Nombre:
                         </span>{" "}
-                        {ticket.cliente.nombre}
+                        {cliente.nombre}
                       </div>
                       <div>
                         <span className="font-semibold text-casal">
                           Estudios:
                         </span>{" "}
-                        {ticket.cliente.estudios}
+                        {cliente.estudios}
                       </div>
                       <div>
                         <span className="font-semibold text-casal">
                           Cant. de boletos requeridos:
                         </span>{" "}
-                        {ticket.cliente.catidadPedido}
+                        {cliente.catidadPedido}
                       </div>
                       <div className="flex flex-col gap-2 w-full">
                         <div className="flex flex-row justify-between items-center gap-1 w-full">
@@ -724,12 +775,12 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                                 <Plus className="w-3 h-3" />
                               </Button>
                             </Tooltip>
-                            <div className="text-casal font-bold">
-                              {modificandoBoletos
-                                ? nuevaCantidad
-                                : cantidadActual}{" "}
-                              boletos
-                            </div>
+                    <div className="text-casal font-bold">
+                      {modificandoBoletos
+                        ? nuevaCantidad
+                        : (cliente?.catidadPedido || cliente?.boletos?.length || 0)}{" "}
+                      boletos
+                    </div>
                           </div>
                           
                           {/* DESCOMENTAR AL TERMINAR CANCELACION */}
@@ -848,8 +899,8 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                         <h3 className="font-bold text-casal mb-2">
                           <span className="">Restricciones alimenticias</span>
                         </h3>
-                        <div className="grid grid-cols-3 gap-1">
-                          {ticket.cliente.boletos.map((boleto, idx) => (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {cliente.boletos?.map((boleto, idx) => (
                             <div
                               key={boleto.codigo}
                               className={clsx(
@@ -873,8 +924,10 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                                 boleto.retriciones &&
                                 boleto.retriciones.some((r) => r.item) ? (
                                   boleto.retriciones
-                                    .filter((r) => r.item)
-                                    .map((r, i) => <div key={i}>{r.item}</div>)
+                                    .filter((r) => r && r.item)
+                                    .map((r, i) => (
+                                      <div key={i}>{r.item}</div>
+                                    ))
                                 ) : (
                                   <span className="text-gray-400">
                                     No especificado
@@ -894,20 +947,20 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                         {ticket.cliente.contactoErme.telefonoER}
                       </div> */}
 
-                      {ticket?.cliente?.contacto && (
+                      {cliente.contacto && (
                         <div>
                           <div>
                             <span className="font-semibold text-casal">
                               Datos del tutor:
                             </span>{" "}
-                            {ticket.cliente.contacto.tutor}
+                            {cliente.contacto.tutor}
                           </div>
 
                           <div>
                             <span className="font-semibold text-casal">
                               Teléfono del tutor:
                             </span>{" "}
-                            {ticket.cliente.contacto.telefono}
+                            {cliente.contacto.telefono}
                           </div>
                         </div>
                       )}
@@ -923,50 +976,50 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                           Nombre de la escuela:
                         </span>{" "}
                         <span className="break-words">
-                          {ticket.cliente.institución}
+                          {cliente.institución || cliente.estudios}
                         </span>
                       </div>
                       <div>
                         <span className="font-semibold text-casal">
                           Nombre del evento:
                         </span>{" "}
-                        {ticket.detalle.nombreEvento}
+                        {detalle.nombreEvento}
                       </div>
                       <div>
                         <span className="font-semibold text-casal">
                           Fecha y hora del evento:
                         </span>{" "}
-                        {ticket.detalle.fechaEvento}
+                        {detalle.fechaEvento}
                       </div>
                       <div>
                         <span className="font-semibold text-casal">
                           Lugar del evento:
                         </span>{" "}
-                        {ticket.detalle.lugarPago}
+                        {detalle.lugarPago}
                       </div>
                       <div>
                         <span className="font-semibold text-casal">
                           Cantidad estimada de asistentes:
                         </span>{" "}
-                        {ticket.detalle.boletosTotales}
+                        {detalle.boletosTotales}
                       </div>
                       <div>
                         <span className="font-semibold text-casal">
                           Coordinador de evento:
                         </span>{" "}
-                        {ticket.detalle.coordinadorEvento}
+                        {detalle.coordinadorEvento}
                       </div>
                       <div>
                         <span className="font-semibold text-casal">
                           Precio de cada boleto:
                         </span>{" "}
-                        {ticket.detalle.precioBoleto}
+                        {detalle.precioBoleto}
                       </div>
                       <div>
                         <span className="font-semibold text-casal">
                           Fecha de pagos:
                         </span>{" "}
-                        {ticket.detalle.fechaDePagos}
+                        {detalle.fechaDePagos}
                       </div>
                     </div>
                   </div>
@@ -980,7 +1033,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                       <span className="font-semibold text-casal">
                         Asistente:
                       </span>{" "}
-                      {ticket.cliente.nombre}
+                      {cliente.nombre}
                     </div>
                     <div className="mb-1">
                       <span className="font-semibold text-casal">
@@ -1000,19 +1053,19 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                             Estado general:
                           </span>
                         </div>
-                        <div>{ticket.pago.estadoGeneral}</div>
+                        <div>{pago.estadoGeneral}</div>
                         <div className="mt-2">
                           <span className="font-semibold text-casal">
                             Total de Boletos:
                           </span>
                         </div>
-                        <div>{ticket.pago.totalBoletos}</div>
+                        <div>{pago.totalBoletos}</div>
                         <div className="mt-2">
                           <span className="font-semibold text-casal">
                             Total pagado:
                           </span>
                         </div>
-                        <div>{ticket.pago.totalPagado}</div>
+                        <div>{pago.totalPagado}</div>
                       </div>
                       <div>
                         <div>
@@ -1020,69 +1073,24 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                             Forma de pago:
                           </span>
                         </div>
-                        <div>{ticket.pago.formaPago}</div>
+                        <div>{pago.formaPago}</div>
                         <div className="mt-2">
                           <span className="font-semibold text-casal">
                             Fecha de pago:
                           </span>
                         </div>
-                        <div>{ticket.pago.fechaDePago}</div>
+                        <div>{pago.fechaDePago}</div>
                         <div className="mt-2">
                           <span className="font-semibold text-casal">
                             Fecha de vencimiento:
                           </span>
                         </div>
-                        <div>{ticket.pago.fechaVencimiento}</div>
+                        <div>{pago.fechaVencimiento}</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Detalle de transacciones */}
-                  <div className="bg-white dark:bg-[#1a1a1a] rounded-lg p-4 shadow mb-4">
-                    <h4 className="font-bold text-casal mb-2 text-center">
-                      Detalle de transacciones
-                    </h4>
-                    <table className="w-full text-sm mb-2 rounded-lg">
-                      <thead>
-                        <tr className="bg-casal text-white">
-                          <th className="py-2 px-2 text-left rounded-l">
-                            Fecha
-                          </th>
-                          <th className="py-2 px-2 text-left">Monto</th>
-                          <th className="py-2 px-2 text-left">Método</th>
-                          <th className="py-2 px-2 text-left">Estado</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ticket.pago.transacciones.map((tx, idx) => (
-                          <tr
-                            key={idx}
-                            className="border-b text-casal hover:bg-slate-50 dark:hover:bg-casal/15"
-                          >
-                            <td className="py-2 px-2">{tx.fecha}</td>
-                            <td className="py-2 px-2">{tx.monto}</td>
-                            <td className="py-2 px-2">{tx.método}</td>
-                            <td className="py-2 px-2">
-                              <span
-                                className={clsx(
-                                  "px-2 py-1 rounded font-semibold text-xs",
-                                  tx.estado === "Pagado"
-                                    ? "bg-green-100 text-green-700"
-                                    : tx.estado === "Proceso"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-gray-200 text-gray-700"
-                                )}
-                              >
-                                {tx.estado}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Información adicional */}
                   <div className="bg-white dark:bg-[#1a1a1a] rounded-lg p-4 shadow mb-4">
                     <h4 className="font-bold text-casal mb-2 text-center">
                       Información adicional
@@ -1094,9 +1102,9 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                         </span>{" "}
                         <br />
                         <span className="text-gray-600 dark:text-gray-200">
-                          {ticket.pago.adicional.devoluciones.length > 0 ? (
+                          {pago.adicional?.devoluciones?.length > 0 ? (
                             <ul className="list-disc pl-5">
-                              {ticket.pago.adicional.devoluciones.map(
+                              {pago.adicional.devoluciones.map(
                                 (devolucion, idx) => (
                                   <li key={idx} className="text-sm">
                                     {devolucion.amount} {devolucion.currency} -{" "}
@@ -1111,6 +1119,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                           )}
                         </span>
                       </div>
+
                       <div className="flex justify-end mt-2">
                         <button
                           onClick={() => setShowRefundModal(true)}
@@ -1121,7 +1130,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                       </div>
                     </div>
                     <div className="mb-2 flex gap-2 flex-wrap">
-                      {ticket.pago.adicional.opcionesDevolucion.map(
+                      {pago.adicional?.opcionesDevolucion?.map(
                         (op, idx) => (
                           <span
                             key={idx}
@@ -1147,30 +1156,25 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                             className="h-3 bg-Acapulco rounded-full transition-all"
                             style={{
                               width: `${parseInt(
-                                ticket.pago.adicional.progresoPago
+                                pago.adicional.progresoPago
                               )}%`,
                             }}
                           ></div>
                         </div>
-                        <span className="font-bold text-casal min-w-[40px] text-right">
-                          {ticket.pago.adicional.progresoPago}
-                        </span>
+                        <div className="text-xs font-bold text-casal">
+                          {pago.adicional.progresoPago}
+                        </div>
                       </div>
-                    </div>
-                    <div className="mb-2 text-sm">
-                      <span className="font-semibold text-casal">
-                        Última actualización:
-                      </span>{" "}
-                      <span className="text-gray-500 dark:text-gray-300">
-                        {ticket.pago.adicional.últimaActualización}
-                      </span>
+                      <div className="mt-2 text-[10px] text-gray-500 italic">
+                        Última actualización: {pago.adicional.últimaActualización}
+                      </div>
                     </div>
                     <div className="mb-2 text-sm">
                       <span className="font-semibold text-casal">
                         Responsable del registro:
                       </span>{" "}
                       <span className="text-gray-500 dark:text-gray-300">
-                        {ticket.pago.adicional.responsableRegistro}
+                        {pago.adicional?.responsableRegistro}
                       </span>
                     </div>
                   </div>
@@ -1181,7 +1185,7 @@ export default function Destalles({ ticket, onBack, isMobileView, onRefresh }) {
                       Detalle de transacciones complementarias
                     </h4>
                     <ul className="text-sm">
-                      {ticket.pago.detalleExtra.map((extra, idx) => (
+                      {pago.detalleExtra?.map((extra, idx) => (
                         <li
                           key={idx}
                           className="mb-1 text-gray-500 dark:text-gray-400"
