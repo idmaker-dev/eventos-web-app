@@ -38,7 +38,7 @@ export default function ModalFirmaContrato({
   // Reset del estado cuando se cierra el modal
   useEffect(() => {
     if (!isOpen) {
-      setHaCompletadoLectura(false);
+      setHaCompletadoLectura(true);
       setAceptoTerminos(false);
       setHasDrawn(false);
     }
