@@ -156,7 +156,7 @@ export const useEventos = () => {
           usuarioId: user?.id,
           fechaCreacion: new Date().toISOString(),
           estado: "activo",
-          costo: datosEvento.costo || "",
+          costo: parseFloat(datosEvento.costo) || 0,
           fechas: datosEvento.fechas || [],
           requiere_tutor: datosEvento.requiere_tutor || false,
         };

@@ -135,7 +135,7 @@ export const useLayoutEvento = (eventoId = null) => {
    * Personalizar layout del evento (guardar cambios al backend)
    */
   const guardarLayoutPersonalizado = useCallback(
-    async (elementosActualizados = null) => {
+    async (elementosActualizados = null, metadata = null) => {
       if (!eventoId) {
         const error = "eventoId es requerido";
         setError(error);
@@ -150,7 +150,8 @@ export const useLayoutEvento = (eventoId = null) => {
       try {
         const result = await layoutEventoService.personalizarLayout(
           eventoId,
-          elementosAGuardar
+          elementosAGuardar,
+          metadata // 🆕 Pasar metadata al servicio
         );
 
         if (result.success) {
@@ -167,6 +168,9 @@ export const useLayoutEvento = (eventoId = null) => {
 
           if (EnvConfig.DEBUG_MODE) {
             console.log("✅ Layout personalizado guardado");
+            if (metadata) {
+              console.log("📦 Metadata guardada:", metadata);
+            }
           }
 
           return result;

@@ -15,6 +15,7 @@ import MesaRectangular from "./MesaRectangular.jsx";
 import DraggableElement from "./DraggableElement.jsx";
 import DesignTools from "./DesignTools.jsx";
 import StatsPanel from "./StatsPanel.jsx";
+import PanelCuotasCapacidades from "./PanelCuotasCapacidades.jsx";
 import ModalSillasEspeciales from "./ModalSillasEspeciales.jsx";
 import ModalAgregarMesasMultiples from "./ModalAgregarMesasMultiples.jsx";
 import ModalRenumerarMesas from "./ModalRenumerarMesas.jsx";
@@ -54,6 +55,35 @@ export default function DistribuccionEditor({
   const [capacidadMesaModal, setCapacidadMesaModal] = useState(8);
   const [showModalMesasMultiples, setShowModalMesasMultiples] = useState(false);
   const [showModalRenumerar, setShowModalRenumerar] = useState(false);
+  const [configuracionCapacidad, setConfiguracionCapacidad] = useState({
+    capacidad_base: 10,
+    permitir_aumento: false,
+    capacidad_maxima: 12,
+    mesas_pueden_aumentar: 0,
+    mesas_aumentadas: 0
+  });
+  
+  // 🆕 Efecto para restaurar configuración de capacidades desde layout cargado
+  useEffect(() => {
+    if (layoutFinal?.distribucion_capacidades) {
+      console.log('📥 Restaurando configuración de capacidades desde layout:', layoutFinal.distribucion_capacidades);
+      setConfiguracionCapacidad(layoutFinal.distribucion_capacidades);
+    }
+  }, [layoutFinal]);
+  
+  // Callback cuando se actualiza la configuración desde el panel
+  const handleConfiguracionActualizada = useCallback((nuevaConfiguracion) => {
+    console.log('📊 Configuración actualizada:', nuevaConfiguracion);
+    setConfiguracionCapacidad(nuevaConfiguracion);
+    
+    // Guardar en metadata del layout para persistir
+    if (onGuardarLayout && allElements.length > 0) {
+      const metadata = {
+        distribucion_capacidades: nuevaConfiguracion
+      };
+      onGuardarLayout(allElements, metadata);
+    }
+  }, [allElements, onGuardarLayout]);
   
   // Selección múltiple
   const [selectedElements, setSelectedElements] = useState([]);
@@ -413,6 +443,7 @@ export default function DistribuccionEditor({
       mesaSeleccionada.capacidad - mesaSeleccionada.invitados;
     const cantidadInvitados = datosInvitado.cantidad;
 
+    // ✅ CASO 1: Espacio suficiente para todos los boletos
     if (espacioDisponible >= cantidadInvitados) {
       setAllElements((prev) =>
         prev.map((element) =>
@@ -428,16 +459,90 @@ export default function DistribuccionEditor({
             : element
         )
       );
-      alert(
-        `✅ ${datosInvitado.nombre} asignado correctamente a la Mesa ${numeroMesa}`
+      
+      // Actualizar invitado: reducir cantidad o eliminarlo si se asignaron todos
+      setInvitados((prev) =>
+        prev.map((inv) =>
+          inv.id === datosInvitado.id
+            ? { ...inv, cantidad: 0, asignado: true }
+            : inv
+        )
       );
-    } else {
+      
       alert(
-        `No hay suficiente espacio en la Mesa ${numeroMesa}\n\n` +
-          `Espacio disponible: ${espacioDisponible} asientos\n` +
-          `Personas a asignar: ${cantidadInvitados}`
+        `✅ ${datosInvitado.nombre} (${cantidadInvitados} personas) asignado a Mesa ${numeroMesa}`
       );
+      return;
     }
+
+    // 🆕 CASO 2: Espacio insuficiente - ASIGNACIÓN PARCIAL
+    if (espacioDisponible > 0 && espacioDisponible < cantidadInvitados) {
+      const maxAsignable = espacioDisponible;
+      
+      const respuesta = window.confirm(
+        `⚠️ Espacio insuficiente en Mesa ${numeroMesa}\n\n` +
+        `${datosInvitado.nombre} tiene ${cantidadInvitados} boletos\n` +
+        `La mesa tiene ${espacioDisponible} espacios disponibles\n\n` +
+        `¿Deseas asignar ${maxAsignable} personas a esta mesa?\n` +
+        `(Quedarán ${cantidadInvitados - maxAsignable} boletos pendientes)`
+      );
+
+      if (!respuesta) return;
+
+      // Preguntar cuántos desea asignar (máximo = espacioDisponible)
+      const cantidadInput = prompt(
+        `¿Cuántas personas de ${datosInvitado.nombre} deseas asignar a Mesa ${numeroMesa}?\n\n` +
+        `Máximo permitido: ${maxAsignable}`,
+        maxAsignable.toString()
+      );
+
+      if (cantidadInput === null) return; // Usuario canceló
+
+      const cantidadAsignar = parseInt(cantidadInput, 10);
+
+      if (isNaN(cantidadAsignar) || cantidadAsignar < 1 || cantidadAsignar > maxAsignable) {
+        alert(`Cantidad inválida. Debe ser entre 1 y ${maxAsignable}`);
+        return;
+      }
+
+      // Asignar la cantidad especificada a la mesa
+      setAllElements((prev) =>
+        prev.map((element) =>
+          element.numero === numeroMesa &&
+          (element.type === "mesa" || element.type === "mesaRectangular")
+            ? {
+                ...element,
+                invitados: element.invitados + cantidadAsignar,
+                invitadosEspeciales: datosInvitado.necesidadEspecial
+                  ? (element.invitadosEspeciales || 0) + cantidadAsignar
+                  : element.invitadosEspeciales || 0,
+              }
+            : element
+        )
+      );
+
+      // Actualizar invitado: reducir cantidad
+      const nuevaCantidad = cantidadInvitados - cantidadAsignar;
+      setInvitados((prev) =>
+        prev.map((inv) =>
+          inv.id === datosInvitado.id
+            ? { ...inv, cantidad: nuevaCantidad, asignado: nuevaCantidad === 0 }
+            : inv
+        )
+      );
+
+      alert(
+        `✅ ${cantidadAsignar} personas de ${datosInvitado.nombre} asignadas a Mesa ${numeroMesa}\n\n` +
+        `Boletos restantes: ${nuevaCantidad}`
+      );
+      return;
+    }
+
+    // ❌ CASO 3: Mesa llena
+    alert(
+      `❌ La Mesa ${numeroMesa} está llena\n\n` +
+      `No hay espacios disponibles`
+    );
   };
 
   // Selección múltiple
@@ -894,11 +999,34 @@ export default function DistribuccionEditor({
 
   // Agregar mesas múltiples
   const agregarMesasMultiples = (config) => {
-    const { cantidad, capacidad, tipo, distribucion, direccionNumeracion = "horizontal-derecha-abajo", numeroVuelta = null } = config;
+    const { 
+      cantidad, 
+      capacidad, 
+      tipo, 
+      distribucion, 
+      direccionNumeracion = "horizontal-derecha-abajo", 
+      numeroVuelta = null,
+      distribucion_capacidades = null // 🆕 Nueva propiedad
+    } = config;
+    
     console.log('Cantidad: ' + cantidad);
+    console.log('Distribución Capacidades:', distribucion_capacidades);
     
     const nuevasMesas = [];
     let numeroInicial = obtenerSiguienteNumeroMesa();
+
+    // ℹ️ NOTA: TODAS las mesas se crean con la capacidad base especificada
+    // La configuración de capacidades define:
+    // - capacidad_base: capacidad inicial de todas las mesas
+    // - permitir_aumento: si se permite aumentar capacidad en algunas mesas
+    // - capacidad_maxima: límite máximo de asientos
+    // - mesas_pueden_aumentar: cuántas mesas pueden aumentarse del total
+    if (distribucion_capacidades) {
+      console.log('ℹ️ Configuración de capacidades:', distribucion_capacidades);
+      console.log('ℹ️ Todas las mesas iniciarán con capacidad base:', capacidad);
+      // 🆕 Actualizar el estado de configuración de capacidades
+      setConfiguracionCapacidad(distribucion_capacidades);
+    }
 
     // Espaciado fijo entre mesas (píxeles)
     const ESPACIO_HORIZONTAL = 150; // Espacio fijo entre mesas horizontalmente
@@ -1049,7 +1177,7 @@ export default function DistribuccionEditor({
           type: tipo,
           numero: pos.numeroMesa,
           invitados: 0,
-          capacidad: capacidad,
+          capacidad: capacidad, // ✅ Siempre usar capacidad base
           sillasEspeciales: [],
           position: pos.position,
           rotation: 0,
@@ -1066,7 +1194,7 @@ export default function DistribuccionEditor({
           type: tipo,
           numero: numeroInicial + i,
           invitados: 0,
-          capacidad: capacidad,
+          capacidad: capacidad, // ✅ Siempre usar capacidad base
           sillasEspeciales: [],
           position: {
             x: Math.random() * 3000 + 200,
@@ -1525,6 +1653,7 @@ export default function DistribuccionEditor({
       totalMesas: allElements.filter(
         (el) => el.type === "mesa" || el.type === "mesaRectangular"
       ).length,
+      distribucion_capacidades: configuracionCapacidad, // 🆕 Incluir configuración de capacidades
     };
 
     // Si se proporciona una función personalizada de guardado, usarla
@@ -1951,7 +2080,15 @@ export default function DistribuccionEditor({
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
-            <StatsPanel stats={stats} />
+            <div className="space-y-4 max-h-[600px] overflow-y-auto">
+              <StatsPanel stats={stats} />
+              <PanelCuotasCapacidades 
+                elementos={allElements}
+                onConfiguracionActualizada={handleConfiguracionActualizada}
+                modoEdicion={true}
+                configuracionInicial={configuracionCapacidad}
+              />
+            </div>
 
             {/* Área de Diseño */}
             <div className="flex-1 border border-gray-300 rounded-3xl overflow-hidden shadow-sm">
